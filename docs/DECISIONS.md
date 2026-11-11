@@ -4,7 +4,7 @@ Newest first. One entry per big decision: what, why, and what would make us revi
 
 ## 2026-11-11 — Race and mining for the prototype
 
-- **Hill Climb:** one track, about 95 m from START to FINISH, rising with slopes up to roughly 30 degrees. The clock runs between the flags; 4 seconds below 0.5 m/s (stuck or out of fuel) ends the run. Best time per track is saved in `user://progress.json`.
+- **Hill Climb:** one track, about 340 m from START to FINISH, slopes up to about 41 degrees near the end. In simulation the starter car finishes in about 21 s, a light buggy and a heavy truck in about 26–27 s, so design choices change the time. The clock runs between the flags; 4 seconds below 0.5 m/s (stuck or out of fuel) ends the run. Best time per track is saved in `user://progress.json`.
 - **Mining:** ore is placed as half-buried rocks (Scrap, Iron, Copper; rarer further out). A Drill Head adds a tip point to the car; pressing it on a rock grinds the rock down and pays out its material. Digging into the ground itself waits for the tile world in the vertical slice, because the prototype ground is a height line.
 - **Why:** answers the prototype question (is building and driving fun?) with the least code that will be thrown away.
 - **Automated playtests:** CI drives both modes headless every build, so a broken race or mining loop shows up immediately.

@@ -15,7 +15,7 @@ public partial class DriveScene : Node2D
 {
     private const float PixelsPerMeter = 64f;
     private const float StartX = 300f;
-    private const float FinishX = 6400f;
+    private const float FinishX = 22000f;   // about 340 m after the start
     private const float StuckSpeed = 0.5f * PixelsPerMeter;  // below 0.5 m/s ...
     private const float StuckSeconds = 4f;                    // ... for this long = stuck
 
@@ -48,7 +48,7 @@ public partial class DriveScene : Node2D
         {
             Name = "Terrain",
             Style = _isRace ? TerrainStyle.HillClimb : TerrainStyle.Rolling,
-            Length = _isRace ? 7200 : 12000,
+            Length = _isRace ? 24000 : 12000,
             Seed = _isRace ? 11 : 7,
         };
         AddChild(_terrain);
