@@ -378,6 +378,20 @@ def part_cab():
     return img
 
 
+def part_booster():
+    # Orange rocket casing with a dark band and rivets; the nozzle bell is drawn by the game.
+    img, d = panel((214, 112, 40), (248, 160, 80), (150, 72, 24))
+    d.rectangle([0, 7, P - 1, 13], fill=(52, 54, 62))                     # steel band
+    d.line([(0, 8), (P - 1, 8)], fill=(96, 100, 112))
+    for x in (3, 9, 15, 20):
+        d.point((x, 10), fill=(200, 206, 216))                              # rivets
+    for i in range(3):                                                      # chevrons pointing forward
+        x = 5 + i * 5
+        d.line([(x, 15), (x + 2, 17), (x, 19)], fill=(250, 214, 100))
+    d.rectangle([0, 2, 2, P - 5], fill=(60, 60, 70))                        # nozzle collar at the back
+    return img
+
+
 def wheel(radius, tread, rim_col):
     size = 56
     img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
@@ -401,7 +415,7 @@ def make_parts():
     parts = [part_frame_light(), part_steel(), part_heavy(),
              part_engine((150, 96, 60), (190, 150, 110), 2), part_engine((190, 60, 44), (220, 220, 226), 3),
              part_engine((224, 44, 30), (250, 210, 60), 4),
-             part_armor(), part_bumper(), part_fuel(), part_drill(), part_cab()]
+             part_armor(), part_bumper(), part_fuel(), part_drill(), part_cab(), part_booster()]
     sheet = Image.new("RGBA", (P * len(parts), P), (0, 0, 0, 0))
     for i, p in enumerate(parts):
         sheet.paste(p, (i * P, 0))

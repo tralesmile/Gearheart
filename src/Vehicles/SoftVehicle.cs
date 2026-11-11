@@ -36,6 +36,25 @@ public partial class SoftVehicle : Node2D, IVehicle
 
     public bool HasDrill => _drills.Count > 0;
 
+    public bool HasBooster => _boosters.Count > 0;
+
+    /// <summary>Bots only: fire the boosters whenever the car is in a safe attitude.</summary>
+    public bool AutoBoost;
+
+    /// <summary>True while the rocket boosters are firing this tick.</summary>
+    public bool Boosting { get; private set; }
+
+    /// <summary>True while no attached wheel touches the ground.</summary>
+    public bool Airborne
+    {
+        get
+        {
+            foreach (var w in _wheels)
+                if (w.Attached && w.Grounded) return false;
+            return true;
+        }
+    }
+
     /// <summary>Shows the driver in the cab window.</summary>
     public bool Occupied { get; set; }
     public SoftPhysicsWorld World { get; set; }
@@ -99,13 +118,15 @@ public partial class SoftVehicle : Node2D, IVehicle
     private readonly List<Wheel> _wheels = new();
     private readonly List<Cell> _cells = new();
     private readonly List<DrillTip> _drills = new();
+    private readonly List<Cell> _boosters = new();
+    private float _boostFuelUse;
     private float[] _nodeRadius;
     private float _totalMass;
     private float _engineTorque, _engineMaxSpin, _fuelUse;
     private VehicleInput _input;
     private float _drillContactTime;
     private Cell _frontCell, _rearCell;
-    private CpuParticles2D _dust, _exhaust;
+    private CpuParticles2D _dust, _exhaust, _boostSmoke;
     private float _upsideDownTime;
     private bool _selfRighting;
     private const float AirSpinDamping = 0.003f;   // share of spin removed per substep while airborne
@@ -149,7 +170,7 @@ public partial class SoftVehicle : Node2D, IVehicle
         // Lights go on the frontmost and rearmost body blocks (the lowest one when several tie).
         foreach (var cell in _cells)
         {
-            if (cell.Part.Category == PartCategory.Drill) continue;
+            if (cell.Part.Category is PartCategory.Drill or PartCategory.Booster) continue;
             if (_frontCell == null || cell.GridX > _frontCell.GridX || (cell.GridX == _frontCell.GridX && cell.GridY > _frontCell.GridY)) _frontCell = cell;
             if (_rearCell == null || cell.GridX < _rearCell.GridX || (cell.GridX == _rearCell.GridX && cell.GridY > _rearCell.GridY)) _rearCell = cell;
         }
@@ -168,6 +189,19 @@ public partial class SoftVehicle : Node2D, IVehicle
             ScaleAmountMin = 2f, ScaleAmountMax = 4f, Color = new Color(0.3f, 0.3f, 0.34f, 0.55f),
         };
         AddChild(_exhaust);
+        // Booster plume: hot sparks that cool into smoke, blown out of the nozzle (local +X = backwards).
+        _boostSmoke = new CpuParticles2D
+        {
+            Emitting = false, Amount = 40, Lifetime = 0.6f, Spread = 12f, Direction = new Vector2(1f, 0f),
+            InitialVelocityMin = 160f, InitialVelocityMax = 300f, Gravity = new Vector2(0f, -40f),
+            ScaleAmountMin = 3f, ScaleAmountMax = 7f, LocalCoords = false,
+            ColorRamp = new Gradient
+            {
+                Offsets = new[] { 0f, 0.25f, 1f },
+                Colors = new[] { new Color(1f, 0.85f, 0.3f, 1f), new Color(0.95f, 0.4f, 0.12f, 0.8f), new Color(0.35f, 0.33f, 0.36f, 0f) },
+            },
+        };
+        AddChild(_boostSmoke);
 
         World?.Register(this);
     }
@@ -224,7 +258,10 @@ public partial class SoftVehicle : Node2D, IVehicle
             _engineMaxSpin = Mathf.Max(_engineMaxSpin, part.MaxSpin);
             _fuelUse += part.FuelUse;
             FuelCapacity += part.FuelCapacity;
+            _boostFuelUse += part.BoostFuelUse;
         }
+        foreach (var cell in _cells)
+            if (cell.Part.Category == PartCategory.Booster) _boosters.Add(cell);
 
         // Drill tips: a point in front of each drill block's right edge.
         var drillSetups = new List<(int Tip, Cell Cell)>();
@@ -357,6 +394,7 @@ public partial class SoftVehicle : Node2D, IVehicle
     {
         _input = Parked ? new VehicleInput(0f, 0f, true) : PlayerControlled ? VehicleInput.ReadPlayer() : AutoPilot();
         _centerAtTickStart = BodyCenter();
+        Boosting = _input.Boost && !Parked && Fuel > 0f && HasBooster;
     }
 
     public void Refuel() => Fuel = FuelCapacity;
@@ -373,6 +411,7 @@ public partial class SoftVehicle : Node2D, IVehicle
         }
 
         StabiliseInAir();
+        if (Boosting) ApplyBoost(dt);
 
         // Upside down and stopped: the car rocks itself back onto its wheels.
         float tilt = _input.Tilt;
@@ -434,6 +473,7 @@ public partial class SoftVehicle : Node2D, IVehicle
 
         bool drive = Fuel > 0f && !Mathf.IsZeroApprox(_input.Throttle);
         if (drive) Fuel = Mathf.Max(0f, Fuel - _fuelUse * Mathf.Abs(_input.Throttle) * dt);
+        if (Boosting) Fuel = Mathf.Max(0f, Fuel - _boostFuelUse * dt);
 
         // Engine torque goes to attached wheels that touch the ground (like a locked differential),
         // so a wheel spinning in the air does not waste half the power.
@@ -448,6 +488,60 @@ public partial class SoftVehicle : Node2D, IVehicle
             UpdateWheel(wheel, dt, terrain, drive, attached, driven);
 
         ApplyDeformation();
+    }
+
+    /// <summary>The car's nose direction: from the rear wheel to the front wheel (or along the body).</summary>
+    private Vector2 Forward()
+    {
+        if (_rearHub >= 0 && _frontHub >= 0 && _rearHub != _frontHub)
+            return (Pos[_frontHub] - Pos[_rearHub]).Normalized();
+        return new Vector2(1f, 0f);
+    }
+
+    private bool BoosterIntact(Cell cell)
+    {
+        int[] c = cell.Corners;
+        return Pos[c[0]].DistanceTo(Pos[c[2]]) < CellSize * 2.2f && Pos[c[1]].DistanceTo(Pos[c[3]]) < CellSize * 2.2f;
+    }
+
+    /// <summary>
+    /// Rocket thrust along the car's nose direction. The push is spread over the whole car by
+    /// mass (so it never tears the soft body apart), plus the turning effect of where the
+    /// booster sits: one mounted high pushes the nose down, one mounted low lifts it.
+    /// Thrust fades out as the car nears the booster's top speed.
+    /// </summary>
+    private void ApplyBoost(float dt)
+    {
+        Vector2 forward = Forward();
+        Vector2 c = BodyCenter();
+        Vector2 velocity = Vector2.Zero;
+        for (int i = 0; i < BodyNodeCount; i++) velocity += Pos[i] - Prev[i];
+        float forwardSpeed = velocity.Dot(forward) / Mathf.Max(1, BodyNodeCount) / dt;
+        Vector2 force = Vector2.Zero;
+        float torque = 0f;
+        foreach (var cell in _boosters)
+        {
+            if (!BoosterIntact(cell)) continue;
+            float top = cell.Part.BoostSpeed > 0f ? cell.Part.BoostSpeed : 1600f;
+            float fade = Mathf.Clamp((top - forwardSpeed) / (top * 0.3f), 0f, 1f);
+            Vector2 f = forward * cell.Part.Thrust * fade;
+            int[] k = cell.Corners;
+            Vector2 at = (Pos[k[0]] + Pos[k[1]] + Pos[k[2]] + Pos[k[3]]) / 4f;
+            force += f;
+            torque += (at - c).Cross(f);
+        }
+        if (force == Vector2.Zero || _totalMass <= 0f) return;
+
+        float inertia = 0f;
+        for (int i = 0; i < Pos.Length; i++)
+            inertia += (Pos[i] - c).LengthSquared() / InvMass[i];
+        float spin = inertia > 1f ? torque / inertia * dt * dt : 0f;
+        Vector2 push = force / _totalMass * dt * dt;
+        for (int i = 0; i < Pos.Length; i++)
+        {
+            Vector2 r = Pos[i] - c;
+            Pos[i] += push + new Vector2(-r.Y, r.X) * spin;
+        }
     }
 
     /// <summary>
@@ -495,6 +589,17 @@ public partial class SoftVehicle : Node2D, IVehicle
         _dust.Emitting = dusty != null && (Speed > 90f || Mathf.Abs(dusty.Spin * dusty.Radius) > Speed + 120f);
         if (dusty != null) _dust.Position = ToLocal(Pos[dusty.Hub] + new Vector2(0f, dusty.Radius - 2f));
         _exhaust.Emitting = _rearCell != null && Mathf.Abs(Throttle) > 0.1f;
+        _boostSmoke.Emitting = false;
+        foreach (var cell in _boosters)
+        {
+            if (!BoosterIntact(cell)) continue;
+            Vector2 nozzle = (Pos[cell.Corners[0]] + Pos[cell.Corners[3]]) / 2f;
+            Vector2 back = (Pos[cell.Corners[0]] - Pos[cell.Corners[1]]).Normalized();
+            _boostSmoke.Position = ToLocal(nozzle + back * 6f);
+            _boostSmoke.Rotation = back.Angle() - GlobalRotation;
+            _boostSmoke.Emitting = Boosting;
+            break;
+        }
         if (_rearCell != null) _exhaust.Position = ToLocal((Pos[_rearCell.Corners[0]] + Pos[_rearCell.Corners[3]]) / 2f);
         QueueRedraw();
     }
@@ -662,7 +767,7 @@ public partial class SoftVehicle : Node2D, IVehicle
     /// </summary>
     private VehicleInput AutoPilot()
     {
-        if (AutoTilt != 0f) return new VehicleInput(AutoThrottle, AutoTilt, false);
+        if (AutoTilt != 0f) return new VehicleInput(AutoThrottle, AutoTilt, false, AutoBoostNow());
 
         float throttle = AutoThrottle;
         float tilt = 0f;
@@ -695,7 +800,15 @@ public partial class SoftVehicle : Node2D, IVehicle
             _autoReverseTime = 1.2f;
         }
 
-        return new VehicleInput(throttle, tilt, false);
+        return new VehicleInput(throttle, tilt, false, AutoBoostNow());
+    }
+
+    /// <summary>Bots boost like a sensible player: driving forwards, nose not too high or low, not drilling.</summary>
+    private bool AutoBoostNow()
+    {
+        if (!AutoBoost || AutoThrottle <= 0f || IsDrilling || _selfRighting) return false;
+        float pitch = PitchDegrees();
+        return pitch > -24f && pitch < 20f && Fuel > FuelCapacity * 0.1f;
     }
 
     private bool DrillIntact(DrillTip drill)
@@ -766,6 +879,28 @@ public partial class SoftVehicle : Node2D, IVehicle
             }
             DrawLine(top, tip, new Color(0.13f, 0.11f, 0.16f), 1.5f);
             DrawLine(bottom, tip, new Color(0.13f, 0.11f, 0.16f), 1.5f);
+        }
+
+        // Rocket boosters: a nozzle bell out of the back, and a flickering flame while firing.
+        foreach (var cell in _boosters)
+        {
+            if (!BoosterIntact(cell)) continue;
+            int[] c = cell.Corners;
+            Vector2 top = Pos[c[0]], bottom = Pos[c[3]];
+            Vector2 back = (Pos[c[0]] - Pos[c[1]]).Normalized();
+            Vector2 mid = (top + bottom) / 2f, across = (bottom - top) / 2f;
+            Vector2 bellA = mid - across * 0.45f, bellB = mid + across * 0.45f;
+            Vector2 mouthA = mid - across * 0.8f + back * 7f, mouthB = mid + across * 0.8f + back * 7f;
+            var dark = new Color(0.13f, 0.11f, 0.16f);
+            FillQuad(ToLocal(bellA), ToLocal(mouthA), ToLocal(mouthB), ToLocal(bellB), dark);
+            FillQuad(ToLocal(mid - across * 0.3f + back), ToLocal(mid - across * 0.6f + back * 6f), ToLocal(mid + across * 0.6f + back * 6f), ToLocal(mid + across * 0.3f + back),
+                new Color(0.42f, 0.44f, 0.5f));
+            if (!Boosting) continue;
+            float flicker = 0.75f + 0.25f * Mathf.Sin(Time.GetTicksMsec() * 0.06f) + (float)GD.RandRange(-0.12, 0.12);
+            Vector2 mouth = mid + back * 7f;
+            FillTriangleLocal(ToLocal(mouth - across * 0.7f), ToLocal(mouth + back * 46f * flicker), ToLocal(mouth + across * 0.7f), new Color(0.98f, 0.45f, 0.12f, 0.9f));
+            FillTriangleLocal(ToLocal(mouth - across * 0.45f), ToLocal(mouth + back * 28f * flicker), ToLocal(mouth + across * 0.45f), new Color(1f, 0.85f, 0.3f));
+            FillTriangleLocal(ToLocal(mouth - across * 0.2f), ToLocal(mouth + back * 12f * flicker), ToLocal(mouth + across * 0.2f), new Color(1f, 1f, 0.9f));
         }
 
         // Dark outline around the body silhouette.

@@ -45,7 +45,7 @@ jobs:
             name="$1"; shift
             echo "=== $name"
             timeout 300 godot --headless --path . --fixed-fps 120 "$@" > smoke.log 2>&1
-            grep -E "\[(world|autoplay|drive|race|mining|autodrive)\]" smoke.log | tail -45
+            grep -E "\[(world|autoplay|drive|race|mining|autodrive|stunt)\]" smoke.log | tail -45
             # "resources still in use at exit" is a shutdown notice about cached textures and sounds, not a fault.
             if grep -E "ERROR|Unhandled exception|SCRIPT ERROR|System\.[A-Za-z]*Exception" smoke.log | grep -v "still in use at exit" | grep .; then
               echo "::error::Smoke test failed: $name"
@@ -53,12 +53,14 @@ jobs:
               fail=1
             fi
           }
-          run "world: walk, mine, place, then drive 30 s" res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay
+          run "world: walk, mine, place, then drive 30 s" res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --design=starter
           run "world: drill car tunnelling"            res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --design=driller
-          run "world: drive left to the Frozen North"  res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --left
+          run "world: drive left to the Frozen North"  res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --left --design=starter
+          run "world: rocket booster car"             res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --design=rocket
           run "garage"            res://scenes/garage.tscn --quit-after 300
           run "physics lab"       res://scenes/tests/physics_test.tscn --quit-after 600
-          run "hill climb, starter car, 40 s" res://scenes/drive.tscn --quit-after 4800 -- --hillclimb --autodrive
+          run "hill climb, starter car, 40 s" res://scenes/drive.tscn --quit-after 4800 -- --hillclimb --autodrive --design=starter
+          run "hill climb, rocket car, 40 s"  res://scenes/drive.tscn --quit-after 4800 -- --hillclimb --autodrive --design=rocket
           run "free drive, driller, 40 s"     res://scenes/drive.tscn --quit-after 4800 -- --freedrive --autodrive --design=driller
           exit $fail
 
@@ -67,12 +69,13 @@ jobs:
         run: |
           sudo apt-get update -qq > /dev/null 2>&1 || true
           sudo apt-get install -y -qq xvfb libgl1-mesa-dri > /dev/null 2>&1 || true
-          mkdir -p shots/world shots/left shots/drill shots/garage keep
-          xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/world/f.png --quit-after 400 res://scenes/world.tscn -- --fresh --autoplay > shots/world.log 2>&1 || true
-          xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/left/f.png --quit-after 400 res://scenes/world.tscn -- --fresh --autoplay --left > shots/left.log 2>&1 || true
+          mkdir -p shots/world shots/left shots/drill shots/rocket shots/garage keep
+          xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/world/f.png --quit-after 400 res://scenes/world.tscn -- --fresh --autoplay --design=starter > shots/world.log 2>&1 || true
+          xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/left/f.png --quit-after 400 res://scenes/world.tscn -- --fresh --autoplay --left --design=starter > shots/left.log 2>&1 || true
           xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/drill/f.png --quit-after 400 res://scenes/world.tscn -- --fresh --autoplay --design=driller > shots/drill.log 2>&1 || true
+          xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/rocket/f.png --quit-after 400 res://scenes/world.tscn -- --fresh --autoplay --design=rocket > shots/rocket.log 2>&1 || true
           xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/garage/f.png --quit-after 12 res://scenes/garage.tscn > shots/garage.log 2>&1 || true
-          for run in world left drill; do
+          for run in world left drill rocket; do
             for i in 25 98 130 180 230 280 330 390; do
               f=$(printf "shots/$run/f%08d.png" $i); [ -f "$f" ] && cp "$f" keep/${run}_$i.png
             done

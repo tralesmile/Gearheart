@@ -34,6 +34,7 @@ public partial class WorldScene : Node2D
     private Vector2 _garageDoor;
     private bool _driving;
     private float _toastTime, _elapsed, _nextLog, _saveTimer;
+    private float _airTime, _airStartSpeed, _boostSeconds, _topSpeed, _longestAir;
 
     public override void _Ready()
     {
@@ -197,6 +198,7 @@ public partial class WorldScene : Node2D
         _car.PlayerControlled = !GameSession.AutoPlay;
         _car.AutoThrottle = GameSession.AutoPlay ? (GameSession.DriveLeft ? -1f : 1f) : 0f;
         if (GameSession.AutoPlay) _car.DrillEnabled = true;
+        _car.AutoBoost = GameSession.AutoPlay && _car.HasBooster;
     }
 
     private void ExitCar()
@@ -228,6 +230,7 @@ public partial class WorldScene : Node2D
         float dt = (float)delta;
         _elapsed += dt;
         if (GameSession.AutoPlay) RunBot();
+        if (_driving) TrackStunts(dt);
 
         _saveTimer += dt;
         if (_saveTimer > 60f)
@@ -243,7 +246,9 @@ public partial class WorldScene : Node2D
         Vector2 focus = Focus;
         _camera.Position = focus;
         _view.Focus = focus;
-        float zoom = Mathf.Lerp(_camera.Zoom.X, _driving ? DriveZoom : FootZoom, 1f - Mathf.Exp(-3f * dt));
+        // Pull the camera back at speed so jumps and what is ahead stay in view.
+        float driveZoom = DriveZoom - 0.4f * Mathf.Clamp((_car.Speed - 500f) / 1000f, 0f, 1f);
+        float zoom = Mathf.Lerp(_camera.Zoom.X, _driving ? driveZoom : FootZoom, 1f - Mathf.Exp(-2f * dt));
         _camera.Zoom = new Vector2(zoom, zoom);
 
         // Darkness grows with depth below the surface.
@@ -257,7 +262,7 @@ public partial class WorldScene : Node2D
         _backdrop.Underground = under;
         (_backdrop.Desert, _backdrop.Frozen) = TileWorld.BiomeBlend(focus.X);
 
-        _sfx.UpdateCar(_driving, _car.Speed, _car.Throttle, _car.IsDrilling && _car.DrillEnabled);
+        _sfx.UpdateCar(_driving, _car.Speed, _car.Throttle, _car.IsDrilling && _car.DrillEnabled, _car.Boosting);
         _pickTimer -= dt;
         if (!_driving && _player.IsMining && _pickTimer <= 0f)
         {
@@ -399,8 +404,10 @@ public partial class WorldScene : Node2D
         {
             _hint.Text = "A/D: drive   Q/E: tilt (also rolls you back over)   Space: handbrake   F: get out" +
                          (_car.HasDrill ? $"   X: drill {(_car.DrillEnabled ? "ON" : "OFF")}" : "") +
+                         (_car.HasBooster ? "   Shift: BOOST" : "") +
                          (NearGarage() ? "   G: garage   R: repair" : "");
-            _status.Text = $"{BiomeName(_car.CenterPosition.X)}   {_car.Speed / PixelsPerMeter * 3.6f:0} km/h   Fuel {_car.Fuel:0}/{_car.FuelCapacity:0}   Damage {_car.Damage:0}";
+            _status.Text = $"{(_car.Boosting ? "BOOST!   " : "")}{BiomeName(_car.CenterPosition.X)}   {_car.Speed / PixelsPerMeter * 3.6f:0} km/h   Fuel {_car.Fuel:0}/{_car.FuelCapacity:0}   Damage {_car.Damage:0}";
+            _status.Modulate = _car.Boosting ? new Color(1f, 0.8f, 0.4f) : Colors.White;
         }
         else
         {
@@ -408,6 +415,7 @@ public partial class WorldScene : Node2D
             if (NearCar()) hint += "\nF: get in the car";
             if (NearGarage()) hint += "\nG: open the garage (build and upgrade your car)";
             _hint.Text = hint;
+            _status.Modulate = Colors.White;
             _status.Text = $"{BiomeName(_player.Position.X)}   Depth {Mathf.Max(0f, (_player.Position.Y / Ts - _world.SurfaceRow(Mathf.FloorToInt(_player.Position.X / Ts))) * 0.25f):0} m";
         }
 
@@ -416,6 +424,32 @@ public partial class WorldScene : Node2D
             _toastTime -= dt;
             _toast.Modulate = new Color(1f, 1f, 1f, Mathf.Clamp(_toastTime, 0f, 1f));
         }
+    }
+
+    // ---- Stunts -----------------------------------------------------------------------------
+
+    /// <summary>Times jumps and boosts: a long jump gets a cheer on screen (and a line in the bot log).</summary>
+    private void TrackStunts(float dt)
+    {
+        if (_car.Boosting) _boostSeconds += dt;
+        _topSpeed = Mathf.Max(_topSpeed, _car.Speed);
+
+        if (_car.Airborne)
+        {
+            if (_airTime == 0f) _airStartSpeed = _car.Speed;
+            _airTime += dt;
+            return;
+        }
+        if (_airTime > 0.9f)
+        {
+            _longestAir = Mathf.Max(_longestAir, _airTime);
+            string praise = _airTime > 2.5f ? "MONSTER AIR" : _airTime > 1.6f ? "HUGE AIR" : "BIG AIR";
+            Toast($"{praise}!  {_airTime:0.0} s");
+            _sfx.Play("pickup", -6f);
+            if (GameSession.AutoPlay)
+                GD.Print($"[stunt] {praise.ToLowerInvariant()}: airborne {_airTime:0.00}s, took off at {_airStartSpeed / PixelsPerMeter * 3.6f:0} km/h, damage={_car.Damage:0}");
+        }
+        _airTime = 0f;
     }
 
     // ---- Automated playtest -----------------------------------------------------------------
@@ -451,7 +485,8 @@ public partial class WorldScene : Node2D
         int surface = _world.SurfaceRow(Mathf.FloorToInt(c.X / Ts));
         GD.Print($"[autoplay] t={_elapsed:0}s {(_driving ? "driving" : "on foot")} biome={TileWorld.BiomeAt(Mathf.FloorToInt(c.X / Ts))} grip={_world.GripAt(c + new Vector2(0f, 60f)):0.00} player=({p.X / Ts:0.0},{p.Y / Ts:0.0}) grounded={_player.Grounded} " +
                  $"car=({c.X / Ts:0.0},{c.Y / Ts:0.0}) surfaceRow={surface} depth={(c.Y / Ts - surface) * 0.25f:0.0}m speed={_car.Speed / PixelsPerMeter * 3.6f:0}km/h pitch={_car.PitchDegrees():0} " +
-                 $"fuel={_car.Fuel:0} damage={_car.Damage:0} drilling={_car.IsDrilling} | " +
+                 $"fuel={_car.Fuel:0} damage={_car.Damage:0} drilling={_car.IsDrilling} boosting={_car.Boosting} boostTotal={_boostSeconds:0.0}s " +
+                 $"top={_topSpeed / PixelsPerMeter * 3.6f:0}km/h longestAir={_longestAir:0.0}s | " +
                  string.Join(" ", System.Array.ConvertAll(GameSession.Items, i => $"{i}={GameSession.Count(i)}")));
     }
 }
