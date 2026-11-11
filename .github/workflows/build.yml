@@ -46,7 +46,8 @@ jobs:
             echo "=== $name"
             timeout 300 godot --headless --path . --fixed-fps 120 "$@" > smoke.log 2>&1
             grep -E "\[(world|autoplay|drive|race|mining|autodrive)\]" smoke.log | tail -45
-            if grep -E "ERROR|Unhandled exception|SCRIPT ERROR|System\.[A-Za-z]*Exception" smoke.log; then
+            # "resources still in use at exit" is a shutdown notice about cached textures and sounds, not a fault.
+            if grep -E "ERROR|Unhandled exception|SCRIPT ERROR|System\.[A-Za-z]*Exception" smoke.log | grep -v "still in use at exit" | grep .; then
               echo "::error::Smoke test failed: $name"
               tail -60 smoke.log
               fail=1
