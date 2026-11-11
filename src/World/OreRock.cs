@@ -17,11 +17,15 @@ public partial class OreRock : RigidBody2D
 
     private CircleShape2D _shape;
 
-    public float Radius => MaxRadius * Mathf.Max(0.35f, Mathf.Sqrt(Mathf.Max(0f, Health) / MaxHealth));
+    /// <summary>Shrinks a little while drilled (to 75% size), then breaks.</summary>
+    public float Radius => MaxRadius * (0.75f + 0.25f * Mathf.Clamp(Health / MaxHealth, 0f, 1f));
+
+    /// <summary>Rocks break once worn down to this share of their health, so small pieces never wedge under cars.</summary>
+    public const float BreakAt = 0.3f;
 
     public static OreRock Create(OreType ore, float radius)
     {
-        float health = radius * (ore == OreType.Copper ? 2.5f : 1.6f);
+        float health = radius * (ore == OreType.Copper ? 3.5f : 2.3f);   // ~70% of this is drilled before it breaks
         var rock = new OreRock
         {
             Ore = ore,
@@ -47,7 +51,7 @@ public partial class OreRock : RigidBody2D
         Shake = 1f;
         _shape.Radius = Radius;
         QueueRedraw();
-        return Health <= 0f;
+        return Health <= MaxHealth * BreakAt;
     }
 
     public override void _Process(double delta)
