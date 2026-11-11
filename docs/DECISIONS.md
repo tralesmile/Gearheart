@@ -2,6 +2,16 @@
 
 Newest first. One entry per big decision: what, why, and what would make us revisit it.
 
+## 2026-11-11 (evening) — Rocket Booster, first biome-tied part
+
+- **What:** A new part category, Booster. The Rocket Booster (2 Scrap, 2 Iron, 3 Copper) goes on the back of the car; hold Shift (gamepad RB or X) for thrust along the car's nose direction. It costs 3 fuel per second on top of the engine, and the thrust fades out towards about 96 km/h (1700 px/s) so it cannot run away.
+- **How the push works:** the force is spread over the whole car by mass, so it never stretches beams (no damage from boosting itself), plus the real turning effect of where the booster sits (mounted low it lifts the nose, mounted high it pushes the nose down). This keeps the soft body stable and still makes placement matter in the garage.
+- **Why this part first:** of the default roadmap (biome parts, boosters, tracks), it changes how the car feels within seconds, makes the big moments (jumps, crashes, climbing a hill that stopped you) bigger, and gives copper, which sits near the surface in The Wastes, a use.
+- **Stunt call-outs:** every jump longer than 0.9 s shows "BIG AIR / HUGE AIR / MONSTER AIR" with the airtime. Cheap, and turns the hills into a toy for every car.
+- **Camera** pulls back a little above about 28 km/h so jumps stay in view.
+- **Bot runs now pin their design** (`--design=starter`): before, a run inherited whatever design the previous run had saved, so "starter car" results could silently be another car.
+- **Revisit when:** the owner finds boosting too strong or too thirsty (numbers are in `data/parts/parts.json`: `thrust`, `boostSpeed`, `boostFuelUse`).
+
 ## 2026-11-11 — Biomes, graphics pass, first sounds
 
 - **Biomes by distance from the garage:** Home Meadow in the middle (380 tiles each way), The Wastes to the east (sand over sandstone, long dunes, copper from 9 tiles down), Frozen North to the west (snow, taller hills, more caves, richer iron, flat stretches of ice). Sky and far hills change colour with the biome.
