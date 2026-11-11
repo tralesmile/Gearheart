@@ -25,7 +25,7 @@ A 2D side-view sandbox where you mine, craft and build vehicles part by part, th
 
 ## Modes
 
-- **Free Drive:** rolling hills, crate stacks and ore rocks. Put a **Drill Head** on the front of your car and press its tip into rocks to mine **Scrap**, **Iron** and **Copper** (rarer further out). Materials are saved and shown in the garage.
+- **Free Drive:** rolling hills, breakable crate stacks and ore boulders. Push boulders out of the way, or put a **Drill Head** on the front of your car and press it into them to mine **Scrap**, **Iron** and **Copper** (rarer further out). Ease off the throttle while drilling and use **E** to keep the nose down. Materials are saved and shown in the garage.
 - **Hill Climb:** the track keeps rising and gets steeper. The clock starts at the START flag and stops at FINISH, about 340 m on, with slopes up to about 40 degrees near the end. Stopping for 4 seconds (stuck or out of fuel) ends the run. Your best time is saved.
 
 ## Drive controls
