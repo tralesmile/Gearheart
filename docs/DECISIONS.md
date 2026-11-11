@@ -2,6 +2,13 @@
 
 Newest first. One entry per big decision: what, why, and what would make us revisit it.
 
+## 2026-11-11 — Vehicle physics: soft body (approach B) chosen
+
+- **What:** Vehicles use our own node-and-beam soft-body solver. Simple loose objects (crates, rocks, debris) stay on Godot's rigid-body physics. A shared `SoftPhysicsWorld` steps all soft bodies together and couples them to rigid objects with impulses (the hybrid model from the plan).
+- **Why:** Spectacular, varied crashes are a core pillar; the car builder maps naturally onto points and beams; the code is ours, which helps host-run multiplayer and the destructible tile world.
+- **Collision results (offline simulation):** head-on crashes at 20, 50 and 90 km/h each never let cars pass through each other, and damage scales with speed (snapped beams only at 50+ km/h). A car pushes a parked car about 13 m in 4 s. A car knocks a crate ahead without overlapping it. No unstable (NaN) results.
+- **Revisit when:** B feels floaty or annoying to drive after a week of tuning, or 8 cars cannot hold 60 FPS on a Steam Deck. Then fall back to A (rigid parts).
+
 ## 2026-11-11 — Soft-body approach B built for comparison
 
 - **What:** Node-and-beam car (18 mass points, 50 beams) solved with position-based dynamics: 8 substeps x 4 iterations at 120 Hz. Beams dent past 1.5% stretch and snap after 18% total bend; suspension snaps after 40%.

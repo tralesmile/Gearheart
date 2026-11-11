@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Gearheart.Physics;
 using Godot;
 
 namespace Gearheart.World;
@@ -7,7 +8,7 @@ namespace Gearheart.World;
 /// Placeholder ground for the physics test: a flat start, rolling hills,
 /// a ramp that ends in a cliff, and a wall on the left. Not the real tile world.
 /// </summary>
-public partial class TestTerrain : StaticBody2D
+public partial class TestTerrain : StaticBody2D, ITerrainCollider
 {
     [Export] public int Length = 12000;
     [Export] public int Seed = 7;
