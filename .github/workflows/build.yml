@@ -1,0 +1,54 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  GODOT_VERSION: 4.6.2
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - uses: chickensoft-games/setup-godot@v2
+        with:
+          version: ${{ env.GODOT_VERSION }}
+          use-dotnet: true
+          include-templates: true
+
+      - name: Build C#
+        run: dotnet build Gearheart.csproj -c ExportRelease
+
+      - name: Import project
+        run: godot --headless --import || true
+
+      - name: Export Windows
+        run: |
+          mkdir -p build/windows
+          godot --headless --export-release "Windows Desktop" build/windows/Gearheart.exe
+
+      - name: Export Linux
+        run: |
+          mkdir -p build/linux
+          godot --headless --export-release "Linux" build/linux/Gearheart.x86_64
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gearheart-windows
+          path: build/windows
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gearheart-linux
+          path: build/linux
