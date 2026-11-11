@@ -4,7 +4,7 @@
 
 A 2D side-view sandbox where you mine, craft and build vehicles part by part, then race, fight and explore across several worlds. Built with Godot 4 (.NET / C#).
 
-**Status:** Phase 1 — Prototype. Current build: physics test comparing approach A (rigid parts + breakable joints) and approach B (soft body). Press **V** to switch.
+**Status:** Phase 1 — Prototype. Vehicle physics: soft body (approach B), chosen 2026-11-11. The physics test starts in B; press **V** to compare with A (rigid parts).
 
 ## Setup
 
@@ -22,7 +22,8 @@ A 2D side-view sandbox where you mine, craft and build vehicles part by part, th
 | Q / E | Tilt the car (air control) |
 | Space | Handbrake |
 | R | Reset the car |
-| V | Switch physics: A rigid parts / B soft body |
+| V | Switch physics: B soft body / A rigid parts |
+| C | Spawn an oncoming car (head-on crash test) |
 | 1 / 4 / 8 | Benchmark with 1, 4 or 8 vehicles |
 | Esc | Quit |
 
@@ -31,12 +32,13 @@ A controller also works: triggers drive, left stick tilts, A is the handbrake.
 What to look for: does building speed, jumping the ramp and crashing feel fun? Compare A and B: which feels better to drive, and which crashes look better? Note the FPS with 1, 4 and 8 vehicles in each mode.
 
 - **A (orange car):** Godot's rigid-body physics. Hard crashes rip wheels off. Collides with crates.
-- **B (blue car):** our own soft-body solver. The body dents and tears, wheels can come off. In this prototype it collides with the ground only, not crates or other cars.
+- **B (blue car):** our own soft-body solver. The body dents and tears, wheels can come off. Collides with the ground, other cars and crates.
 
 ## Project structure
 
 ```
 src/
+  Physics/    soft-body world: steps soft bodies, car-vs-car and car-vs-object contacts
   Vehicles/   vehicle parts, physics, damage
   World/      terrain and (later) the tile world
   Tests/      test scenes like the physics test

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Gearheart.Physics;
 using Gearheart.Vehicles;
 using Gearheart.World;
 using Godot;
@@ -17,8 +18,9 @@ public partial class PhysicsTest : Node2D
 
     private enum PhysicsMode { Rigid, Soft }
 
-    private PhysicsMode _mode = PhysicsMode.Rigid;
+    private PhysicsMode _mode = PhysicsMode.Soft; // approach B chosen 2026-11-11; V switches to A for comparison
     private TestTerrain _terrain;
+    private SoftPhysicsWorld _softWorld;
     private Node2D _player;
     private readonly List<Node2D> _bots = new();
     private Camera2D _camera;
@@ -30,6 +32,8 @@ public partial class PhysicsTest : Node2D
 
         _terrain = new TestTerrain { Name = "Terrain" };
         AddChild(_terrain);
+        _softWorld = new SoftPhysicsWorld { Name = "SoftPhysicsWorld", Terrain = _terrain };
+        AddChild(_softWorld);
         SpawnCrates();
 
         _camera = new Camera2D
@@ -57,6 +61,7 @@ public partial class PhysicsTest : Node2D
         {
             case Key.R: SpawnPlayer(); break;
             case Key.V: ToggleMode(); break;
+            case Key.C: SpawnOncoming(); break;
             case Key.Key1: SetBotCount(0); break;
             case Key.Key4: SetBotCount(3); break;
             case Key.Key8: SetBotCount(7); break;
@@ -76,7 +81,8 @@ public partial class PhysicsTest : Node2D
 
         _hud.Text =
             $"Physics {physics}   FPS {Engine.GetFramesPerSecond():0}   Vehicles {1 + _bots.Count}   Speed {kmh:0} km/h   Damage {damage:0}\n" +
-            "D/A or arrows: drive   Q/E: tilt   Space: handbrake   R: reset   V: switch physics A/B   1/4/8: vehicle count   Esc: quit";
+            "D/A or arrows: drive   Q/E: tilt   Space: handbrake   R: reset   V: switch physics A/B\n" +
+            "C: oncoming car (head-on test)   1/4/8: vehicle count   Esc: quit";
     }
 
     private void ToggleMode()
@@ -94,7 +100,7 @@ public partial class PhysicsTest : Node2D
             return new SoftVehicle
             {
                 Name = name,
-                Terrain = _terrain,
+                World = _softWorld,
                 Spawn = at,
                 PlayerControlled = player,
                 AutoThrottle = autoThrottle,
@@ -139,6 +145,16 @@ public partial class PhysicsTest : Node2D
         }
     }
 
+    /// <summary>Spawns a car ahead of the player that drives toward it, for head-on crash tests.</summary>
+    private void SpawnOncoming()
+    {
+        var vehicle = IsInstanceValid(_player) ? _player as IVehicle : null;
+        Vector2 at = (vehicle?.CenterPosition ?? SpawnPoint) + new Vector2(900f, -250f);
+        var oncoming = CreateVehicle($"Oncoming{_bots.Count}", at, false, -0.8f, new Color(0.9f, 0.8f, 0.2f));
+        AddChild(oncoming);
+        _bots.Add(oncoming);
+    }
+
     private void SpawnCrates()
     {
         const float size = 32f;
@@ -151,7 +167,8 @@ public partial class PhysicsTest : Node2D
                     Mass = 0.3f,
                     Position = new Vector2(900f + col * (size + 2f) + row * (size / 2f), -80f - row * (size + 2f)),
                 };
-                crate.AddChild(new CollisionShape2D { Shape = new RectangleShape2D { Size = new Vector2(size, size) } });
+                crate.AddToGroup(SoftPhysicsWorld.LooseObjectsGroup);
+                crate.AddChild(new CollisionShape2D { Name = "Shape", Shape = new RectangleShape2D { Size = new Vector2(size, size) } });
                 crate.AddChild(new Polygon2D
                 {
                     Polygon = Util.Shapes.Rect(new Vector2(size, size)),
