@@ -85,6 +85,8 @@ public partial class SoftVehicle : Node2D, IVehicle
     private float _totalMass;
     private float _engineTorque, _engineMaxSpin, _fuelUse;
     private VehicleInput _input;
+    private float _drillContactTime;
+    private int _rearHub = -1, _frontHub = -1;
     private Vector2 _centerAtTickStart;
 
     public float RadiusOf(int node) => _nodeRadius[node];
@@ -229,6 +231,13 @@ public partial class SoftVehicle : Node2D, IVehicle
         }
         foreach (var w in _wheels) _nodeRadius[w.Hub] = w.Radius;
 
+        // Rearmost and frontmost wheels, for measuring pitch.
+        foreach (var w in _wheels)
+        {
+            if (_rearHub < 0 || Pos[w.Hub].X < Pos[_rearHub].X) _rearHub = w.Hub;
+            if (_frontHub < 0 || Pos[w.Hub].X > Pos[_frontHub].X) _frontHub = w.Hub;
+        }
+
         // Body beams: four edges and both diagonals per block. Shared edges keep the stronger part.
         var edgeBeams = new Dictionary<(int, int), Beam>();
         var edgeUse = new Dictionary<(int, int), int>();
@@ -296,7 +305,7 @@ public partial class SoftVehicle : Node2D, IVehicle
 
     public void BeginTick()
     {
-        _input = PlayerControlled ? VehicleInput.ReadPlayer() : VehicleInput.Auto(AutoThrottle);
+        _input = PlayerControlled ? VehicleInput.ReadPlayer() : AutoPilot();
         _centerAtTickStart = BodyCenter();
     }
 
@@ -346,7 +355,8 @@ public partial class SoftVehicle : Node2D, IVehicle
         if (mineable != null)
         {
             foreach (var drill in _drills)
-                if (DrillIntact(drill)) mineable.Mine(Pos[drill.Node], NodeRadius + 2f, drill.Power * dt);
+                if (DrillIntact(drill) && mineable.Mine(Pos[drill.Node], NodeRadius + 2f, drill.Power * dt))
+                    _drillContactTime = 0.5f;
         }
 
         for (int i = 0; i < BodyNodeCount; i++)
@@ -370,6 +380,7 @@ public partial class SoftVehicle : Node2D, IVehicle
 
     public void EndTick(float delta)
     {
+        _drillContactTime = Mathf.Max(0f, _drillContactTime - delta);
         Speed = (BodyCenter() - _centerAtTickStart).Length() / delta;
         QueueRedraw();
     }
@@ -515,6 +526,41 @@ public partial class SoftVehicle : Node2D, IVehicle
                     connected = true;
             wheel.Attached = connected;
         }
+    }
+
+    /// <summary>True while a drill tip has touched ore in the last half second.</summary>
+    public bool IsDrilling => _drillContactTime > 0f;
+
+    /// <summary>Body pitch in degrees from the rear to the front wheel; negative = nose up.</summary>
+    public float PitchDegrees()
+    {
+        if (_rearHub < 0 || _frontHub < 0 || _rearHub == _frontHub) return 0f;
+        Vector2 d = Pos[_frontHub] - Pos[_rearHub];
+        return Mathf.RadToDeg(Mathf.Atan2(d.Y, d.X));
+    }
+
+    /// <summary>
+    /// Drives like a careful player, for bots and automated playtests: full throttle,
+    /// ease off while drilling, and tilt the nose back down if the car starts to flip.
+    /// </summary>
+    private VehicleInput AutoPilot()
+    {
+        float throttle = AutoThrottle;
+        float tilt = 0f;
+        float pitch = PitchDegrees() * Mathf.Sign(AutoThrottle == 0f ? 1f : AutoThrottle);
+
+        if (pitch < -20f)
+        {
+            tilt = Mathf.Sign(throttle == 0f ? 1f : throttle);   // nose down
+            throttle *= 0.2f;
+        }
+        else if (pitch > 25f)
+        {
+            tilt = -Mathf.Sign(throttle == 0f ? 1f : throttle);
+        }
+
+        if (IsDrilling) throttle = Mathf.Clamp(throttle, -0.45f, 0.45f);
+        return new VehicleInput(throttle, tilt, false);
     }
 
     private bool DrillIntact(DrillTip drill)

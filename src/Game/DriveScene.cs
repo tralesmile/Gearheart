@@ -122,7 +122,7 @@ public partial class DriveScene : Node2D
             {
                 foreach (var tip in _player.DrillTips)
                     GD.Print($"   [debug] tip=({tip.X:0},{tip.Y:0}) ground={_terrain.SurfaceY(tip.X):0} {_ore.DebugNearest(tip)}");
-                GD.Print($"   [debug] {_player.DebugSummary()}");
+                GD.Print($"   [debug] pitch={_player.PitchDegrees():0}deg drilling={_player.IsDrilling} {_player.DebugSummary()}");
             }
         }
     }
@@ -144,6 +144,7 @@ public partial class DriveScene : Node2D
         else
         {
             text += $"\n{GameSession.MaterialsText()}   Rocks left {_ore.RocksLeft}";
+            if (_player.IsDrilling) text += "\nDRILLING: ease off the throttle, press E to keep the nose down";
         }
 
         text += "\nD/A or arrows: drive   Q/E: tilt   Space: handbrake   R: repair and restart   G: garage   Esc: quit";
