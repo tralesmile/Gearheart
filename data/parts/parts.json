@@ -89,7 +89,7 @@
       "color": "#c0442b",
       "yield": 0.035,
       "breakLimit": 0.22,
-      "torque": 40000,
+      "torque": 48000,
       "maxSpin": 60,
       "fuelUse": 1.0,
       "sprite": 4,

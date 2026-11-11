@@ -310,16 +310,16 @@ public sealed class TileWorld : ITerrainCollider, IMineable
             float h = hills.GetNoise1D(x) * amplitude + Mathf.Sin(x / 9f) * Mathf.Min(2f, away * 0.05f);
             world._surface[x] = BaseSurface + Mathf.RoundToInt(h);
         }
-        // Walk outward from the pad: at most one tile of change, and never two changes in a row,
+        // Walk outward from the pad: at most one tile of change every three columns (about 18 degrees),
         // so every slope is a ramp a car can climb.
         for (int side = -1; side <= 1; side += 2)
         {
-            int sinceStep = 2;
+            int sinceStep = 3;
             for (int x = (int)padMiddle + side; x >= 0 && x < Width; x += side)
             {
                 int previous = world._surface[x - side];
                 int wanted = Mathf.Clamp(world._surface[x], previous - 1, previous + 1);
-                if (wanted != previous && sinceStep < 2) wanted = previous;
+                if (wanted != previous && sinceStep < 3) wanted = previous;
                 sinceStep = wanted != previous ? 0 : sinceStep + 1;
                 world._surface[x] = wanted;
             }

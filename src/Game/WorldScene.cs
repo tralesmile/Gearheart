@@ -367,7 +367,7 @@ public partial class WorldScene : Node2D
             if (_elapsed < 3f)
                 _player.Override = new PlayerInput { Move = 1f, Jump = Mathf.Abs(_player.Velocity.X) < 5f, Aim = feet };
             else if (_elapsed < 9f)
-                _player.Override = new PlayerInput { Mine = true, Aim = feet + new Vector2(0f, 8f) };
+                _player.Override = new PlayerInput { Mine = true, Aim = feet + new Vector2(((int)(_elapsed * 3f) & 1) == 0 ? -7f : 7f, 8f) };
             else if (_elapsed < 10f)
                 _player.Override = new PlayerInput { Place = true, Aim = _player.Position + new Vector2(-Ts * 1.5f, 0f) };
             else
