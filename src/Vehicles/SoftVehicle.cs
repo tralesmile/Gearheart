@@ -53,6 +53,7 @@ public partial class SoftVehicle : Node2D, IVehicle
         public int Hub;
         public float Radius, Grip, Mass, Spin, Angle;
         public bool Attached = true;
+        public bool Grounded;
     }
 
     private sealed class DrillTip
@@ -86,6 +87,7 @@ public partial class SoftVehicle : Node2D, IVehicle
     private float _engineTorque, _engineMaxSpin, _fuelUse;
     private VehicleInput _input;
     private float _drillContactTime;
+    private float _autoStuckTime, _autoReverseTime;
     private int _rearHub = -1, _frontHub = -1;
     private Vector2 _centerAtTickStart;
 
@@ -379,10 +381,17 @@ public partial class SoftVehicle : Node2D, IVehicle
         bool drive = Fuel > 0f && !Mathf.IsZeroApprox(_input.Throttle);
         if (drive) Fuel = Mathf.Max(0f, Fuel - _fuelUse * Mathf.Abs(_input.Throttle) * dt);
 
-        int attached = 0;
-        foreach (var w in _wheels) if (w.Attached) attached++;
+        // Engine torque goes to attached wheels that touch the ground (like a locked differential),
+        // so a wheel spinning in the air does not waste half the power.
+        int attached = 0, driven = 0;
+        foreach (var w in _wheels)
+        {
+            if (!w.Attached) continue;
+            attached++;
+            if (w.Grounded) driven++;
+        }
         foreach (var wheel in _wheels)
-            UpdateWheel(wheel, dt, terrain, drive, attached);
+            UpdateWheel(wheel, dt, terrain, drive, attached, driven);
 
         ApplyDeformation();
     }
@@ -462,7 +471,7 @@ public partial class SoftVehicle : Node2D, IVehicle
         }
     }
 
-    private void UpdateWheel(Wheel wheel, float dt, ITerrainCollider terrain, bool drive, int attachedWheels)
+    private void UpdateWheel(Wheel wheel, float dt, ITerrainCollider terrain, bool drive, int attachedWheels, int drivenWheels)
     {
         float inertia = 0.5f * wheel.Mass * wheel.Radius * wheel.Radius;
 
@@ -472,17 +481,19 @@ public partial class SoftVehicle : Node2D, IVehicle
             {
                 wheel.Spin *= 0.8f;
             }
-            else if (drive && attachedWheels > 0)
+            else if (drive && attachedWheels > 0 && (wheel.Grounded || drivenWheels == 0))
             {
                 bool belowTopSpeed = Mathf.Abs(wheel.Spin) < _engineMaxSpin || Mathf.Sign(wheel.Spin) != Mathf.Sign(_input.Throttle);
-                float torque = _engineTorque / attachedWheels * _input.Throttle;
+                float share = drivenWheels > 0 ? drivenWheels : attachedWheels;
+                float torque = _engineTorque / share * _input.Throttle;
                 if (belowTopSpeed) wheel.Spin += torque / inertia * dt;
             }
         }
         wheel.Spin *= 0.99995f; // rolling resistance
 
         int h = wheel.Hub;
-        if (terrain.Collide(Pos[h], wheel.Radius + 0.5f, out Vector2 n, out _))
+        wheel.Grounded = terrain.Collide(Pos[h], wheel.Radius + 0.5f, out Vector2 n, out _);
+        if (wheel.Grounded)
         {
             Vector2 v = (Pos[h] - Prev[h]) / dt;
             Vector2 tangent = new Vector2(-n.Y, n.X); // along the ground, pointing right on flat ground
@@ -569,6 +580,21 @@ public partial class SoftVehicle : Node2D, IVehicle
         }
 
         if (IsDrilling) throttle = Mathf.Clamp(throttle, -0.45f, 0.45f);
+
+        // Stuck for 3 s without drilling: back up for a moment, then try again.
+        const float tick = 1f / 120f;
+        if (_autoReverseTime > 0f)
+        {
+            _autoReverseTime -= tick;
+            return new VehicleInput(-AutoThrottle * 0.8f, 0f, false);
+        }
+        _autoStuckTime = Speed < 15f && !IsDrilling && AutoThrottle != 0f ? _autoStuckTime + tick : 0f;
+        if (_autoStuckTime > 3f)
+        {
+            _autoStuckTime = 0f;
+            _autoReverseTime = 1.2f;
+        }
+
         return new VehicleInput(throttle, tilt, false);
     }
 
