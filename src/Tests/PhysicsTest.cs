@@ -6,7 +6,8 @@ using Godot;
 namespace Gearheart.Tests;
 
 /// <summary>
-/// Week 3-4 physics test scene: drive, crash, and benchmark 1, 4 or 8 vehicles.
+/// Week 3-4 physics test scene: drive, crash, and benchmark 1, 4 or 8 vehicles,
+/// switching between physics approach A (rigid parts) and B (soft body) with V.
 /// Controls are shown on screen.
 /// </summary>
 public partial class PhysicsTest : Node2D
@@ -14,8 +15,12 @@ public partial class PhysicsTest : Node2D
     private const float PixelsPerMeter = 64f;
     private static readonly Vector2 SpawnPoint = new(200f, -150f);
 
-    private Vehicle _player;
-    private readonly List<Vehicle> _bots = new();
+    private enum PhysicsMode { Rigid, Soft }
+
+    private PhysicsMode _mode = PhysicsMode.Rigid;
+    private TestTerrain _terrain;
+    private Node2D _player;
+    private readonly List<Node2D> _bots = new();
     private Camera2D _camera;
     private Label _hud;
 
@@ -23,7 +28,8 @@ public partial class PhysicsTest : Node2D
     {
         RenderingServer.SetDefaultClearColor(new Color(0.45f, 0.65f, 0.85f));
 
-        AddChild(new TestTerrain { Name = "Terrain" });
+        _terrain = new TestTerrain { Name = "Terrain" };
+        AddChild(_terrain);
         SpawnCrates();
 
         _camera = new Camera2D
@@ -50,6 +56,7 @@ public partial class PhysicsTest : Node2D
         switch (key.PhysicalKeycode)
         {
             case Key.R: SpawnPlayer(); break;
+            case Key.V: ToggleMode(); break;
             case Key.Key1: SetBotCount(0); break;
             case Key.Key4: SetBotCount(3); break;
             case Key.Key8: SetBotCount(7); break;
@@ -59,22 +66,57 @@ public partial class PhysicsTest : Node2D
 
     public override void _Process(double delta)
     {
-        bool hasPlayer = IsInstanceValid(_player) && _player.Chassis != null;
-        if (hasPlayer)
-            _camera.Position = _player.Chassis.GlobalPosition;
+        var vehicle = IsInstanceValid(_player) ? _player as IVehicle : null;
+        if (vehicle != null)
+            _camera.Position = vehicle.CenterPosition;
 
-        float kmh = hasPlayer ? _player.Speed / PixelsPerMeter * 3.6f : 0f;
-        float damage = hasPlayer ? _player.Damage : 0f;
+        float kmh = vehicle != null ? vehicle.Speed / PixelsPerMeter * 3.6f : 0f;
+        float damage = vehicle?.Damage ?? 0f;
+        string physics = vehicle?.PhysicsName ?? "-";
 
         _hud.Text =
-            $"FPS {Engine.GetFramesPerSecond():0}   Vehicles {1 + _bots.Count}   Speed {kmh:0} km/h   Damage {damage:0}\n" +
-            "D/A or arrows: drive   Q/E: tilt   Space: handbrake   R: reset   1/4/8: vehicle count   Esc: quit";
+            $"Physics {physics}   FPS {Engine.GetFramesPerSecond():0}   Vehicles {1 + _bots.Count}   Speed {kmh:0} km/h   Damage {damage:0}\n" +
+            "D/A or arrows: drive   Q/E: tilt   Space: handbrake   R: reset   V: switch physics A/B   1/4/8: vehicle count   Esc: quit";
+    }
+
+    private void ToggleMode()
+    {
+        _mode = _mode == PhysicsMode.Rigid ? PhysicsMode.Soft : PhysicsMode.Rigid;
+        int bots = _bots.Count;
+        SpawnPlayer();
+        SetBotCount(bots);
+    }
+
+    private Node2D CreateVehicle(string name, Vector2 at, bool player, float autoThrottle, Color color)
+    {
+        if (_mode == PhysicsMode.Soft)
+        {
+            return new SoftVehicle
+            {
+                Name = name,
+                Terrain = _terrain,
+                Spawn = at,
+                PlayerControlled = player,
+                AutoThrottle = autoThrottle,
+                BodyColor = color,
+            };
+        }
+
+        return new Vehicle
+        {
+            Name = name,
+            Position = at,
+            PlayerControlled = player,
+            AutoThrottle = autoThrottle,
+            BodyColor = color,
+        };
     }
 
     private void SpawnPlayer()
     {
         if (IsInstanceValid(_player)) _player.QueueFree();
-        _player = new Vehicle { Name = "Player", PlayerControlled = true, Position = SpawnPoint };
+        var color = _mode == PhysicsMode.Soft ? new Color(0.25f, 0.55f, 0.85f) : new Color(0.85f, 0.35f, 0.2f);
+        _player = CreateVehicle("Player", SpawnPoint, true, 0f, color);
         AddChild(_player);
     }
 
@@ -86,13 +128,12 @@ public partial class PhysicsTest : Node2D
 
         for (int i = 0; i < count; i++)
         {
-            var bot = new Vehicle
-            {
-                Name = $"Bot{i}",
-                AutoThrottle = 0.7f,
-                Position = new Vector2(450f + 220f * i, -300f),
-                BodyColor = Color.FromHsv(0.08f * i + 0.5f, 0.6f, 0.85f),
-            };
+            var bot = CreateVehicle(
+                $"Bot{i}",
+                new Vector2(450f + 220f * i, -300f),
+                false,
+                0.7f,
+                Color.FromHsv(0.08f * i + 0.5f, 0.6f, 0.85f));
             AddChild(bot);
             _bots.Add(bot);
         }

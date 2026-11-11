@@ -2,6 +2,13 @@
 
 Newest first. One entry per big decision: what, why, and what would make us revisit it.
 
+## 2026-11-11 — Soft-body approach B built for comparison
+
+- **What:** Node-and-beam car (18 mass points, 50 beams) solved with position-based dynamics: 8 substeps x 4 iterations at 120 Hz. Beams dent past 1.5% stretch and snap after 18% total bend; suspension snaps after 40%.
+- **Why these numbers:** Tuned in an offline simulation of the same solver: normal driving causes no damage, a 34 km/h wall hit leaves light dents, 112 km/h snaps a few beams, 169 km/h wrecks the body. It never produced invalid (NaN) positions in any test.
+- **Known limits:** B collides with the terrain only. Crates and car-to-car collisions need our own broad-phase if B is chosen.
+- **Next:** Measure FPS for A and B with 1, 4 and 8 vehicles, judge feel, and record the choice here.
+
 ## 2026-11-11 — Physics test starts with approach A
 
 - **What:** The first test scene uses rigid parts with groove + spring suspension and wheels that detach on hard impacts.
