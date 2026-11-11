@@ -19,6 +19,7 @@ public partial class WorldScene : Node2D
 
     private TileWorld _world;
     private Backdrop _backdrop;
+    private TileWorldView _view;
     private SoftPhysicsWorld _physics;
     private SoftVehicle _car;
     private Player _player;
@@ -42,7 +43,8 @@ public partial class WorldScene : Node2D
         _backdrop = new Backdrop();
         sky.AddChild(_backdrop);
 
-        AddChild(new TileWorldView { Name = "Tiles", World = _world });
+        _view = new TileWorldView { Name = "Tiles", World = _world, Focus = TileWorld.PadCenter };
+        AddChild(_view);
 
         // The garage shed on its wooden floor.
         float padY = TileWorld.BaseSurface * Ts;
@@ -233,6 +235,7 @@ public partial class WorldScene : Node2D
         float dt = (float)delta;
         Vector2 focus = Focus;
         _camera.Position = focus;
+        _view.Focus = focus;
         float zoom = Mathf.Lerp(_camera.Zoom.X, _driving ? DriveZoom : FootZoom, 1f - Mathf.Exp(-3f * dt));
         _camera.Zoom = new Vector2(zoom, zoom);
 

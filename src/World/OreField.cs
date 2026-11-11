@@ -110,7 +110,7 @@ public partial class OreField : Node2D, IMineable
         {
             var rock = _rocks[i];
             if (!IsInstanceValid(rock)) continue;
-            if (point.DistanceTo(rock.GlobalPosition) > rock.Radius + reach) continue;
+            if (point.DistanceTo(rock.GlobalPosition) > rock.Radius + reach + 16f) continue;   // generous: the whole drill nose cuts
 
             if (_sparks != null && !_sparks.Emitting)
             {

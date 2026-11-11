@@ -26,11 +26,11 @@ public enum Tile : byte
 public sealed class TileWorld : ITerrainCollider, IMineable
 {
     public const int TileSize = 16;
-    public const int Width = 640;
+    public const int Width = 2560;           // 640 m across
     public const int Height = 192;
     public const int BaseSurface = 64;       // surface row at the spawn pad
-    public const int PadFrom = 40, PadTo = 84;   // flat ground for the garage (tile columns)
-    private const uint SaveMagic = 0x33574847;   // "GHW3": bump when generation changes
+    public const int PadFrom = 1258, PadTo = 1302;   // flat ground for the garage (tile columns)
+    private const uint SaveMagic = 0x34574847;   // "GHW4": bump when generation changes
 
     private readonly byte[] _tiles = new byte[Width * Height];
     private readonly int[] _surface = new int[Width];
@@ -176,30 +176,31 @@ public sealed class TileWorld : ITerrainCollider, IMineable
         return false;
     }
 
-    /// <summary>Drill mining: works on every breakable tile within reach of the point.</summary>
+    /// <summary>
+    /// Drill mining. The bite is a box in front of the tip, sized so a car can dig a tunnel it fits
+    /// through: 3 tiles wide, from well above the tip down to just above the floor the car stands on.
+    /// On level ground the floor is left alone; tilt the nose down to dig downward.
+    /// </summary>
     public bool Mine(Vector2 point, float reach, float work)
     {
-        float radius = reach + DrillBite;
+        const float halfWidth = 26f, above = 54f, below = 40f;
         bool any = false;
-        int x0 = Mathf.FloorToInt((point.X - radius) / TileSize), x1 = Mathf.FloorToInt((point.X + radius) / TileSize);
-        int y0 = Mathf.FloorToInt((point.Y - radius) / TileSize), y1 = Mathf.FloorToInt((point.Y + radius) / TileSize);
+        int x0 = Mathf.FloorToInt((point.X - halfWidth) / TileSize), x1 = Mathf.FloorToInt((point.X + halfWidth) / TileSize);
+        int y0 = Mathf.FloorToInt((point.Y - above) / TileSize), y1 = Mathf.FloorToInt((point.Y + below) / TileSize);
         for (int ty = y0; ty <= y1; ty++)
         {
             for (int tx = x0; tx <= x1; tx++)
             {
                 Tile tile = Get(tx, ty);
                 if (tile == Tile.Air || float.IsInfinity(Hardness(tile))) continue;
-                Vector2 center = new((tx + 0.5f) * TileSize, (ty + 0.5f) * TileSize);
-                if (center.DistanceTo(point) > radius) continue;
+                float cx = (tx + 0.5f) * TileSize, cy = (ty + 0.5f) * TileSize;
+                if (Mathf.Abs(cx - point.X) > halfWidth || cy < point.Y - above || cy > point.Y + below) continue;
                 Damage(tx, ty, work * 0.5f);
                 any = true;
             }
         }
         return any;
     }
-
-    /// <summary>How far around a drill tip tiles get chewed, so a car can dig a tunnel it fits through.</summary>
-    public const float DrillBite = 34f;
 
     // ---- Collision --------------------------------------------------------------------------
 
