@@ -9,6 +9,7 @@ namespace Gearheart.Parts;
 public enum PartCategory
 {
     Frame,
+    Cab,
     Armor,
     Engine,
     FuelTank,
@@ -27,6 +28,12 @@ public sealed class PartDefinition
     public string Description { get; set; } = "";
     public float Mass { get; set; }
     [JsonPropertyName("color")] public string ColorHex { get; set; } = "#ffffff";
+
+    /// <summary>Cell index in parts.png (blocks) or wheels.png (wheels).</summary>
+    public int Sprite { get; set; }
+
+    /// <summary>Materials needed to build one: item key to amount.</summary>
+    public Dictionary<string, int> Cost { get; set; } = new();
 
     // Structure (frames, armor, engines, tanks, drills, suspension beams)
     public float Yield { get; set; } = 0.015f;        // stretch before it bends permanently
@@ -56,7 +63,7 @@ public sealed class PartDefinition
 
     /// <summary>True for parts placed as a block in the body grid.</summary>
     [JsonIgnore]
-    public bool IsBlock => Category is PartCategory.Frame or PartCategory.Armor or PartCategory.Engine
+    public bool IsBlock => Category is PartCategory.Frame or PartCategory.Cab or PartCategory.Armor or PartCategory.Engine
         or PartCategory.FuelTank or PartCategory.Drill;
 }
 

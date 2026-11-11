@@ -1,0 +1,397 @@
+#!/usr/bin/env python3
+"""Generates GEARHEART's placeholder pixel art into assets/art/.
+
+Run:  python3 tools/make_art.py
+Everything is drawn by code with fixed seeds, so the output is reproducible.
+Replace the PNGs with real art later; keep the same grid layout (see docs/ART.md).
+"""
+import math, os, random
+from PIL import Image, ImageDraw, ImageFont
+
+OUT = os.path.join(os.path.dirname(__file__), "..", "assets", "art")
+T = 16  # world tile size in pixels
+
+
+def noise_tile(rng, palette, weights):
+    img = Image.new("RGBA", (T, T))
+    px = img.load()
+    for y in range(T):
+        for x in range(T):
+            px[x, y] = rng.choices(palette, weights)[0] + (255,)
+    return img
+
+
+def blobs(img, rng, colors, count, size):
+    px = img.load()
+    for _ in range(count):
+        cx, cy = rng.randrange(2, T - 2), rng.randrange(2, T - 2)
+        for _ in range(size):
+            x = min(T - 1, max(0, cx + rng.randrange(-2, 3)))
+            y = min(T - 1, max(0, cy + rng.randrange(-1, 2)))
+            px[x, y] = rng.choice(colors) + (255,)
+
+
+DIRT = [(134, 84, 57), (119, 72, 48), (150, 97, 66), (101, 60, 40)]
+STONE = [(120, 124, 133), (104, 108, 118), (137, 141, 150), (88, 92, 102)]
+GRASS = [(88, 168, 62), (72, 146, 52), (110, 190, 80)]
+
+
+def dirt(rng):
+    img = noise_tile(rng, DIRT, [16, 3, 2, 1])
+    blobs(img, rng, [(96, 56, 38)], 2, 3)          # dark clods
+    blobs(img, rng, [(168, 118, 84)], 1, 2)        # light pebbles
+    return img
+
+
+def stone(rng):
+    img = noise_tile(rng, STONE, [16, 3, 2, 1])
+    px = img.load()
+    for _ in range(2):                              # crack lines
+        x, y = rng.randrange(T), rng.randrange(T)
+        for _ in range(rng.randrange(4, 8)):
+            px[x % T, y % T] = (74, 78, 88, 255)
+            x += rng.choice([0, 1, 1]); y += rng.choice([-1, 0, 1])
+    blobs(img, rng, [(150, 154, 163)], 2, 3)
+    return img
+
+
+def grass(rng):
+    img = dirt(rng)
+    px = img.load()
+    for x in range(T):
+        depth = rng.choice([3, 4, 4, 5])
+        for y in range(depth):
+            px[x, y] = (GRASS[2] if y == 0 else rng.choices(GRASS, [5, 3, 1])[0]) + (255,)
+        px[x, depth] = (58, 120, 44, 255)
+    return img
+
+
+def ore(rng, colors, sparkle):
+    img = stone(rng)
+    d = ImageDraw.Draw(img)
+    dark = tuple(int(c * 0.5) for c in colors[1])
+    for cx, cy in rng.sample([(3, 3), (10, 2), (6, 8), (12, 9), (3, 12), (9, 13)], 4):   # nuggets
+        cx += rng.randrange(0, 2); cy += rng.randrange(0, 2)
+        d.rectangle([cx - 1, cy - 1, cx + 2, cy + 2], fill=dark)
+        d.rectangle([cx, cy, cx + 1, cy + 1], fill=colors[0])
+        d.point((cx + 1, cy + 1), fill=colors[1])
+        d.point((cx, cy), fill=sparkle)
+    return img
+
+
+def bedrock(rng):
+    img = noise_tile(rng, [(52, 52, 62), (40, 40, 50), (66, 66, 78)], [5, 3, 1])
+    blobs(img, rng, [(28, 28, 36)], 3, 5)
+    return img
+
+
+def wall(rng, palette):
+    img = noise_tile(rng, palette, [6, 3, 2, 1])
+    return Image.eval(img, lambda v: v).point(lambda v: int(v * 0.42)) if False else darken(img, 0.42)
+
+
+def darken(img, f):
+    r, g, b, a = img.split()
+    return Image.merge("RGBA", (r.point(lambda v: int(v * f)), g.point(lambda v: int(v * f)), b.point(lambda v: int(v * f * 1.08)), a))
+
+
+def crack(rng, stage):
+    img = Image.new("RGBA", (T, T), (0, 0, 0, 0))
+    px = img.load()
+    rng2 = random.Random(77)                         # same cracks grow stage by stage
+    for i in range(2 + stage * 2):
+        x, y = 8, 8
+        dx, dy = rng2.choice([(1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (-1, 1), (1, -1), (-1, -1)])
+        for _ in range(3 + stage * 2):
+            if 0 <= x < T and 0 <= y < T:
+                px[x, y] = (20, 16, 14, 200)
+            x += dx + rng2.choice([0, 0, 1, -1]); y += dy + rng2.choice([0, 0, 1, -1])
+    return img
+
+
+def planks(rng):
+    img = Image.new("RGBA", (T, T))
+    px = img.load()
+    for y in range(T):
+        for x in range(T):
+            base = (164, 116, 70) if (y // 4) % 2 == 0 else (150, 104, 62)
+            if y % 4 == 3: base = (104, 70, 42)
+            if rng.random() < 0.12: base = tuple(max(0, c - 14) for c in base)
+            px[x, y] = base + (255,)
+    return img
+
+
+def icon(color, light, dark):
+    img = Image.new("RGBA", (T, T), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    d.polygon([(3, 6), (8, 2), (13, 6), (12, 12), (5, 13)], fill=color, outline=dark)
+    d.line([(6, 6), (8, 4)], fill=light)
+    d.point((9, 9), fill=light)
+    return img
+
+
+def make_tiles():
+    rng = random.Random(1234)
+    sheet = Image.new("RGBA", (8 * T, 8 * T), (0, 0, 0, 0))
+    def put(img, col, row): sheet.paste(img, (col * T, row * T))
+    for i in range(4):
+        put(dirt(rng), i, 0); put(stone(rng), i, 1); put(grass(rng), i, 2); put(crack(rng, i), i, 4)
+    for i in range(2):
+        put(ore(rng, [(196, 201, 210), (160, 166, 176), (170, 96, 60)], (236, 240, 246)), i, 3)          # scrap
+        put(ore(rng, [(181, 101, 74), (150, 78, 58), (214, 140, 104)], (240, 176, 140)), 2 + i, 3)      # iron
+        put(ore(rng, [(232, 140, 60), (200, 108, 44), (80, 180, 150)], (255, 214, 130)), 4 + i, 3)      # copper
+        put(bedrock(rng), 6 + i, 3)
+        put(wall(rng, DIRT), 4 + i, 4); put(wall(rng, STONE), 6 + i, 4)
+        put(planks(rng), i, 5)
+    put(icon((134, 84, 57), (168, 118, 84), (70, 42, 28)), 0, 6)       # dirt
+    put(icon((120, 124, 133), (160, 164, 172), (60, 62, 70)), 1, 6)    # stone
+    put(icon((180, 186, 196), (236, 240, 246), (90, 94, 104)), 2, 6)   # scrap
+    put(icon((181, 101, 74), (240, 176, 140), (96, 50, 36)), 3, 6)     # iron
+    put(icon((232, 140, 60), (255, 214, 130), (120, 66, 24)), 4, 6)    # copper
+    sheet.save(os.path.join(OUT, "tiles.png"))
+
+
+# ---------------------------------------------------------------------------- player
+
+OUTLINE = (34, 28, 40, 255)
+SKIN, SKIN_D = (236, 188, 148), (204, 150, 112)
+SUIT, SUIT_D, SUIT_L = (232, 120, 44), (190, 88, 30), (250, 160, 80)
+PANTS, PANTS_D = (62, 84, 130), (46, 62, 100)
+BOOT = (58, 46, 44)
+HELMET, HELMET_L = (240, 196, 48), (255, 232, 120)
+GOGGLE = (120, 220, 240)
+GLOVE = (90, 70, 60)
+PICK_H, PICK_M = (150, 104, 62), (190, 196, 206)
+
+
+def outline(img):
+    src = img.copy(); s = src.load(); p = img.load()
+    w, h = img.size
+    for y in range(h):
+        for x in range(w):
+            if s[x, y][3] == 0:
+                for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                    nx, ny = x + dx, y + dy
+                    if 0 <= nx < w and 0 <= ny < h and s[nx, ny][3] != 0:
+                        p[x, y] = OUTLINE; break
+    return img
+
+
+def player_frame(leg_a=0, leg_b=0, lift_a=0, lift_b=0, arm=0, bob=0, pick=None):
+    """32x48 frame (body in the left 24 px, room for the pickaxe on the right), facing right. leg_* = forward offset px, lift_* = foot raised px, arm = swing px."""
+    W, H = 32, 48
+    img = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    r = lambda x0, y0, x1, y1, c: d.rectangle([x0, y0, x1, y1], fill=c)
+    by = bob
+    # back leg, back arm (darker)
+    r(9 + leg_b, 33 + by, 12 + leg_b, 42 - lift_b, PANTS_D)
+    r(8 + leg_b, 43 - lift_b, 13 + leg_b, 46 - lift_b, BOOT)
+    r(7 - arm, 20 + by, 9 - arm, 29 + by, SUIT_D)
+    # front leg
+    r(11 + leg_a, 33 + by, 14 + leg_a, 42 - lift_a, PANTS)
+    r(10 + leg_a, 43 - lift_a, 16 + leg_a, 46 - lift_a, BOOT)
+    # torso
+    r(7, 18 + by, 16, 32 + by, SUIT)
+    r(7, 18 + by, 8, 32 + by, SUIT_D)
+    r(14, 19 + by, 15, 25 + by, SUIT_L)
+    r(7, 30 + by, 16, 31 + by, (70, 56, 50))            # belt
+    r(11, 30 + by, 12, 31 + by, HELMET)                 # buckle
+    # head
+    r(8, 7 + by, 16, 16 + by, SKIN)
+    r(8, 14 + by, 10, 16 + by, SKIN_D)
+    r(7, 4 + by, 16, 9 + by, HELMET)                    # helmet
+    r(9, 4 + by, 14, 5 + by, HELMET_L)
+    r(15, 9 + by, 18, 10 + by, HELMET)                  # visor brim
+    r(12, 10 + by, 16, 12 + by, GOGGLE)                 # goggles
+    r(12, 10 + by, 13, 10 + by, (220, 250, 255))
+    d.point((15, 15 + by), fill=(150, 90, 70))          # mouth
+    # front arm (+ pickaxe)
+    if pick is None:
+        r(12 + arm, 20 + by, 15 + arm, 28 + by, SUIT)
+        r(12 + arm, 29 + by, 15 + arm, 31 + by, GLOVE)
+    else:
+        ang = math.radians(pick)
+        sx, sy = 13, 21 + by
+        hx, hy = sx + math.cos(ang) * 8, sy + math.sin(ang) * 8
+        d.line([(sx, sy), (hx, hy)], fill=SUIT, width=4)
+        d.rectangle([hx - 1, hy - 1, hx + 1, hy + 1], fill=GLOVE)
+        tx, ty = hx + math.cos(ang - 0.5) * 9, hy + math.sin(ang - 0.5) * 9
+        d.line([(hx, hy), (tx, ty)], fill=PICK_H, width=2)
+        nx, ny = math.cos(ang - 0.5 + math.pi / 2), math.sin(ang - 0.5 + math.pi / 2)
+        d.line([(tx - nx * 5, ty - ny * 5), (tx + nx * 6, ty + ny * 6)], fill=PICK_M, width=2)
+    return outline(img)
+
+
+def make_player():
+    frames = [
+        player_frame(),                                            # 0 idle
+        player_frame(leg_a=3, leg_b=-3, lift_b=1, arm=-2),         # 1-4 walk
+        player_frame(leg_a=1, leg_b=-1, lift_a=0, lift_b=3, arm=-1, bob=-1),
+        player_frame(leg_a=-3, leg_b=3, lift_a=1, arm=2),
+        player_frame(leg_a=-1, leg_b=1, lift_a=3, arm=1, bob=-1),
+        player_frame(leg_a=2, leg_b=-2, lift_a=4, lift_b=1, arm=-3),   # 5 jump
+        player_frame(pick=-55),                                    # 6 mine up
+        player_frame(pick=25),                                     # 7 mine down
+    ]
+    sheet = Image.new("RGBA", (32 * len(frames), 48), (0, 0, 0, 0))
+    for i, f in enumerate(frames):
+        sheet.paste(f, (i * 32, 0))
+    sheet.save(os.path.join(OUT, "player.png"))
+
+
+# ---------------------------------------------------------------------------- vehicle parts
+
+P = 22  # part cell size
+
+
+def panel(base, light, dark):
+    img = Image.new("RGBA", (P, P), base + (255,))
+    d = ImageDraw.Draw(img)
+    d.rectangle([0, 0, P - 1, 2], fill=light)                 # highlight band
+    d.rectangle([0, P - 4, P - 1, P - 1], fill=dark)          # shadow band
+    d.rectangle([0, 0, P - 1, P - 1], outline=tuple(int(c * 0.55) for c in base))
+    return img, d
+
+
+def part_frame_light():
+    img = Image.new("RGBA", (P, P), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    tube, hi = (196, 170, 120), (232, 212, 164)
+    d.rectangle([0, 0, P - 1, P - 1], outline=tube, width=3)
+    d.line([(1, 1), (P - 2, P - 2)], fill=tube, width=3)
+    d.line([(P - 2, 1), (1, P - 2)], fill=tube, width=3)
+    d.line([(1, 1), (P - 2, 1)], fill=hi)
+    d.rectangle([0, 0, P - 1, P - 1], outline=(110, 92, 60))
+    return img
+
+
+def part_steel():
+    img, d = panel((206, 62, 44), (240, 110, 84), (150, 40, 32))
+    d.line([(0, 12), (P - 1, 12)], fill=(150, 40, 32))        # body crease
+    d.line([(3, 6), (9, 6)], fill=(255, 170, 150))            # glint
+    return img
+
+
+def part_heavy():
+    img, d = panel((86, 94, 106), (120, 130, 144), (58, 64, 74))
+    for x, y in ((3, 6), (P - 4, 6), (3, P - 8), (P - 4, P - 8)):
+        d.rectangle([x - 1, y - 1, x, y], fill=(160, 168, 180))
+    for i in range(-P, P, 8):                                  # hazard stripe
+        d.polygon([(i, P - 4), (i + 4, P - 4), (i + 8, P - 1), (i + 4, P - 1)], fill=(232, 190, 40))
+    return img
+
+
+def part_engine(body, head, pipes):
+    img, d = panel((70, 74, 84), (104, 110, 122), (44, 46, 54))
+    d.rectangle([3, 5, P - 4, 15], fill=body)
+    for i in range(pipes):
+        x = 4 + i * (P - 8) // max(1, pipes - 1) if pipes > 1 else P // 2
+        d.rectangle([x - 1, 2, x, 6], fill=head)
+        d.point((x, 1), fill=(240, 240, 240))
+    for y in (8, 11, 14):
+        d.line([(4, y), (P - 5, y)], fill=tuple(int(c * 0.7) for c in body))
+    d.ellipse([8, 15, 13, 20], fill=(30, 30, 36), outline=(150, 156, 166))   # pulley
+    return img
+
+
+def part_armor():
+    img, d = panel((74, 86, 98), (116, 130, 144), (44, 52, 62))
+    d.rectangle([2, 2, P - 3, P - 3], outline=(132, 146, 160))
+    for x, y in ((4, 4), (P - 5, 4), (4, P - 5), (P - 5, P - 5)):
+        d.point((x, y), fill=(210, 218, 228))
+    d.line([(8, 14), (13, 9)], fill=(44, 52, 62))             # scratch
+    return img
+
+
+def part_bumper():
+    img, d = panel((40, 40, 46), (70, 70, 78), (24, 24, 28))
+    for i in range(-P, P * 2, 8):
+        d.polygon([(i, 4), (i + 4, 4), (i - 6, P - 5), (i - 10, P - 5)], fill=(236, 150, 40))
+    d.rectangle([0, 0, P - 1, P - 1], outline=(20, 20, 24))
+    return img
+
+
+def part_fuel():
+    img, d = panel((58, 132, 76), (96, 176, 112), (38, 92, 52))
+    d.rectangle([3, 5, P - 4, P - 6], outline=(38, 92, 52))
+    d.line([(4, 6), (P - 5, P - 7)], fill=(38, 92, 52)); d.line([(P - 5, 6), (4, P - 7)], fill=(38, 92, 52))
+    d.rectangle([8, 0, 13, 3], fill=(220, 190, 60), outline=(120, 100, 30))  # cap
+    return img
+
+
+def part_drill():
+    img, d = panel((214, 168, 40), (250, 214, 100), (150, 112, 24))
+    d.ellipse([5, 5, 16, 16], fill=(60, 60, 70), outline=(30, 30, 36))
+    d.ellipse([9, 9, 12, 12], fill=(200, 206, 216))
+    for a in range(0, 360, 60):
+        d.point((10.5 + math.cos(math.radians(a)) * 5, 10.5 + math.sin(math.radians(a)) * 5), fill=(200, 206, 216))
+    return img
+
+
+def part_cab():
+    img, d = panel((206, 62, 44), (240, 110, 84), (150, 40, 32))
+    d.rectangle([3, 3, P - 3, 14], fill=(140, 208, 232), outline=(40, 44, 54))
+    d.line([(6, 12), (12, 5)], fill=(220, 244, 252)); d.line([(9, 12), (14, 6)], fill=(220, 244, 252))
+    d.rectangle([4, 16, 8, 17], fill=(40, 44, 54))            # door handle
+    return img
+
+
+def wheel(radius, tread, rim_col):
+    size = 56
+    img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    c = size / 2 - 0.5
+    for i in range(tread):                                     # tread knobs
+        a = math.tau * i / tread
+        x, y = c + math.cos(a) * radius, c + math.sin(a) * radius
+        d.ellipse([x - 1.6, y - 1.6, x + 1.6, y + 1.6], fill=(24, 24, 28))
+    d.ellipse([c - radius + 0.5, c - radius + 0.5, c + radius - 0.5, c + radius - 0.5], fill=(34, 34, 40), outline=(16, 16, 20))
+    rr = radius * 0.6
+    d.ellipse([c - rr, c - rr, c + rr, c + rr], fill=rim_col, outline=(60, 62, 70))
+    for i in range(5):                                         # spokes
+        a = math.tau * i / 5
+        d.line([(c, c), (c + math.cos(a) * rr * 0.9, c + math.sin(a) * rr * 0.9)], fill=(70, 72, 82), width=2)
+    d.ellipse([c - 2.5, c - 2.5, c + 2.5, c + 2.5], fill=(230, 232, 238), outline=(60, 62, 70))
+    return img
+
+
+def make_parts():
+    parts = [part_frame_light(), part_steel(), part_heavy(),
+             part_engine((150, 96, 60), (190, 150, 110), 2), part_engine((190, 60, 44), (220, 220, 226), 3),
+             part_engine((224, 44, 30), (250, 210, 60), 4),
+             part_armor(), part_bumper(), part_fuel(), part_drill(), part_cab()]
+    sheet = Image.new("RGBA", (P * len(parts), P), (0, 0, 0, 0))
+    for i, p in enumerate(parts):
+        sheet.paste(p, (i * P, 0))
+    sheet.save(os.path.join(OUT, "parts.png"))
+
+    wheels = [wheel(16, 16, (176, 182, 192)), wheel(20, 20, (200, 204, 212)), wheel(26, 14, (214, 150, 60))]
+    sheet = Image.new("RGBA", (56 * 3, 56), (0, 0, 0, 0))
+    for i, w in enumerate(wheels):
+        sheet.paste(w, (i * 56, 0))
+    sheet.save(os.path.join(OUT, "wheels.png"))
+
+
+def make_garage():
+    W, H = 112, 72
+    img = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    d.rectangle([6, 22, 12, H - 1], fill=(96, 70, 48)); d.rectangle([W - 13, 22, W - 7, H - 1], fill=(96, 70, 48))   # posts
+    d.rectangle([13, 24, W - 14, H - 1], fill=(40, 36, 44, 150))                                                    # dark interior
+    for x in range(0, W, 6):                                                                                         # corrugated roof
+        d.polygon([(x, 22), (x + 6, 22), (x + 6, 10 + (x % 12 == 0)), (x, 10 + (x % 12 == 0))], fill=(170, 60, 50) if (x // 6) % 2 else (150, 50, 42))
+    d.rectangle([0, 20, W - 1, 23], fill=(90, 30, 28))
+    d.rectangle([30, 0, 82, 12], fill=(236, 190, 60), outline=(70, 50, 20))                                         # sign
+    font = ImageFont.load_default()
+    d.text((34, 0), "GARAGE", fill=(60, 40, 16), font=font)
+    d.rectangle([20, 50, 44, 53], fill=(150, 104, 62)); d.rectangle([22, 54, 24, H - 1], fill=(110, 76, 46)); d.rectangle([40, 54, 42, H - 1], fill=(110, 76, 46))  # workbench
+    d.rectangle([24, 44, 30, 49], fill=(200, 60, 50)); d.rectangle([34, 46, 40, 49], fill=(120, 126, 136))          # toolbox, vice
+    d.ellipse([84, 30, 96, 42], outline=(190, 196, 206), width=2)                                                    # hanging tyre
+    return outline(img).save(os.path.join(OUT, "garage.png"))
+
+
+if __name__ == "__main__":
+    os.makedirs(OUT, exist_ok=True)
+    make_tiles(); make_player(); make_parts(); make_garage()
+    print("art written to", os.path.abspath(OUT))

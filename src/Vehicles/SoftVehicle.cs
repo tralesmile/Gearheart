@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Gearheart.Core;
 using Gearheart.Parts;
 using Gearheart.Physics;
 using Godot;
@@ -23,6 +24,17 @@ public partial class SoftVehicle : Node2D, IVehicle
     [Export] public float AirControl = 9f;          // rad/s² of tilt
 
     public VehicleDesign Design { get; set; }
+
+    /// <summary>Parked cars hold the handbrake and ignore all input.</summary>
+    public bool Parked { get; set; }
+
+    /// <summary>Drills only cut while this is on.</summary>
+    public bool DrillEnabled { get; set; } = true;
+
+    public bool HasDrill => _drills.Count > 0;
+
+    /// <summary>Shows the driver in the cab window.</summary>
+    public bool Occupied { get; set; }
     public SoftPhysicsWorld World { get; set; }
 
     public string PhysicsName => "B: soft body";
@@ -52,6 +64,7 @@ public partial class SoftVehicle : Node2D, IVehicle
     {
         public int Hub;
         public float Radius, Grip, Mass, Spin, Angle;
+        public int Sprite;
         public bool Attached = true;
         public bool Grounded;
     }
@@ -214,7 +227,7 @@ public partial class SoftVehicle : Node2D, IVehicle
             positions.Add(attach + new Vector2(0f, suspension.RestLength));
             masses.Add(wheelPart.Mass);
 
-            _wheels.Add(new Wheel { Hub = hub, Radius = wheelPart.Radius, Grip = wheelPart.Grip, Mass = Mathf.Max(wheelPart.Mass, MinNodeMass) });
+            _wheels.Add(new Wheel { Hub = hub, Sprite = wheelPart.Sprite, Radius = wheelPart.Radius, Grip = wheelPart.Grip, Mass = Mathf.Max(wheelPart.Mass, MinNodeMass) });
             wheelSetups.Add((hub, suspension, anchors.ToArray()));
         }
 
@@ -307,7 +320,7 @@ public partial class SoftVehicle : Node2D, IVehicle
 
     public void BeginTick()
     {
-        _input = PlayerControlled ? VehicleInput.ReadPlayer() : AutoPilot();
+        _input = Parked ? new VehicleInput(0f, 0f, true) : PlayerControlled ? VehicleInput.ReadPlayer() : AutoPilot();
         _centerAtTickStart = BodyCenter();
     }
 
@@ -354,7 +367,7 @@ public partial class SoftVehicle : Node2D, IVehicle
     {
         DampSuspension();
 
-        if (mineable != null)
+        if (mineable != null && DrillEnabled)
         {
             // The tip and the drill block's front corners all cut, so a shrinking rock
             // that ends up under the nose still gets mined.
@@ -620,59 +633,92 @@ public partial class SoftVehicle : Node2D, IVehicle
     public override void _Draw()
     {
         if (Pos == null) return;
+        Texture2D parts = Art.Parts;
+        Vector2 partsSize = parts.GetSize();
 
+        // Suspension struts behind everything.
+        var strut = new Color(0.16f, 0.16f, 0.2f);
+        foreach (var beam in _beams)
+            if (beam.Suspension && !beam.Broken)
+                DrawLine(ToLocal(Pos[beam.A]), ToLocal(Pos[beam.B]), strut, 3f);
+
+        // Body: every block is a textured quad that bends with the soft body.
         foreach (var cell in _cells)
         {
             int[] c = cell.Corners;
-            Color color = cell.Part.GodotColor;
-            FillTriangle(Pos[c[0]], Pos[c[1]], Pos[c[2]], color);
-            FillTriangle(Pos[c[0]], Pos[c[2]], Pos[c[3]], color);
+            Rect2 src = Art.PartCell(cell.Part.Sprite);
+            Vector2 u0 = (src.Position + new Vector2(0.1f, 0.1f)) / partsSize;
+            Vector2 u1 = (src.End - new Vector2(0.1f, 0.1f)) / partsSize;
+            TexturedTriangle(parts, Pos[c[0]], Pos[c[1]], Pos[c[2]], u0, new Vector2(u1.X, u0.Y), u1);
+            TexturedTriangle(parts, Pos[c[0]], Pos[c[2]], Pos[c[3]], u0, u1, new Vector2(u0.X, u1.Y));
 
-            if (cell.Part.Category == PartCategory.Engine)
+            if (Occupied && cell.Part.Category == PartCategory.Cab)
             {
-                Vector2 middle = (Pos[c[0]] + Pos[c[2]]) / 2f;
-                DrawCircle(ToLocal(middle), 5f, color.Darkened(0.4f));
+                // The driver's helmet and face behind the glass.
+                Vector2 middle = ToLocal((Pos[c[0]] + Pos[c[1]] + Pos[c[2]] + Pos[c[3]]) / 4f);
+                DrawRect(new Rect2(middle + new Vector2(-2f, -3f), new Vector2(6f, 5f)), new Color(0.93f, 0.74f, 0.58f));
+                DrawRect(new Rect2(middle + new Vector2(-3f, -7f), new Vector2(8f, 4f)), new Color(0.94f, 0.77f, 0.19f));
             }
         }
 
+        // Drill spikes: a striped cone from the block's front edge to the tip.
         foreach (var drill in _drills)
         {
-            // Spike from the drill block's right edge to the tip point.
+            if (!DrillIntact(drill)) continue;
             int[] c = drill.Block.Corners;
-            if (DrillIntact(drill))
-                FillTriangle(Pos[c[1]], Pos[drill.Node], Pos[c[2]], drill.Block.Part.GodotColor.Darkened(0.2f));
+            Vector2 top = ToLocal(Pos[c[1]]), bottom = ToLocal(Pos[c[2]]), tip = ToLocal(Pos[drill.Node]);
+            float spin = _drillContactTime > 0f ? Time.GetTicksMsec() / 60f : 0f;
+            const int bands = 5;
+            for (int i = 0; i < bands; i++)
+            {
+                float f0 = i / (float)bands, f1 = (i + 1) / (float)bands;
+                Vector2 a0 = top.Lerp(tip, f0), a1 = top.Lerp(tip, f1), b0 = bottom.Lerp(tip, f0), b1 = bottom.Lerp(tip, f1);
+                bool light = ((i + (int)spin) & 1) == 0;
+                Color color = light ? new Color(0.82f, 0.84f, 0.88f) : new Color(0.5f, 0.52f, 0.58f);
+                if (i < bands - 1) FillQuad(a0, a1, b1, b0, color);
+                else FillTriangleLocal(a0, tip, b0, color);
+            }
+            DrawLine(top, tip, new Color(0.13f, 0.11f, 0.16f), 1.5f);
+            DrawLine(bottom, tip, new Color(0.13f, 0.11f, 0.16f), 1.5f);
         }
 
-        var beamColor = new Color(0f, 0f, 0f, 0.25f);
-        var springColor = new Color(0.85f, 0.85f, 0.85f, 0.9f);
-        foreach (var beam in _beams)
-        {
-            if (beam.Broken) continue;
-            DrawLine(ToLocal(Pos[beam.A]), ToLocal(Pos[beam.B]), beam.Suspension ? springColor : beamColor, beam.Suspension ? 2f : 1f);
-        }
-
-        var outlineColor = new Color(0f, 0f, 0f, 0.6f);
+        // Dark outline around the body silhouette.
+        var outlineColor = new Color(0.13f, 0.11f, 0.16f);
         foreach (var (a, b) in BoundaryEdges)
             if (Pos[a].DistanceTo(Pos[b]) < CellSize * 2f)
                 DrawLine(ToLocal(Pos[a]), ToLocal(Pos[b]), outlineColor, 2f);
 
+        // Wheels on top, spinning.
+        Texture2D wheels = Art.Wheels;
         foreach (var wheel in _wheels)
         {
-            Vector2 c = ToLocal(Pos[wheel.Hub]);
-            DrawCircle(c, wheel.Radius, new Color(0.12f, 0.12f, 0.14f));
-            DrawCircle(c, wheel.Radius * 0.55f, new Color(0.6f, 0.6f, 0.65f));
-            Vector2 spoke = new Vector2(Mathf.Cos(wheel.Angle), Mathf.Sin(wheel.Angle)) * wheel.Radius * 0.9f;
-            DrawLine(c, c + spoke, new Color(0.9f, 0.9f, 0.9f), 3f);
+            DrawSetTransform(ToLocal(Pos[wheel.Hub]), wheel.Angle, Vector2.One);
+            float half = Art.WheelCell / 2f;
+            DrawTextureRectRegion(wheels, new Rect2(-half, -half, Art.WheelCell, Art.WheelCell),
+                new Rect2(wheel.Sprite * Art.WheelCell, 0, Art.WheelCell, Art.WheelCell));
         }
+        DrawSetTransform(Vector2.Zero, 0f, Vector2.One);
     }
 
-    private void FillTriangle(Vector2 a, Vector2 b, Vector2 c, Color color)
+    private void TexturedTriangle(Texture2D texture, Vector2 a, Vector2 b, Vector2 c, Vector2 ua, Vector2 ub, Vector2 uc)
     {
         Vector2 la = ToLocal(a), lb = ToLocal(b), lc = ToLocal(c);
         float area = Mathf.Abs((lb - la).Cross(lc - la));
-        if (area < 2f) return; // crushed
+        if (area < 2f) return; // crushed flat
         if (la.DistanceTo(lb) > CellSize * 3f || lb.DistanceTo(lc) > CellSize * 3f || lc.DistanceTo(la) > CellSize * 3f)
             return; // torn apart
-        DrawPolygon(new[] { la, lb, lc }, new[] { color });
+        DrawPolygon(new[] { la, lb, lc }, new[] { Colors.White }, new[] { ua, ub, uc }, texture);
+    }
+
+    private void FillTriangleLocal(Vector2 a, Vector2 b, Vector2 c, Color color)
+    {
+        if (Mathf.Abs((b - a).Cross(c - a)) < 1f) return;
+        DrawPolygon(new[] { a, b, c }, new[] { color });
+    }
+
+    private void FillQuad(Vector2 a, Vector2 b, Vector2 c, Vector2 d, Color color)
+    {
+        FillTriangleLocal(a, b, c, color);
+        FillTriangleLocal(a, c, d, color);
     }
 }

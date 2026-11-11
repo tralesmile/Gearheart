@@ -43,18 +43,40 @@ jobs:
             name="$1"; shift
             echo "=== $name"
             timeout 300 godot --headless --path . --fixed-fps 120 "$@" > smoke.log 2>&1
-            grep -E "\[(drive|race|mining|autodrive|debug)\]" smoke.log | tail -60
+            grep -E "\[(world|autoplay|drive|race|mining|autodrive)\]" smoke.log | tail -45
             if grep -E "ERROR|Unhandled exception|SCRIPT ERROR|System\.[A-Za-z]*Exception" smoke.log; then
               echo "::error::Smoke test failed: $name"
               tail -60 smoke.log
               fail=1
             fi
           }
+          run "world: walk, mine, place, then drive 30 s" res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay
+          run "world: drill car tunnelling"            res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --design=driller
           run "garage"            res://scenes/garage.tscn --quit-after 300
           run "physics lab"       res://scenes/tests/physics_test.tscn --quit-after 600
           run "hill climb, starter car, 40 s" res://scenes/drive.tscn --quit-after 4800 -- --hillclimb --autodrive
           run "free drive, driller, 40 s"     res://scenes/drive.tscn --quit-after 4800 -- --freedrive --autodrive --design=driller
           exit $fail
+
+      - name: Screenshots (software rendering, for review)
+        continue-on-error: true
+        run: |
+          sudo apt-get update -qq > /dev/null 2>&1 || true
+          sudo apt-get install -y -qq xvfb libgl1-mesa-dri > /dev/null 2>&1 || true
+          mkdir -p shots/world shots/garage keep
+          xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/world/f.png --quit-after 400 res://scenes/world.tscn -- --fresh --autoplay --design=driller > shots/world.log 2>&1 || true
+          xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/garage/f.png --quit-after 12 res://scenes/garage.tscn > shots/garage.log 2>&1 || true
+          for i in 8 25 50 80 98 110 130 160 200 250 300 350 390; do
+            f=$(printf "shots/world/f%08d.png" $i); [ -f "$f" ] && cp "$f" keep/world_$i.png
+          done
+          f=$(ls shots/garage/*.png 2>/dev/null | tail -1); [ -n "$f" ] && cp "$f" keep/garage.png
+          ls shots/world | head -3; ls keep; tail -5 shots/world.log
+
+      - uses: actions/upload-artifact@v4
+        continue-on-error: true
+        with:
+          name: screenshots
+          path: keep
 
       - name: Export Windows
         run: |

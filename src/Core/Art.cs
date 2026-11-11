@@ -1,0 +1,34 @@
+using Godot;
+
+namespace Gearheart.Core;
+
+/// <summary>The game's textures. Layouts are described in docs/ART.md.</summary>
+public static class Art
+{
+    private static Texture2D _tiles, _player, _parts, _wheels, _garage;
+
+    public static Texture2D Tiles => _tiles ??= GD.Load<Texture2D>("res://assets/art/tiles.png");
+    public static Texture2D Player => _player ??= GD.Load<Texture2D>("res://assets/art/player.png");
+    public static Texture2D Parts => _parts ??= GD.Load<Texture2D>("res://assets/art/parts.png");
+    public static Texture2D Wheels => _wheels ??= GD.Load<Texture2D>("res://assets/art/wheels.png");
+    public static Texture2D Garage => _garage ??= GD.Load<Texture2D>("res://assets/art/garage.png");
+
+    public const int PartSize = 22;
+    public const int WheelCell = 56;
+
+    /// <summary>Region of a 16 px cell in tiles.png.</summary>
+    public static Rect2 TileCell(int column, int row) => new(column * 16, row * 16, 16, 16);
+
+    /// <summary>Region of a part in parts.png.</summary>
+    public static Rect2 PartCell(int index) => new(index * PartSize, 0, PartSize, PartSize);
+
+    /// <summary>Inventory icon cell for an item key.</summary>
+    public static Rect2 ItemIcon(string item) => item switch
+    {
+        "Dirt" => TileCell(0, 6),
+        "Stone" => TileCell(1, 6),
+        "Scrap" => TileCell(2, 6),
+        "Iron" => TileCell(3, 6),
+        _ => TileCell(4, 6),
+    };
+}

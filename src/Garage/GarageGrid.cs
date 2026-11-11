@@ -1,4 +1,5 @@
 using System;
+using Gearheart.Core;
 using Gearheart.Parts;
 using Gearheart.Vehicles;
 using Godot;
@@ -123,10 +124,7 @@ public partial class GarageGrid : Control
             var part = PartCatalog.Get(block.Part);
             if (part == null) continue;
             var rect = new Rect2(block.X * CellPixels + 1, block.Y * CellPixels + 1, CellPixels - 2, CellPixels - 2);
-            DrawRect(rect, part.GodotColor);
-            DrawRect(rect, new Color(0f, 0f, 0f, 0.5f), false, 2f);
-            DrawString(font, rect.Position + new Vector2(0f, CellPixels * 0.62f), part.Short,
-                HorizontalAlignment.Center, rect.Size.X, 16, new Color(1f, 1f, 1f, 0.9f));
+            DrawTextureRectRegion(Art.Parts, rect, Art.PartCell(part.Sprite));
         }
 
         foreach (var wheel in Design.Wheels)
@@ -135,16 +133,15 @@ public partial class GarageGrid : Control
             var suspension = PartCatalog.Get(wheel.Suspension);
             if (part == null) continue;
 
+            float scale = CellPixels / SoftVehicle.CellSize;
             Vector2 center = new Vector2(wheel.X + 0.5f, wheel.Y + 0.5f) * CellPixels;
-            float radius = part.Radius / SoftVehicle.CellSize * CellPixels * 0.5f;
+            float size = Art.WheelCell * scale;
             bool supported = Design.BlockAt(wheel.X, wheel.Y - 1) != null;
 
-            DrawLine(center, center - new Vector2(0f, CellPixels * 0.5f), suspension?.GodotColor ?? Colors.White, 3f);
-            DrawCircle(center, radius, supported ? new Color(0.12f, 0.12f, 0.14f) : new Color(0.6f, 0.15f, 0.15f));
-            DrawCircle(center, radius * 0.5f, new Color(0.6f, 0.6f, 0.65f));
-            if (suspension != null)
-                DrawString(font, center + new Vector2(-CellPixels * 0.5f, CellPixels * 0.45f), suspension.Short,
-                    HorizontalAlignment.Center, CellPixels, 12, new Color(1f, 1f, 1f, 0.8f));
+            DrawLine(center, center - new Vector2(0f, CellPixels * 0.5f), suspension?.GodotColor ?? Colors.White, 4f);
+            DrawTextureRectRegion(Art.Wheels, new Rect2(center - new Vector2(size, size) / 2f, new Vector2(size, size)),
+                new Rect2(part.Sprite * Art.WheelCell, 0, Art.WheelCell, Art.WheelCell),
+                supported ? Colors.White : new Color(1f, 0.4f, 0.4f));
         }
 
         if (VehicleDesign.InGrid(_hover.X, _hover.Y))
