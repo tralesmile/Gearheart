@@ -2,6 +2,13 @@
 
 Newest first. One entry per big decision: what, why, and what would make us revisit it.
 
+## 2026-11-11 — Garage: side-view grid of 1x1 blocks; parts as data
+
+- **What:** Vehicles are designed on a 12 x 6 side-view grid. Each block is one part (frame, engine, armor, fuel tank, drill). Wheels sit in the cell under a block, with a chosen suspension. All 15 parts are defined in `data/parts/parts.json`. The soft body is generated from the design: 4 points per block, shared between neighbours, with edge and diagonal beams. Every beam takes its strength from its part.
+- **Strength tuning (offline simulation):** yield limits were raised (light frame 2.5%, steel 3.5%, heavy 5%) after 1% caused damage during normal driving. Now the starter car takes no damage driving, damage is light at 50 km/h into a wall and a few beams snap at 112 km/h. The light buggy can crack when it lands the cliff jump; the heavy truck shrugs off 112 km/h. Two starter cars crashing head-on never pass through each other.
+- **Repair (prototype):** R in the test drive rebuilds the car from its design (free full repair + refuel). See D6 in OPEN_DECISIONS.md.
+- **Revisit when:** You answer D3 (grid vs free placement) or playtests show the grid feels limiting.
+
 ## 2026-11-11 — Vehicle physics: soft body (approach B) chosen
 
 - **What:** Vehicles use our own node-and-beam soft-body solver. Simple loose objects (crates, rocks, debris) stay on Godot's rigid-body physics. A shared `SoftPhysicsWorld` steps all soft bodies together and couples them to rigid objects with impulses (the hybrid model from the plan).

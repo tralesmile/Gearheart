@@ -4,7 +4,9 @@
 
 A 2D side-view sandbox where you mine, craft and build vehicles part by part, then race, fight and explore across several worlds. Built with Godot 4 (.NET / C#).
 
-**Status:** Phase 1 — Prototype. Vehicle physics: soft body (approach B), chosen 2026-11-11. The physics test starts in B; press **V** to compare with A (rigid parts).
+**Status:** Phase 1 — Prototype. The game opens in the **garage**: build a vehicle from 15 parts on a grid, then press **Test Drive**. Vehicle physics: soft body (approach B), chosen 2026-11-11.
+
+**Decisions waiting on you:** [docs/OPEN_DECISIONS.md](docs/OPEN_DECISIONS.md)
 
 ## Setup
 
@@ -13,7 +15,15 @@ A 2D side-view sandbox where you mine, craft and build vehicles part by part, th
 3. Clone this repo, open Godot, click **Import**, and select `project.godot`.
 4. Press **F5** (Play). The first run restores NuGet packages and builds the C# code, which takes about a minute.
 
-## Physics test controls
+## Garage
+
+- Pick a part on the right, then **left click or drag** on the grid to place it. **Right click or drag** removes.
+- Wheels go in the cell **directly under a block**. Choose their suspension (Soft or Sport) before placing.
+- A design needs at least one engine and one wheel, and all blocks must touch.
+- **Save / Load** to 3 slots. **Starter car** loads the default design.
+- Parts live in `data/parts/parts.json`: change numbers there to rebalance without touching code.
+
+## Test drive controls
 
 | Key | Action |
 | --- | --- |
@@ -21,7 +31,8 @@ A 2D side-view sandbox where you mine, craft and build vehicles part by part, th
 | A / Left arrow | Brake / reverse |
 | Q / E | Tilt the car (air control) |
 | Space | Handbrake |
-| R | Reset the car |
+| R | Repair, refuel and reset the car |
+| G | Back to the garage |
 | V | Switch physics: B soft body / A rigid parts |
 | C | Spawn an oncoming car (head-on crash test) |
 | 1 / 4 / 8 | Benchmark with 1, 4 or 8 vehicles |
@@ -38,6 +49,9 @@ What to look for: does building speed, jumping the ramp and crashing feel fun? C
 
 ```
 src/
+  Core/       session state shared between scenes
+  Garage/     garage screen and build grid
+  Parts/      part definitions and the catalog loader
   Physics/    soft-body world: steps soft bodies, car-vs-car and car-vs-object contacts
   Vehicles/   vehicle parts, physics, damage
   World/      terrain and (later) the tile world
