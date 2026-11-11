@@ -43,7 +43,7 @@ jobs:
             name="$1"; shift
             echo "=== $name"
             timeout 300 godot --headless --path . --fixed-fps 120 "$@" > smoke.log 2>&1
-            grep -E "^\[(drive|race|mining|autodrive)\]" smoke.log | tail -30
+            grep -E "\[(drive|race|mining|autodrive|debug)\]" smoke.log | tail -60
             if grep -E "ERROR|Unhandled exception|SCRIPT ERROR|System\.[A-Za-z]*Exception" smoke.log; then
               echo "::error::Smoke test failed: $name"
               tail -60 smoke.log
