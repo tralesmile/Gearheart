@@ -33,6 +33,20 @@ jobs:
       - name: Import project
         run: godot --headless --import || true
 
+      - name: Smoke test (run scenes headless, fail on errors)
+        run: |
+          set +e
+          for scene in res://scenes/garage.tscn res://scenes/tests/physics_test.tscn; do
+            echo "=== $scene"
+            timeout 120 godot --headless --path . "$scene" --quit-after 600 > smoke.log 2>&1
+            cat smoke.log | tail -40
+            if grep -E "ERROR|Unhandled exception|SCRIPT ERROR|System\.[A-Za-z]*Exception" smoke.log; then
+              echo "Smoke test failed for $scene"
+              exit 1
+            fi
+          done
+          exit 0
+
       - name: Export Windows
         run: |
           mkdir -p build/windows
