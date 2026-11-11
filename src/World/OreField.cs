@@ -71,7 +71,7 @@ public partial class OreField : Node2D, IMineable
             OreType ore = roll < 0.55f - progress * 0.3f ? OreType.Scrap
                 : roll < 0.85f - progress * 0.1f ? OreType.Iron
                 : OreType.Copper;
-            float radius = rng.RandfRange(32f, 46f);
+            float radius = rng.RandfRange(46f, 60f);   // big enough that the drill tip, not the wheels, meets them
             AddRock(new Vector2(x, terrain.SurfaceY(x) - radius - 2f), radius, ore);
         }
     }

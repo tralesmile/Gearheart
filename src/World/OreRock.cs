@@ -21,7 +21,7 @@ public partial class OreRock : RigidBody2D
 
     public static OreRock Create(OreType ore, float radius)
     {
-        float health = radius * (ore == OreType.Copper ? 3f : 2f);
+        float health = radius * (ore == OreType.Copper ? 2.5f : 1.6f);
         var rock = new OreRock
         {
             Ore = ore,
@@ -30,8 +30,8 @@ public partial class OreRock : RigidBody2D
             MaxHealth = health,
             Yield = ore switch { OreType.Scrap => 3, OreType.Iron => 2, _ => 1 },
             Mass = 2f * (radius / 30f) * (radius / 30f),
-            LinearDamp = 0.2f,
-            AngularDamp = 1f,
+            LinearDamp = 0.5f,
+            AngularDamp = 6f,           // boulders resist rolling, so they don't act as conveyor belts under wheels
             PhysicsMaterialOverride = new PhysicsMaterial { Friction = 1f, Bounce = 0.05f },
         };
         rock._shape = new CircleShape2D { Radius = radius };
