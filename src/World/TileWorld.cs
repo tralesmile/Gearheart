@@ -199,7 +199,7 @@ public sealed class TileWorld : ITerrainCollider, IMineable
     }
 
     /// <summary>How far around a drill tip tiles get chewed, so a car can dig a tunnel it fits through.</summary>
-    public const float DrillBite = 44f;
+    public const float DrillBite = 34f;
 
     // ---- Collision --------------------------------------------------------------------------
 

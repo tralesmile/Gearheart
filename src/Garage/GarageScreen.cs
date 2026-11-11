@@ -90,13 +90,14 @@ public partial class GarageScreen : Control
         {
             Text = "Left click / drag: place part     Right click / drag: remove     Wheels go in the cell under a block\nParts cost materials: mine Scrap, Iron and Copper on foot, then add a Drill Head to tunnel with the car     Esc: back",
             Modulate = new Color(1f, 1f, 1f, 0.7f),
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
         });
 
         _errors = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
         _errors.AddThemeColorOverride("font_color", new Color(1f, 0.45f, 0.4f));
         left.AddChild(_errors);
 
-        _costLabel = new Label();
+        _costLabel = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
         left.AddChild(_costLabel);
 
         var buttons = new HBoxContainer();
@@ -129,17 +130,25 @@ public partial class GarageScreen : Control
 
         _status = new Label { Modulate = new Color(0.6f, 1f, 0.6f) };
         left.AddChild(_status);
+
+        var info = new HBoxContainer();
+        info.AddThemeConstantOverride("separation", 48);
+        _statsLabel = new Label();
+        info.AddChild(_statsLabel);
+        _progressLabel = new Label();
+        info.AddChild(_progressLabel);
+        left.AddChild(info);
         return left;
     }
 
     private Control BuildRightColumn()
     {
-        var right = new VBoxContainer { CustomMinimumSize = new Vector2(380f, 0f) };
+        var right = new VBoxContainer { CustomMinimumSize = new Vector2(400f, 0f) };
         right.AddThemeConstantOverride("separation", 8);
 
         right.AddChild(Heading("PARTS", 22));
 
-        var scroll = new ScrollContainer { SizeFlagsVertical = SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
+        var scroll = new ScrollContainer { SizeFlagsVertical = SizeFlags.ExpandFill, CustomMinimumSize = new Vector2(0f, 300f), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
         var palette = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
         scroll.AddChild(palette);
         right.AddChild(scroll);
@@ -195,18 +204,9 @@ public partial class GarageScreen : Control
         suspensionRow.AddChild(_suspension);
         right.AddChild(suspensionRow);
 
-        _partInfo = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart, CustomMinimumSize = new Vector2(0f, 90f) };
+        _partInfo = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart, CustomMinimumSize = new Vector2(0f, 110f) };
         right.AddChild(_partInfo);
 
-        right.AddChild(Heading("STATS", 22));
-        _statsLabel = new Label();
-        right.AddChild(_statsLabel);
-
-        right.AddChild(Heading("PROGRESS", 22));
-        _progressLabel = new Label();
-        right.AddChild(_progressLabel);
-
-        AddButton(right, "Physics lab (A/B test scene)", () => GetTree().ChangeSceneToFile(GameSession.TestDriveScene));
 
         SelectPart(_grid.SelectedPart);
         return right;

@@ -142,7 +142,7 @@ public partial class TestTerrain : StaticBody2D, ITerrainCollider
         {
             if (x < 400f) return 0f;
             float climb = x - 400f;
-            float bumpSize = 40f + climb * 0.01f;            // bumps grow with distance
+            float bumpSize = 40f + climb * 0.006f;           // bumps grow with distance
             float rise = -climb * 0.06f;                       // steady climb
             float bumps = Mathf.Sin(climb / 1000f * 1.7f + phaseA) * bumpSize
                           + Mathf.Sin(climb / 1000f * 4.3f + phaseB) * bumpSize * 0.3f;

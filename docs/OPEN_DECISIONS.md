@@ -8,8 +8,10 @@ Last updated: 2026-11-11
 
 | # | Decision | Options | My recommendation | Why it matters |
 | --- | --- | --- | --- | --- |
-| D1 | **Physics test feedback** | Report FPS with 8 cars (press 8) and how driving and crashing feel | — | Confirms the soft-body choice, or sends us back to rigid parts. Without it, tuning is guesswork |
+| D1 | **Play the new build** | Walk, mine, build a drill at the garage, drive and tunnel. Tell me what feels good and bad | — | This is the game's new direction; your reaction decides what I polish next |
+| D20 | **Art pack** | A) keep my generated pixel art for now · B) you download a free CC0 pack (for example Kenney "Pixel Platformer") and attach the zip here, and I fit it into the layout in `docs/ART.md` | A now, B or an artist at the vertical slice | I can't download files from this workspace, so a pack has to come from you |
 | D2 | **Hours per week** | A) about 20 h part-time · B) full-time · C) less than 10 h | A to start | Every date in the roadmap assumes A. B makes it about 40% faster, C about twice as slow |
+| D21 | **What comes next** | A) enemies and danger underground · B) crafting stations and more parts · C) bigger world with biomes · D) sound and music | B then D | Decides the next two weeks of work |
 | D3 | **Garage design approach** | A) side-view grid of 1x1 blocks (built now) · B) free placement with snapping | A | A is simple, readable and easy to make strong. B looks fancier but is much more work |
 
 ## Needed in the next 4 weeks (by mid-December 2026)
@@ -49,3 +51,4 @@ Last updated: 2026-11-11
 | --- | --- | --- | --- |
 | — | Engine | Godot 4 with C# | 2026-11-11 |
 | — | Vehicle physics | Soft body (approach B); may change after playtests | 2026-11-11 |
+| — | Game direction | On-foot character in a tile world who mines, builds and drives | 2026-11-11 |

@@ -174,9 +174,9 @@
       "color": "#cccccc",
       "yield": 0.3,
       "breakLimit": 0.4,
-      "springStiffness": 0.03,
-      "damping": 0.15,
-      "restLength": 26,
+      "springStiffness": 0.06,
+      "damping": 0.2,
+      "restLength": 14,
       "cost": {}
     },
     {
@@ -189,9 +189,9 @@
       "color": "#e6c84a",
       "yield": 0.2,
       "breakLimit": 0.3,
-      "springStiffness": 0.08,
+      "springStiffness": 0.1,
       "damping": 0.3,
-      "restLength": 20,
+      "restLength": 11,
       "cost": {
         "Iron": 2
       }

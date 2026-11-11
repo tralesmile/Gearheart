@@ -218,7 +218,7 @@ public sealed class VehicleDesign
         d.SetBlock(6, 3, "frame_steel");
         d.SetBlock(7, 3, "engine_v6");
         d.SetBlock(8, 3, "frame_steel");
-        d.SetBlock(4, 2, "frame_light");
+        d.SetBlock(4, 2, "frame_steel");
         d.SetBlock(5, 2, "cab");
         d.SetWheel(3, 4, "wheel_standard", "susp_soft");
         d.SetWheel(8, 4, "wheel_standard", "susp_soft");

@@ -4,9 +4,9 @@
 
 A 2D side-view sandbox where you mine, craft and build vehicles part by part, then race, fight and explore across several worlds. Built with Godot 4 (.NET / C#).
 
-**Status:** Phase 1 — Prototype, feature complete. The game opens in the **garage**: build a vehicle from 15 parts on a grid, then choose **Free Drive** (explore, smash crates, mine ore with a drill) or **Hill Climb** (race the clock to the finish). Vehicle physics: soft body (approach B), chosen 2026-11-11.
+**Status:** Phase 1 — Prototype. You play a mechanic in a destructible tile world: walk, jump and mine by hand, collect Scrap, Iron and Copper, build and upgrade your car at the garage, then get in and drive it. A drill on the car tunnels through the ground.
 
-**Decisions waiting on you:** [docs/OPEN_DECISIONS.md](docs/OPEN_DECISIONS.md)
+**Decisions waiting on you:** [docs/OPEN_DECISIONS.md](docs/OPEN_DECISIONS.md) · **Art layout:** [docs/ART.md](docs/ART.md)
 
 ## Setup
 
@@ -15,67 +15,49 @@ A 2D side-view sandbox where you mine, craft and build vehicles part by part, th
 3. Clone this repo, open Godot, click **Import**, and select `project.godot`.
 4. Press **F5** (Play). The first run restores NuGet packages and builds the C# code, which takes about a minute.
 
+## How to play
+
+**On foot**
+
+| Input | Action |
+| --- | --- |
+| A / D | Walk (one-tile steps are climbed automatically) |
+| Space / W | Jump |
+| Hold left mouse | Mine the highlighted tile (within reach) |
+| Right mouse | Place a block (dirt or stone) |
+| 1 / 2 | Choose dirt or stone |
+| F | Get in the car (when next to it) |
+| G | Open the garage (when next to it) |
+
+**Driving**
+
+| Input | Action |
+| --- | --- |
+| A / D | Drive |
+| Q / E | Tilt (air control, or to point the drill down) |
+| Space | Handbrake |
+| X | Drill on / off |
+| F | Get out |
+| R | Repair and refuel (at the garage) |
+
+**The loop:** mine ore by hand → open the garage → spend materials on parts (a Drill Head costs 4 Scrap and 2 Iron) → drive further and dig deeper for Iron and Copper. Scrap is shallow, Iron starts about 2 m down, Copper about 5 m down. It gets dark underground; you carry a lamp.
+
+The world, your materials and your car are saved automatically (`user://world.bin`, `progress.json`, `designs/current.json`). Start the game with `-- --fresh` to begin again.
+
 ## Garage
 
 - Pick a part on the right, then **left click or drag** on the grid to place it. **Right click or drag** removes.
 - Wheels go in the cell **directly under a block**. Choose their suspension (Soft or Sport) before placing.
-- A design needs at least one engine and one wheel, and all blocks must touch.
-- **Save / Load** to 3 slots. **Starter car** loads the default design.
+- A design needs a cab, an engine and a wheel, and all blocks must touch.
+- **Build & Drive** pays the material cost (removed parts are refunded) and returns to the world. **Hill Climb** is a separate timed race track.
 - Parts live in `data/parts/parts.json`: change numbers there to rebalance without touching code.
-
-## Modes
-
-- **Free Drive:** rolling hills, breakable crate stacks and ore boulders. Push boulders out of the way, or put a **Drill Head** on the front of your car and press it into them to mine **Scrap**, **Iron** and **Copper** (rarer further out). Ease off the throttle while drilling and use **E** to keep the nose down. Materials are saved and shown in the garage.
-- **Hill Climb:** the track keeps rising and gets steeper. The clock starts at the START flag and stops at FINISH, about 340 m on, with slopes up to about 40 degrees near the end. Stopping for 4 seconds (stuck or out of fuel) ends the run. Your best time is saved.
-
-## Drive controls
-
-| Key | Action |
-| --- | --- |
-| D / Right arrow | Accelerate |
-| A / Left arrow | Brake / reverse |
-| Q / E | Tilt the car (air control) |
-| Space | Handbrake |
-| R | Repair, refuel and reset the car |
-| G | Back to the garage |
-| V | Switch physics: B soft body / A rigid parts |
-| C | Spawn an oncoming car (head-on crash test) |
-| 1 / 4 / 8 | Benchmark with 1, 4 or 8 vehicles |
-| Esc | Quit |
-
-A controller also works: triggers drive, left stick tilts, A is the handbrake.
-
-What to look for: does building speed, jumping the ramp and crashing feel fun? Compare A and B: which feels better to drive, and which crashes look better? Note the FPS with 1, 4 and 8 vehicles in each mode.
-
-- **A (orange car):** Godot's rigid-body physics. Hard crashes rip wheels off. Collides with crates.
-- **B (blue car):** our own soft-body solver. The body dents and tears, wheels can come off. Collides with the ground, other cars and crates.
-
-## Project structure
-
-```
-src/
-  Core/       session state shared between scenes
-  Game/       drive scene: free drive and hill climb
-  Garage/     garage screen and build grid
-  Parts/      part definitions and the catalog loader
-  Physics/    soft-body world: steps soft bodies, car-vs-car and car-vs-object contacts
-  Vehicles/   vehicle parts, physics, damage
-  World/      terrain, ore rocks and (later) the tile world
-  Tests/      test scenes like the physics test
-  Util/       shared helpers
-scenes/       Godot scenes (.tscn)
-assets/       art and audio (stored with Git LFS)
-data/parts/   part definitions as data files
-docs/         plan notes and the decision log
-tests/        automated tests (GUT)
-```
 
 ## Automated playtests
 
-Every build runs the game headless at a fixed 120 FPS and fails on any error: the garage, the physics lab, 40 seconds of Hill Climb with the starter car, and 40 seconds of Free Drive with a drill car. Progress lines (`[autodrive]`, `[race]`, `[mining]`) appear in the build log. Run one yourself:
+Every build runs the game headless at a fixed 120 FPS and fails on any error: a bot walks, mines and places blocks in the world, then drives the car (once with the starter pickup, once tunnelling with a drill car); plus the garage, the physics lab, the Hill Climb and the old boulder test. The build also renders real screenshots with software graphics and pushes them to the `screenshots` branch. Progress lines (`[autoplay]`, `[race]`, `[mining]`) appear in the build log. Run one yourself:
 
 ```
-godot --headless --path . --fixed-fps 120 res://scenes/drive.tscn --quit-after 4800 -- --hillclimb --autodrive
+godot --headless --path . --fixed-fps 120 res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay
 ```
 
 ## Workflow
