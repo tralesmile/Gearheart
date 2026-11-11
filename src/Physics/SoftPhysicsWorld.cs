@@ -256,21 +256,30 @@ public partial class SoftPhysicsWorld : Node
 
         if (!ContactWithObject(p, radius, obj, out Vector2 normal, out float depth)) return;
 
-        // Positional: push the node out (the object only moves when Godot steps it).
-        p += normal * depth;
-        body.Pos[i] = p;
-
-        // Velocity: an impulse between the node and the object along the normal.
+        // Velocity is measured before the push-out, so the correction itself never reads as motion.
         Vector2 nodeVelocity = (p - body.Prev[i]) / dt;
+        float invNode = body.InvMass[i];
+
+        // Positional: the node takes its mass share of the overlap. The rest is handed to the object
+        // as separating velocity (below), because the object only moves when Godot steps it.
+        float nodeShare = invNode / (invNode + obj.InvMass);
+        Vector2 push = normal * depth * nodeShare;
+        p += push;
+        body.Pos[i] = p;
+        body.Prev[i] += push;
+
+        // Velocity: an impulse along the normal that stops the approach and works off the remaining overlap,
+        // so a car leaning on an object keeps pushing it with a steady force.
         Vector2 contact = p - normal * radius;
         Vector2 r = contact - obj.Xform.Origin;
         Vector2 objectPointVelocity = obj.Velocity + new Vector2(-obj.AngularVelocity * r.Y, obj.AngularVelocity * r.X);
         float approach = (nodeVelocity - objectPointVelocity).Dot(normal);
-        if (approach >= 0f) return;
+        float bias = 0.3f * depth * (1f - nodeShare) / dt;
+        float target = -approach + bias;
+        if (target <= 0f) return;
 
         float rCrossN = r.Cross(normal);
-        float invNode = body.InvMass[i];
-        float j = -approach / (invNode + obj.InvMass + rCrossN * rCrossN * obj.InvInertia);
+        float j = target / (invNode + obj.InvMass + rCrossN * rCrossN * obj.InvInertia);
 
         nodeVelocity += normal * (j * invNode);
         body.Prev[i] = p - nodeVelocity * dt;
