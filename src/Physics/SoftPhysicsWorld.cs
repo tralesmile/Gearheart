@@ -17,6 +17,10 @@ public partial class SoftPhysicsWorld : Node
 {
     public const string LooseObjectsGroup = "loose_objects";
 
+    /// <summary>Loose objects in this group smash when a car hits them faster than <see cref="BreakSpeed"/>.</summary>
+    public const string BreakableGroup = "breakable";
+    public const float BreakSpeed = 200f;   // px/s, about 11 km/h
+
     public const int Substeps = 8;
     public const int Iterations = 4;
     private const float ContactMargin = 4f;
@@ -43,6 +47,7 @@ public partial class SoftPhysicsWorld : Node
         public float AngularVelocity;
         public Vector2 Impulse;           // collected, applied to Godot at the end of the tick
         public float TorqueImpulse;
+        public float MaxImpact;           // fastest approach speed this tick
     }
 
     public void Register(SoftVehicle body)
@@ -274,6 +279,7 @@ public partial class SoftPhysicsWorld : Node
         Vector2 r = contact - obj.Xform.Origin;
         Vector2 objectPointVelocity = obj.Velocity + new Vector2(-obj.AngularVelocity * r.Y, obj.AngularVelocity * r.X);
         float approach = (nodeVelocity - objectPointVelocity).Dot(normal);
+        obj.MaxImpact = Mathf.Max(obj.MaxImpact, -approach);
         float bias = 0.3f * depth * (1f - nodeShare) / dt;
         float target = -approach + bias;
         if (target <= 0f) return;
@@ -346,8 +352,42 @@ public partial class SoftPhysicsWorld : Node
         foreach (var obj in _loose)
         {
             if (!IsInstanceValid(obj.Body)) continue;
+            if (obj.MaxImpact > BreakSpeed && obj.Body.IsInGroup(BreakableGroup))
+            {
+                Smash(obj.Body);
+                continue;
+            }
             if (obj.Impulse != Vector2.Zero) obj.Body.ApplyCentralImpulse(obj.Impulse);
             if (obj.TorqueImpulse != 0f) obj.Body.ApplyTorqueImpulse(obj.TorqueImpulse);
         }
+    }
+
+    /// <summary>Removes a breakable object with a burst of debris.</summary>
+    private static void Smash(RigidBody2D body)
+    {
+        var parent = body.GetParent();
+        if (parent != null)
+        {
+            Color color = body.GetNodeOrNull<Polygon2D>("Look")?.Color ?? new Color(0.7f, 0.5f, 0.25f);
+            var debris = new CpuParticles2D
+            {
+                Position = body.Position,
+                OneShot = true,
+                Emitting = true,
+                Amount = 14,
+                Lifetime = 0.8f,
+                Explosiveness = 1f,
+                Spread = 180f,
+                InitialVelocityMin = 80f,
+                InitialVelocityMax = 260f,
+                Gravity = new Vector2(0f, 900f),
+                ScaleAmountMin = 3f,
+                ScaleAmountMax = 6f,
+                Color = color,
+            };
+            parent.AddChild(debris);
+            debris.GetTree().CreateTimer(1.5).Timeout += debris.QueueFree;
+        }
+        body.QueueFree();
     }
 }

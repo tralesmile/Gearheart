@@ -171,9 +171,11 @@ public partial class PhysicsTest : Node2D
                     Position = new Vector2(900f + col * (size + 2f) + row * (size / 2f), -80f - row * (size + 2f)),
                 };
                 crate.AddToGroup(SoftPhysicsWorld.LooseObjectsGroup);
+                crate.AddToGroup(SoftPhysicsWorld.BreakableGroup);
                 crate.AddChild(new CollisionShape2D { Name = "Shape", Shape = new RectangleShape2D { Size = new Vector2(size, size) } });
                 crate.AddChild(new Polygon2D
                 {
+                    Name = "Look",
                     Polygon = Util.Shapes.Rect(new Vector2(size, size)),
                     Color = new Color(0.7f, 0.5f, 0.25f),
                 });
