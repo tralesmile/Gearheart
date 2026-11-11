@@ -14,6 +14,7 @@ public enum PartCategory
     Engine,
     FuelTank,
     Drill,
+    Booster,
     Wheel,
     Suspension,
 }
@@ -47,6 +48,11 @@ public sealed class PartDefinition
     // Drill: mining work per second while the tip presses on ore
     public float DrillPower { get; set; }
 
+    // Booster: forward thrust while the boost key is held, fading out towards BoostSpeed (px/s)
+    public float Thrust { get; set; }
+    public float BoostSpeed { get; set; }
+    public float BoostFuelUse { get; set; }           // fuel units per second while firing
+
     // Fuel tank
     public float FuelCapacity { get; set; }
 
@@ -64,7 +70,7 @@ public sealed class PartDefinition
     /// <summary>True for parts placed as a block in the body grid.</summary>
     [JsonIgnore]
     public bool IsBlock => Category is PartCategory.Frame or PartCategory.Cab or PartCategory.Armor or PartCategory.Engine
-        or PartCategory.FuelTank or PartCategory.Drill;
+        or PartCategory.FuelTank or PartCategory.Drill or PartCategory.Booster;
 }
 
 /// <summary>All parts in the game, loaded once from data files.</summary>

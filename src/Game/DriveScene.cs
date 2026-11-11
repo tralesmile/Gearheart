@@ -118,7 +118,7 @@ public partial class DriveScene : Node2D
             Vector2 c = _player.CenterPosition;
             GD.Print($"[autodrive] t={_elapsed:0.0}s x={c.X / PixelsPerMeter:0}m y={-c.Y / PixelsPerMeter:0}m " +
                      $"speed={_player.Speed / PixelsPerMeter * 3.6f:0}km/h fuel={_player.Fuel:0} damage={_player.Damage:0} " +
-                     $"race={_race} time={_raceTime:0.0} rocks={_ore.RocksLeft} | {GameSession.MaterialsText()}");
+                     $"boosting={_player.Boosting} race={_race} time={_raceTime:0.0} rocks={_ore.RocksLeft} | {GameSession.MaterialsText()}");
             if (!_isRace)
             {
                 foreach (var tip in _player.DrillTips)
@@ -148,6 +148,7 @@ public partial class DriveScene : Node2D
             if (_player.IsDrilling) text += "\nDRILLING: ease off the throttle, press E to keep the nose down";
         }
 
+        if (_player.HasBooster) text += "\nShift: BOOST" + (_player.Boosting ? "  (firing!)" : "");
         text += "\nD/A or arrows: drive   Q/E: tilt   Space: handbrake   R: repair and restart   G: garage   Esc: quit";
         _hud.Text = text;
 
@@ -213,6 +214,7 @@ public partial class DriveScene : Node2D
             PlayerControlled = !GameSession.AutoDrive,
             AutoThrottle = GameSession.AutoDrive ? 1f : 0f,
         };
+        _player.AutoBoost = GameSession.AutoDrive;
         AddChild(_player);
 
         _race = RaceState.WaitingForStart;

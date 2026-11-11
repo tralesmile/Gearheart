@@ -47,6 +47,15 @@ def drill():
     return s
 
 
+def boost():
+    """Rocket roar: rumbling low noise with a crackle on top, one second, loops cleanly."""
+    t = np.arange(SR) / SR
+    s = loop_noise(SR, 500) / 0.02 * 1.4                        # deep rumble
+    s += loop_noise(SR, 5000) / 0.05 * (0.5 + 0.5 * np.abs(np.sin(2 * np.pi * 14 * t)))  # crackle
+    s += 0.35 * np.sin(2 * np.pi * 70 * t)
+    return s
+
+
 def burst(seconds, decay, smooth, tone=None):
     n = int(SR * seconds); t = np.arange(n) / SR
     s = lowpass(rng.standard_normal(n), smooth) * np.exp(-t * decay)
@@ -68,4 +77,5 @@ if __name__ == "__main__":
     save("break", burst(0.22, 18, 14), 0.8)
     save("place", burst(0.12, 30, 30, tone=140), 0.8)
     save("pickup", pickup(), 0.6)
+    save("boost", boost(), 0.75)   # last, so the shared random stream of the older sounds is unchanged
     print("sounds written to", os.path.abspath(OUT))

@@ -259,6 +259,26 @@
         "Scrap": 4,
         "Iron": 2
       }
+    },
+    {
+      "id": "booster_rocket",
+      "name": "Rocket Booster",
+      "short": "RB",
+      "category": "Booster",
+      "description": "Mount at the back. Hold Shift for a burst of thrust: big jumps, steep hills, spectacular crashes. Burns fuel fast.",
+      "mass": 0.5,
+      "color": "#e07a2a",
+      "yield": 0.04,
+      "breakLimit": 0.25,
+      "thrust": 5200,
+      "boostSpeed": 1700,
+      "boostFuelUse": 4.5,
+      "sprite": 11,
+      "cost": {
+        "Scrap": 2,
+        "Iron": 2,
+        "Copper": 3
+      }
     }
   ]
 }

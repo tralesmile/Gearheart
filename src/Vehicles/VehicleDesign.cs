@@ -233,4 +233,13 @@ public sealed class VehicleDesign
         d.SetBlock(9, 3, "drill_basic");
         return d;
     }
+
+    /// <summary>The starter car with a rocket booster on the tail.</summary>
+    public static VehicleDesign Rocket()
+    {
+        var d = Default();
+        d.Name = "Rocket Pickup";
+        d.SetBlock(2, 3, "booster_rocket");
+        return d;
+    }
 }

@@ -15,7 +15,7 @@ public partial class GarageScreen : Control
     private static readonly PartCategory[] PaletteOrder =
     {
         PartCategory.Frame, PartCategory.Cab, PartCategory.Engine, PartCategory.Wheel, PartCategory.Armor,
-        PartCategory.FuelTank, PartCategory.Drill,
+        PartCategory.FuelTank, PartCategory.Drill, PartCategory.Booster,
     };
 
     private VehicleDesign _design;
@@ -301,6 +301,7 @@ public partial class GarageScreen : Control
         PartCategory.Engine => $"Mass {p.Mass} t   Torque {p.Torque / 1000f:0} kNm   Max spin {p.MaxSpin} rad/s   Fuel use {p.FuelUse}/s",
         PartCategory.Wheel => $"Mass {p.Mass} t   Radius {p.Radius}   Grip {p.Grip}",
         PartCategory.FuelTank => $"Mass {p.Mass} t   Fuel +{p.FuelCapacity}   Strength {Strength(p)}",
+        PartCategory.Booster => $"Mass {p.Mass} t   Thrust {p.Thrust / 1000f:0.#} kN   Fuel use {p.BoostFuelUse}/s (Shift)",
         _ => $"Mass {p.Mass} t   Strength {Strength(p)}",
     };
 
@@ -324,6 +325,7 @@ public partial class GarageScreen : Control
         PartCategory.Armor => "ARMOR",
         PartCategory.FuelTank => "FUEL",
         PartCategory.Drill => "TOOLS",
+        PartCategory.Booster => "BOOSTERS",
         _ => category.ToString().ToUpperInvariant(),
     };
 
