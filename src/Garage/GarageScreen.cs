@@ -14,7 +14,7 @@ public partial class GarageScreen : Control
 {
     private static readonly PartCategory[] PaletteOrder =
     {
-        PartCategory.Frame, PartCategory.Engine, PartCategory.Wheel, PartCategory.Armor,
+        PartCategory.Frame, PartCategory.Cab, PartCategory.Engine, PartCategory.Wheel, PartCategory.Armor,
         PartCategory.FuelTank, PartCategory.Drill,
     };
 
@@ -28,6 +28,7 @@ public partial class GarageScreen : Control
     private Button _driveButton;
     private Button _raceButton;
     private Label _progressLabel;
+    private Label _costLabel;
     private OptionButton _suspension;
     private OptionButton _slot;
     private Button _eraser;
@@ -35,7 +36,7 @@ public partial class GarageScreen : Control
 
     public override void _Ready()
     {
-        _design = GameSession.CurrentDesign;
+        _design = GameSession.CurrentDesign.Clone();   // edits only count once built
         SetAnchorsPreset(LayoutPreset.FullRect);
 
         var background = new ColorRect { Color = new Color(0.16f, 0.18f, 0.22f) };
@@ -61,7 +62,7 @@ public partial class GarageScreen : Control
     public override void _UnhandledInput(InputEvent @event)
     {
         if (@event is InputEventKey { Pressed: true, Echo: false } key && key.PhysicalKeycode == Key.Escape)
-            GetTree().Quit();
+            GetTree().ChangeSceneToFile(GameSession.WorldScene);
     }
 
     // ---- Layout ----------------------------------------------------------------------------
@@ -87,18 +88,22 @@ public partial class GarageScreen : Control
 
         left.AddChild(new Label
         {
-            Text = "Left click / drag: place part     Right click / drag: remove     Wheels go in the cell under a block\nAdd a Drill Head at the front to mine ore rocks in Free Drive",
+            Text = "Left click / drag: place part     Right click / drag: remove     Wheels go in the cell under a block\nParts cost materials: mine Scrap, Iron and Copper on foot, then add a Drill Head to tunnel with the car     Esc: back",
             Modulate = new Color(1f, 1f, 1f, 0.7f),
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
         });
 
         _errors = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
         _errors.AddThemeColorOverride("font_color", new Color(1f, 0.45f, 0.4f));
         left.AddChild(_errors);
 
+        _costLabel = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
+        left.AddChild(_costLabel);
+
         var buttons = new HBoxContainer();
         buttons.AddThemeConstantOverride("separation", 8);
 
-        _driveButton = new Button { Text = "  FREE DRIVE  " };
+        _driveButton = new Button { Text = "  BUILD & DRIVE  " };
         _driveButton.AddThemeFontSizeOverride("font_size", 20);
         _driveButton.Pressed += () => Drive(DriveMode.FreeDrive);
         buttons.AddChild(_driveButton);
@@ -125,17 +130,25 @@ public partial class GarageScreen : Control
 
         _status = new Label { Modulate = new Color(0.6f, 1f, 0.6f) };
         left.AddChild(_status);
+
+        var info = new HBoxContainer();
+        info.AddThemeConstantOverride("separation", 48);
+        _statsLabel = new Label();
+        info.AddChild(_statsLabel);
+        _progressLabel = new Label();
+        info.AddChild(_progressLabel);
+        left.AddChild(info);
         return left;
     }
 
     private Control BuildRightColumn()
     {
-        var right = new VBoxContainer { CustomMinimumSize = new Vector2(380f, 0f) };
+        var right = new VBoxContainer { CustomMinimumSize = new Vector2(400f, 0f) };
         right.AddThemeConstantOverride("separation", 8);
 
         right.AddChild(Heading("PARTS", 22));
 
-        var scroll = new ScrollContainer { SizeFlagsVertical = SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
+        var scroll = new ScrollContainer { SizeFlagsVertical = SizeFlags.ExpandFill, CustomMinimumSize = new Vector2(0f, 230f), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
         var palette = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
         scroll.AddChild(palette);
         right.AddChild(scroll);
@@ -151,7 +164,7 @@ public partial class GarageScreen : Control
             {
                 var button = new Button
                 {
-                    Text = $"[{part.Short}]  {part.Name}",
+                    Text = $"{part.Name}   ({CostText(part)})",
                     ToggleMode = true,
                     ButtonGroup = _paletteGroup,
                     Alignment = HorizontalAlignment.Left,
@@ -191,18 +204,9 @@ public partial class GarageScreen : Control
         suspensionRow.AddChild(_suspension);
         right.AddChild(suspensionRow);
 
-        _partInfo = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart, CustomMinimumSize = new Vector2(0f, 90f) };
+        _partInfo = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart, CustomMinimumSize = new Vector2(0f, 96f) };
         right.AddChild(_partInfo);
 
-        right.AddChild(Heading("STATS", 22));
-        _statsLabel = new Label();
-        right.AddChild(_statsLabel);
-
-        right.AddChild(Heading("PROGRESS", 22));
-        _progressLabel = new Label();
-        right.AddChild(_progressLabel);
-
-        AddButton(right, "Physics lab (A/B test scene)", () => GetTree().ChangeSceneToFile(GameSession.TestDriveScene));
 
         SelectPart(_grid.SelectedPart);
         return right;
@@ -222,9 +226,14 @@ public partial class GarageScreen : Control
     private void Drive(DriveMode mode)
     {
         if (_design.Validate().Count > 0) return;
-        GameSession.CurrentDesign = _design;
+        _design.Name = _nameEdit.Text;
+        if (!GameSession.Build(_design))
+        {
+            _status.Text = "Not enough materials. Go mining!";
+            return;
+        }
         GameSession.Mode = mode;
-        GetTree().ChangeSceneToFile(GameSession.DriveScene);
+        GetTree().ChangeSceneToFile(mode == DriveMode.HillClimb ? GameSession.DriveScene : GameSession.WorldScene);
     }
 
     private void Save()
@@ -248,7 +257,6 @@ public partial class GarageScreen : Control
     private void ReplaceDesign(VehicleDesign design, string message)
     {
         _design = design;
-        GameSession.CurrentDesign = design;
         _grid.Design = design;
         _nameEdit.Text = design.Name;
         _status.Text = message;
@@ -269,8 +277,16 @@ public partial class GarageScreen : Control
 
         var errors = _design.Validate();
         _errors.Text = errors.Count == 0 ? "" : "Can't drive yet:\n- " + string.Join("\n- ", errors);
-        _driveButton.Disabled = errors.Count > 0;
-        _raceButton.Disabled = errors.Count > 0;
+        var delta = GameSession.BuildDelta(_design);
+        bool affordable = GameSession.CanAfford(delta);
+        var lines = delta.Where(kv => kv.Value != 0)
+            .Select(kv => kv.Value > 0 ? $"{kv.Key} {kv.Value} (have {GameSession.Count(kv.Key)})" : $"{kv.Key} +{-kv.Value} back");
+        string costText = string.Join("   ", lines);
+        _costLabel.Text = costText.Length == 0 ? "Cost: nothing to pay" : "Cost: " + costText;
+        _costLabel.AddThemeColorOverride("font_color", affordable ? new Color(0.7f, 1f, 0.7f) : new Color(1f, 0.5f, 0.45f));
+
+        _driveButton.Disabled = errors.Count > 0 || !affordable;
+        _raceButton.Disabled = errors.Count > 0 || !affordable;
 
         var best = GameSession.BestTime(GameSession.HillClimbTrack);
         _progressLabel.Text =
@@ -288,6 +304,9 @@ public partial class GarageScreen : Control
         _ => $"Mass {p.Mass} t   Strength {Strength(p)}",
     };
 
+    private static string CostText(PartDefinition p) =>
+        p.Cost.Count == 0 ? "free" : string.Join(", ", p.Cost.Select(kv => $"{kv.Value} {kv.Key}"));
+
     private static string Strength(PartDefinition p) => p.BreakLimit switch
     {
         >= 0.4f => "very high",
@@ -299,6 +318,7 @@ public partial class GarageScreen : Control
     private static string CategoryName(PartCategory category) => category switch
     {
         PartCategory.Frame => "FRAMES",
+        PartCategory.Cab => "CAB",
         PartCategory.Engine => "ENGINES",
         PartCategory.Wheel => "WHEELS",
         PartCategory.Armor => "ARMOR",

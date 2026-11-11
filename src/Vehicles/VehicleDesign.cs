@@ -108,6 +108,8 @@ public sealed class VehicleDesign
             errors.Add("Add an engine.");
         if (Wheels.Count == 0)
             errors.Add("Add at least one wheel under a block.");
+        if (!Blocks.Any(b => PartCatalog.Get(b.Part)?.Category == PartCategory.Cab))
+            errors.Add("Add a cab: the driver needs a seat.");
         if (!IsConnected())
             errors.Add("All blocks must touch each other (side by side or on top).");
 
@@ -185,20 +187,41 @@ public sealed class VehicleDesign
         return string.IsNullOrEmpty(json) ? null : FromJson(json);
     }
 
-    /// <summary>The starter car: a steel body with a small cabin, a V6, a fuel tank and two road wheels.</summary>
+    /// <summary>Total materials this design needs: item key to amount.</summary>
+    public Dictionary<string, int> Cost()
+    {
+        var total = new Dictionary<string, int>();
+        void Add(string partId)
+        {
+            var part = PartCatalog.Get(partId);
+            if (part == null) return;
+            foreach (var (item, amount) in part.Cost)
+                total[item] = total.GetValueOrDefault(item) + amount;
+        }
+
+        foreach (var b in Blocks) Add(b.Part);
+        foreach (var w in Wheels)
+        {
+            Add(w.Wheel);
+            Add(w.Suspension);
+        }
+        return total;
+    }
+
+    /// <summary>The starter car: a little pickup with a V6 under the hood, facing right.</summary>
     public static VehicleDesign Default()
     {
-        var d = new VehicleDesign { Name = "Starter Car" };
+        var d = new VehicleDesign { Name = "Starter Pickup" };
         d.SetBlock(3, 3, "frame_steel");
-        d.SetBlock(4, 3, "engine_v6");
+        d.SetBlock(4, 3, "fuel_tank");
         d.SetBlock(5, 3, "frame_steel");
         d.SetBlock(6, 3, "frame_steel");
-        d.SetBlock(7, 3, "fuel_tank");
+        d.SetBlock(7, 3, "engine_v6");
         d.SetBlock(8, 3, "frame_steel");
-        d.SetBlock(5, 2, "frame_light");
-        d.SetBlock(6, 2, "frame_light");
-        d.SetWheel(4, 4, "wheel_standard", "susp_soft");
-        d.SetWheel(7, 4, "wheel_standard", "susp_soft");
+        d.SetBlock(4, 2, "frame_steel");
+        d.SetBlock(5, 2, "cab");
+        d.SetWheel(3, 4, "wheel_standard", "susp_soft");
+        d.SetWheel(8, 4, "wheel_standard", "susp_soft");
         return d;
     }
 
