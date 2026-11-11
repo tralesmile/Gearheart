@@ -10,8 +10,11 @@ namespace Gearheart.Vehicles;
 /// motor torque on the wheels, and wheels that rip off after a hard impact.
 /// Everything is built in code so parts can later come from data files.
 /// </summary>
-public partial class Vehicle : Node2D
+public partial class Vehicle : Node2D, IVehicle
 {
+    public string PhysicsName => "A: rigid parts";
+    public Vector2 CenterPosition => Chassis?.GlobalPosition ?? GlobalPosition;
+
     [Export] public bool PlayerControlled;
     [Export] public float AutoThrottle;                 // used by benchmark bots, -1..1
     [Export] public float WheelTorque = 20000f;
@@ -112,27 +115,10 @@ public partial class Vehicle : Node2D
 
     public override void _PhysicsProcess(double delta)
     {
-        float throttle = AutoThrottle;
-        float tilt = 0f;
-        bool handbrake = false;
-
-        if (PlayerControlled)
-        {
-            throttle = 0f;
-            if (Input.IsPhysicalKeyPressed(Key.D) || Input.IsPhysicalKeyPressed(Key.Right)) throttle += 1f;
-            if (Input.IsPhysicalKeyPressed(Key.A) || Input.IsPhysicalKeyPressed(Key.Left)) throttle -= 1f;
-            throttle += Input.GetJoyAxis(0, JoyAxis.TriggerRight) - Input.GetJoyAxis(0, JoyAxis.TriggerLeft);
-
-            if (Input.IsPhysicalKeyPressed(Key.E)) tilt += 1f;
-            if (Input.IsPhysicalKeyPressed(Key.Q)) tilt -= 1f;
-            float stick = Input.GetJoyAxis(0, JoyAxis.LeftX);
-            if (Mathf.Abs(stick) > 0.2f) tilt += stick;
-
-            handbrake = Input.IsPhysicalKeyPressed(Key.Space) || Input.IsJoyButtonPressed(0, JoyButton.A);
-
-            throttle = Mathf.Clamp(throttle, -1f, 1f);
-            tilt = Mathf.Clamp(tilt, -1f, 1f);
-        }
+        var input = PlayerControlled ? VehicleInput.ReadPlayer() : VehicleInput.Auto(AutoThrottle);
+        float throttle = input.Throttle;
+        float tilt = input.Tilt;
+        bool handbrake = input.Handbrake;
 
         foreach (var w in _wheels)
         {
