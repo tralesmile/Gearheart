@@ -103,6 +103,9 @@ public partial class SoftVehicle : Node2D, IVehicle
     private float _engineTorque, _engineMaxSpin, _fuelUse;
     private VehicleInput _input;
     private float _drillContactTime;
+    private float _upsideDownTime;
+    private bool _selfRighting;
+    private const float AirSpinDamping = 0.003f;   // share of spin removed per substep while airborne
     private float _autoStuckTime, _autoReverseTime;
     private int _rearHub = -1, _frontHub = -1;
     private Vector2 _centerAtTickStart;
@@ -340,10 +343,16 @@ public partial class SoftVehicle : Node2D, IVehicle
             Pos[i] += velocity + gravityStep;
         }
 
-        if (!Mathf.IsZeroApprox(_input.Tilt))
+        StabiliseInAir();
+
+        // Upside down and stopped: the car rocks itself back onto its wheels.
+        float tilt = _input.Tilt;
+        if (_selfRighting && !Parked) tilt = -Mathf.Sign(PitchDegrees()) * 2.5f;
+
+        if (!Mathf.IsZeroApprox(tilt))
         {
             Vector2 c = BodyCenter();
-            float spin = _input.Tilt * AirControl * dt * dt;
+            float spin = tilt * AirControl * dt * dt;
             for (int i = 0; i < Pos.Length; i++)
             {
                 Vector2 r = Pos[i] - c;
@@ -403,8 +412,41 @@ public partial class SoftVehicle : Node2D, IVehicle
         ApplyDeformation();
     }
 
+    /// <summary>
+    /// While no wheel touches the ground, bleeds off spin so jumps do not turn into endless tumbles.
+    /// Tilt input still rotates the car, so air control keeps working.
+    /// </summary>
+    private void StabiliseInAir()
+    {
+        foreach (var w in _wheels)
+            if (w.Grounded) return;
+
+        Vector2 c = BodyCenter();
+        float angular = 0f, inertia = 0f;
+        for (int i = 0; i < Pos.Length; i++)
+        {
+            Vector2 r = Pos[i] - c;
+            angular += r.Cross(Pos[i] - Prev[i]);
+            inertia += r.LengthSquared();
+        }
+        if (inertia < 1f) return;
+
+        float remove = angular / inertia * AirSpinDamping;
+        for (int i = 0; i < Pos.Length; i++)
+        {
+            Vector2 r = Pos[i] - c;
+            Prev[i] += new Vector2(-r.Y, r.X) * remove;
+        }
+    }
+
     public void EndTick(float delta)
     {
+        // Self-righting kicks in after lying upside down, nearly still, for a moment.
+        bool upsideDown = Mathf.Abs(PitchDegrees()) > 110f;
+        _upsideDownTime = upsideDown && Speed < 60f ? _upsideDownTime + delta : 0f;
+        if (_upsideDownTime > 1.2f) _selfRighting = true;
+        if (Mathf.Abs(PitchDegrees()) < 50f) _selfRighting = false;
+
         _drillContactTime = Mathf.Max(0f, _drillContactTime - delta);
         Speed = (BodyCenter() - _centerAtTickStart).Length() / delta;
         QueueRedraw();

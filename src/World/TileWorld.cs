@@ -195,7 +195,7 @@ public sealed class TileWorld : ITerrainCollider, IMineable
                 if (tile == Tile.Air || float.IsInfinity(Hardness(tile))) continue;
                 float cx = (tx + 0.5f) * TileSize, cy = (ty + 0.5f) * TileSize;
                 if (Mathf.Abs(cx - point.X) > halfWidth || cy < point.Y - above || cy > point.Y + below) continue;
-                Damage(tx, ty, work * 0.5f);
+                Damage(tx, ty, work * 2f);
                 any = true;
             }
         }
