@@ -354,9 +354,18 @@ public partial class SoftVehicle : Node2D, IVehicle
 
         if (mineable != null)
         {
+            // The tip and the drill block's front corners all cut, so a shrinking rock
+            // that ends up under the nose still gets mined.
             foreach (var drill in _drills)
-                if (DrillIntact(drill) && mineable.Mine(Pos[drill.Node], NodeRadius + 2f, drill.Power * dt))
+            {
+                if (!DrillIntact(drill)) continue;
+                int[] c = drill.Block.Corners;
+                float work = drill.Power * dt;
+                if (mineable.Mine(Pos[drill.Node], NodeRadius + 6f, work)
+                    || mineable.Mine(Pos[c[1]], NodeRadius + 6f, work)
+                    || mineable.Mine(Pos[c[2]], NodeRadius + 6f, work))
                     _drillContactTime = 0.5f;
+            }
         }
 
         for (int i = 0; i < BodyNodeCount; i++)
