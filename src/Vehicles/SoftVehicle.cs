@@ -569,10 +569,11 @@ public partial class SoftVehicle : Node2D, IVehicle
         float tilt = 0f;
         float pitch = PitchDegrees() * Mathf.Sign(AutoThrottle == 0f ? 1f : AutoThrottle);
 
-        if (pitch < -20f)
+        // Steep ramps reach about 30 degrees, so only steeper than that counts as flipping.
+        if (pitch < -38f)
         {
             tilt = Mathf.Sign(throttle == 0f ? 1f : throttle);   // nose down
-            throttle *= 0.2f;
+            throttle *= pitch < -55f ? 0f : 0.5f;
         }
         else if (pitch > 25f)
         {
