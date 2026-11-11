@@ -23,6 +23,9 @@ public partial class SoftPhysicsWorld : Node
 
     public ITerrainCollider Terrain { get; set; }
 
+    /// <summary>What drills can mine (optional).</summary>
+    public IMineable Mineable { get; set; }
+
     private readonly List<SoftVehicle> _bodies = new();
     private readonly List<LooseObject> _loose = new();
 
@@ -71,7 +74,7 @@ public partial class SoftPhysicsWorld : Node
             ResolveVehicleContacts();
             ResolveLooseContacts(dt);
 
-            foreach (var body in _bodies) body.EndSubstep(dt, Terrain);
+            foreach (var body in _bodies) body.EndSubstep(dt, Terrain, Mineable);
         }
 
         foreach (var body in _bodies) body.EndTick(tick);

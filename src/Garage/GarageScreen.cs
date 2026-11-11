@@ -26,6 +26,8 @@ public partial class GarageScreen : Control
     private Label _errors;
     private Label _status;
     private Button _driveButton;
+    private Button _raceButton;
+    private Label _progressLabel;
     private OptionButton _suspension;
     private OptionButton _slot;
     private Button _eraser;
@@ -85,7 +87,7 @@ public partial class GarageScreen : Control
 
         left.AddChild(new Label
         {
-            Text = "Left click / drag: place part     Right click / drag: remove     Wheels go in the cell under a block",
+            Text = "Left click / drag: place part     Right click / drag: remove     Wheels go in the cell under a block\nAdd a Drill Head at the front to mine ore rocks in Free Drive",
             Modulate = new Color(1f, 1f, 1f, 0.7f),
         });
 
@@ -96,10 +98,15 @@ public partial class GarageScreen : Control
         var buttons = new HBoxContainer();
         buttons.AddThemeConstantOverride("separation", 8);
 
-        _driveButton = new Button { Text = "  TEST DRIVE  " };
+        _driveButton = new Button { Text = "  FREE DRIVE  " };
         _driveButton.AddThemeFontSizeOverride("font_size", 20);
-        _driveButton.Pressed += TestDrive;
+        _driveButton.Pressed += () => Drive(DriveMode.FreeDrive);
         buttons.AddChild(_driveButton);
+
+        _raceButton = new Button { Text = "  HILL CLIMB  " };
+        _raceButton.AddThemeFontSizeOverride("font_size", 20);
+        _raceButton.Pressed += () => Drive(DriveMode.HillClimb);
+        buttons.AddChild(_raceButton);
 
         AddButton(buttons, "Starter car", () => ReplaceDesign(VehicleDesign.Default(), "Loaded the starter car."));
         AddButton(buttons, "Clear", () =>
@@ -191,6 +198,12 @@ public partial class GarageScreen : Control
         _statsLabel = new Label();
         right.AddChild(_statsLabel);
 
+        right.AddChild(Heading("PROGRESS", 22));
+        _progressLabel = new Label();
+        right.AddChild(_progressLabel);
+
+        AddButton(right, "Physics lab (A/B test scene)", () => GetTree().ChangeSceneToFile(GameSession.TestDriveScene));
+
         SelectPart(_grid.SelectedPart);
         return right;
     }
@@ -206,11 +219,12 @@ public partial class GarageScreen : Control
         _partInfo.Text = $"{part.Name}\n{part.Description}\n{PartStats(part)}";
     }
 
-    private void TestDrive()
+    private void Drive(DriveMode mode)
     {
         if (_design.Validate().Count > 0) return;
         GameSession.CurrentDesign = _design;
-        GetTree().ChangeSceneToFile(GameSession.TestDriveScene);
+        GameSession.Mode = mode;
+        GetTree().ChangeSceneToFile(GameSession.DriveScene);
     }
 
     private void Save()
@@ -256,6 +270,12 @@ public partial class GarageScreen : Control
         var errors = _design.Validate();
         _errors.Text = errors.Count == 0 ? "" : "Can't drive yet:\n- " + string.Join("\n- ", errors);
         _driveButton.Disabled = errors.Count > 0;
+        _raceButton.Disabled = errors.Count > 0;
+
+        var best = GameSession.BestTime(GameSession.HillClimbTrack);
+        _progressLabel.Text =
+            $"Materials: {GameSession.MaterialsText()}\n" +
+            $"Hill Climb best: {(best != null ? $"{GameSession.FormatTime(best.Seconds)} ({best.Vehicle})" : "no time yet")}";
     }
 
     // ---- Helpers ---------------------------------------------------------------------------

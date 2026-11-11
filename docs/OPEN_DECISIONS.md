@@ -20,6 +20,8 @@ Last updated: 2026-11-11
 | D5 | **Fuel in the prototype** | A) keep fuel (built now: a small built-in tank, extra tank parts add more) · B) remove it until later | A, but generous | Fuel adds route planning and a reason to carry tanks, but it can feel punishing |
 | D6 | **How repair works** | A) free full repair in the garage (built now) · B) repair costs money and parts · C) also field repair kits | A for the prototype, B + C later | B and C tie damage into the economy, which only makes sense once mining and money exist |
 | D7 | **Playtesters for the prototype** | Who are the 20–50 people? Friends, colleagues, Discord, Reddit | A mix: 10 friends + 20–40 strangers from r/godot, r/IndieDev | Strangers give honest feedback; friends are fast to organise |
+| D18 | **Ready for outside testers?** | A) put the prototype on itch.io now (free, hidden link) · B) first polish handling after your own test (D1) | B, then A within 1–2 weeks | Testers' first impression is hard to get twice; your FPS and feel feedback should come first |
+| D19 | **What materials are for** | A) crafting new parts (Terraria-style tiers) · B) money to buy parts · C) both | C in the vertical slice: craft the first tiers, buy rare ones | Decides the economy and progression; nothing in the prototype depends on it yet |
 | D8 | **Discord and social accounts** | Create now or at the vertical slice; which handle name | Create now under the final name (after D4) | Followers take months to build; the plan needs 1,000 wishlists by September 2027 |
 
 ## Needed before the vertical slice (by April 2027)

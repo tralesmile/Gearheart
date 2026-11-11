@@ -55,6 +55,13 @@ public partial class SoftVehicle : Node2D, IVehicle
         public bool Attached = true;
     }
 
+    private sealed class DrillTip
+    {
+        public int Node;
+        public float Power;
+        public Cell Block;
+    }
+
     private sealed class Cell
     {
         public int[] Corners;          // top-left, top-right, bottom-right, bottom-left
@@ -73,6 +80,7 @@ public partial class SoftVehicle : Node2D, IVehicle
     private readonly List<Beam> _beams = new();
     private readonly List<Wheel> _wheels = new();
     private readonly List<Cell> _cells = new();
+    private readonly List<DrillTip> _drills = new();
     private float[] _nodeRadius;
     private float _totalMass;
     private float _engineTorque, _engineMaxSpin, _fuelUse;
@@ -146,6 +154,19 @@ public partial class SoftVehicle : Node2D, IVehicle
             FuelCapacity += part.FuelCapacity;
         }
 
+        // Drill tips: a point in front of each drill block's right edge.
+        var drillSetups = new List<(int Tip, Cell Cell)>();
+        foreach (var cell in _cells)
+        {
+            if (cell.Part.Category != PartCategory.Drill) continue;
+            int tip = positions.Count;
+            Vector2 edgeMiddle = (positions[cell.Corners[1]] + positions[cell.Corners[2]]) / 2f;
+            positions.Add(edgeMiddle + new Vector2(CellSize * 0.8f, 0f));
+            masses.Add(cell.Part.Mass * 0.25f);
+            _drills.Add(new DrillTip { Node = tip, Power = cell.Part.DrillPower, Block = cell });
+            drillSetups.Add((tip, cell));
+        }
+
         BodyNodeCount = positions.Count;
         FuelCapacity += VehicleDesign.BaseFuelCapacity;
         Fuel = FuelCapacity;
@@ -214,6 +235,11 @@ public partial class SoftVehicle : Node2D, IVehicle
 
         foreach (var (key, uses) in edgeUse)
             if (uses == 1) BoundaryEdges.Add(key);
+
+        // Drill tips are braced to all four corners of their block.
+        foreach (var (tip, cell) in drillSetups)
+            foreach (int corner in cell.Corners)
+                AddBeam(tip, corner, BodyStiffness, cell.Part.Yield, cell.Part.BreakLimit);
 
         // Suspension beams.
         foreach (var (hub, suspension, anchors) in wheelSetups)
@@ -293,9 +319,15 @@ public partial class SoftVehicle : Node2D, IVehicle
     }
 
     /// <summary>Velocity fixes after the constraint passes: damping, friction, tyres, damage.</summary>
-    public void EndSubstep(float dt, ITerrainCollider terrain)
+    public void EndSubstep(float dt, ITerrainCollider terrain, IMineable mineable = null)
     {
         DampSuspension();
+
+        if (mineable != null)
+        {
+            foreach (var drill in _drills)
+                if (DrillIntact(drill)) mineable.Mine(Pos[drill.Node], NodeRadius + 2f, drill.Power * dt);
+        }
 
         for (int i = 0; i < BodyNodeCount; i++)
         {
@@ -465,6 +497,14 @@ public partial class SoftVehicle : Node2D, IVehicle
         }
     }
 
+    private bool DrillIntact(DrillTip drill)
+    {
+        foreach (var beam in _beams)
+            if (!beam.Broken && (beam.A == drill.Node || beam.B == drill.Node))
+                return true;
+        return false;
+    }
+
     private Vector2 BodyCenter()
     {
         if (Pos == null || BodyNodeCount == 0) return Spawn;
@@ -486,17 +526,19 @@ public partial class SoftVehicle : Node2D, IVehicle
             FillTriangle(Pos[c[0]], Pos[c[1]], Pos[c[2]], color);
             FillTriangle(Pos[c[0]], Pos[c[2]], Pos[c[3]], color);
 
-            if (cell.Part.Category == PartCategory.Drill)
-            {
-                // Spike on the right-hand edge.
-                Vector2 tip = (Pos[c[1]] + Pos[c[2]]) / 2f + (Pos[c[1]] - Pos[c[0]]).Normalized() * CellSize * 0.8f;
-                FillTriangle(Pos[c[1]], tip, Pos[c[2]], color.Darkened(0.2f));
-            }
-            else if (cell.Part.Category == PartCategory.Engine)
+            if (cell.Part.Category == PartCategory.Engine)
             {
                 Vector2 middle = (Pos[c[0]] + Pos[c[2]]) / 2f;
                 DrawCircle(ToLocal(middle), 5f, color.Darkened(0.4f));
             }
+        }
+
+        foreach (var drill in _drills)
+        {
+            // Spike from the drill block's right edge to the tip point.
+            int[] c = drill.Block.Corners;
+            if (DrillIntact(drill))
+                FillTriangle(Pos[c[1]], Pos[drill.Node], Pos[c[2]], drill.Block.Part.GodotColor.Darkened(0.2f));
         }
 
         var beamColor = new Color(0f, 0f, 0f, 0.25f);

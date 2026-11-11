@@ -2,6 +2,13 @@
 
 Newest first. One entry per big decision: what, why, and what would make us revisit it.
 
+## 2026-11-11 — Race and mining for the prototype
+
+- **Hill Climb:** one track, about 95 m from START to FINISH, rising with slopes up to roughly 30 degrees. The clock runs between the flags; 4 seconds below 0.5 m/s (stuck or out of fuel) ends the run. Best time per track is saved in `user://progress.json`.
+- **Mining:** ore is placed as half-buried rocks (Scrap, Iron, Copper; rarer further out). A Drill Head adds a tip point to the car; pressing it on a rock grinds the rock down and pays out its material. Digging into the ground itself waits for the tile world in the vertical slice, because the prototype ground is a height line.
+- **Why:** answers the prototype question (is building and driving fun?) with the least code that will be thrown away.
+- **Automated playtests:** CI drives both modes headless every build, so a broken race or mining loop shows up immediately.
+
 ## 2026-11-11 — Garage: side-view grid of 1x1 blocks; parts as data
 
 - **What:** Vehicles are designed on a 12 x 6 side-view grid. Each block is one part (frame, engine, armor, fuel tank, drill). Wheels sit in the cell under a block, with a chosen suspension. All 15 parts are defined in `data/parts/parts.json`. The soft body is generated from the design: 4 points per block, shared between neighbours, with edge and diagonal beams. Every beam takes its strength from its part.

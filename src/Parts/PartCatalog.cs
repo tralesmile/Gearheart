@@ -37,6 +37,9 @@ public sealed class PartDefinition
     public float MaxSpin { get; set; }
     public float FuelUse { get; set; }                // fuel units per second at full throttle
 
+    // Drill: mining work per second while the tip presses on ore
+    public float DrillPower { get; set; }
+
     // Fuel tank
     public float FuelCapacity { get; set; }
 

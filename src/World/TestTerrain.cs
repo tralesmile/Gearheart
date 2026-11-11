@@ -4,28 +4,36 @@ using Godot;
 
 namespace Gearheart.World;
 
+public enum TerrainStyle
+{
+    Rolling,     // flat start, rolling hills, a ramp with a cliff (free drive / physics test)
+    HillClimb,   // keeps rising and gets steeper and bumpier toward the finish
+}
+
 /// <summary>
-/// Placeholder ground for the physics test: a flat start, rolling hills,
-/// a ramp that ends in a cliff, and a wall on the left. Not the real tile world.
+/// Placeholder ground for the prototype: a height line with a wall on the left.
+/// Not the real tile world, which comes in the vertical slice.
 /// </summary>
 public partial class TestTerrain : StaticBody2D, ITerrainCollider
 {
     [Export] public int Length = 12000;
     [Export] public int Seed = 7;
+    [Export] public TerrainStyle Style = TerrainStyle.Rolling;
 
     private const float WallX = -600f;
     private const float Spacing = 40f;
     private Vector2[] _surface = System.Array.Empty<Vector2>();
+    private float _phaseA, _phaseB;
 
     public override void _Ready()
     {
         var rng = new RandomNumberGenerator { Seed = (ulong)Seed };
-        float phaseA = rng.Randf() * 10f;
-        float phaseB = rng.Randf() * 10f;
+        _phaseA = rng.Randf() * 10f;
+        _phaseB = rng.Randf() * 10f;
 
         var surface = new List<Vector2>();
         for (float x = WallX; x <= Length; x += Spacing)
-            surface.Add(new Vector2(x, HeightAt(x, phaseA, phaseB)));
+            surface.Add(new Vector2(x, HeightAt(x)));
         _surface = surface.ToArray();
 
         var outline = new List<Vector2>
@@ -108,8 +116,31 @@ public partial class TestTerrain : StaticBody2D, ITerrainCollider
         return hit;
     }
 
-    private static float HeightAt(float x, float phaseA, float phaseB)
+    /// <summary>Ground height (y) at x, read from the built surface.</summary>
+    public float SurfaceY(float x)
     {
+        if (_surface.Length < 2) return 0f;
+        float f = (x - WallX) / Spacing;
+        int i = Mathf.Clamp(Mathf.FloorToInt(f), 0, _surface.Length - 2);
+        float t = Mathf.Clamp(f - i, 0f, 1f);
+        return Mathf.Lerp(_surface[i].Y, _surface[i + 1].Y, t);
+    }
+
+    private float HeightAt(float x)
+    {
+        float phaseA = _phaseA, phaseB = _phaseB;
+        if (Style == TerrainStyle.HillClimb)
+        {
+            if (x < 400f) return 0f;
+            float climb = x - 400f;
+            float bumpSize = 40f + climb * 0.022f;           // bumps grow with distance
+            float rise = -climb * 0.06f;                       // steady climb
+            float bumps = Mathf.Sin(climb / 1000f * 1.7f + phaseA) * bumpSize
+                          + Mathf.Sin(climb / 1000f * 4.3f + phaseB) * bumpSize * 0.4f;
+            float fade = Mathf.Clamp(climb / 600f, 0f, 1f);   // ease in from the flat start
+            return (rise + bumps - Mathf.Sin(phaseA) * bumpSize - Mathf.Sin(phaseB) * bumpSize * 0.4f) * fade;
+        }
+
         float t = x / 1000f;
         float amplitude = Mathf.Clamp(x / 3000f, 0f, 1f); // flat at the start, full hills from x = 3000
         float y = amplitude * (Mathf.Sin(t * 1.7f + phaseA) * 140f + Mathf.Sin(t * 4.3f + phaseB) * 45f);
