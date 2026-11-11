@@ -67,6 +67,7 @@ public static class GameSession
         if (UserArgs.Contains("--freedrive")) Mode = DriveMode.FreeDrive;
         if (UserArgs.Contains("--design=driller")) CurrentDesign = VehicleDesign.Driller();
         if (UserArgs.Contains("--design=rocket")) CurrentDesign = VehicleDesign.Rocket();
+        if (UserArgs.Contains("--design=starter")) CurrentDesign = VehicleDesign.Default();
     }
 
     private static string[] UserArgs => OS.GetCmdlineUserArgs();

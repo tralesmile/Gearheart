@@ -53,13 +53,13 @@ jobs:
               fail=1
             fi
           }
-          run "world: walk, mine, place, then drive 30 s" res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay
+          run "world: walk, mine, place, then drive 30 s" res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --design=starter
           run "world: drill car tunnelling"            res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --design=driller
-          run "world: drive left to the Frozen North"  res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --left
+          run "world: drive left to the Frozen North"  res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --left --design=starter
           run "world: rocket booster car"             res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --design=rocket
           run "garage"            res://scenes/garage.tscn --quit-after 300
           run "physics lab"       res://scenes/tests/physics_test.tscn --quit-after 600
-          run "hill climb, starter car, 40 s" res://scenes/drive.tscn --quit-after 4800 -- --hillclimb --autodrive
+          run "hill climb, starter car, 40 s" res://scenes/drive.tscn --quit-after 4800 -- --hillclimb --autodrive --design=starter
           run "hill climb, rocket car, 40 s"  res://scenes/drive.tscn --quit-after 4800 -- --hillclimb --autodrive --design=rocket
           run "free drive, driller, 40 s"     res://scenes/drive.tscn --quit-after 4800 -- --freedrive --autodrive --design=driller
           exit $fail
@@ -70,8 +70,8 @@ jobs:
           sudo apt-get update -qq > /dev/null 2>&1 || true
           sudo apt-get install -y -qq xvfb libgl1-mesa-dri > /dev/null 2>&1 || true
           mkdir -p shots/world shots/left shots/drill shots/rocket shots/garage keep
-          xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/world/f.png --quit-after 400 res://scenes/world.tscn -- --fresh --autoplay > shots/world.log 2>&1 || true
-          xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/left/f.png --quit-after 400 res://scenes/world.tscn -- --fresh --autoplay --left > shots/left.log 2>&1 || true
+          xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/world/f.png --quit-after 400 res://scenes/world.tscn -- --fresh --autoplay --design=starter > shots/world.log 2>&1 || true
+          xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/left/f.png --quit-after 400 res://scenes/world.tscn -- --fresh --autoplay --left --design=starter > shots/left.log 2>&1 || true
           xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/drill/f.png --quit-after 400 res://scenes/world.tscn -- --fresh --autoplay --design=driller > shots/drill.log 2>&1 || true
           xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/rocket/f.png --quit-after 400 res://scenes/world.tscn -- --fresh --autoplay --design=rocket > shots/rocket.log 2>&1 || true
           xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/garage/f.png --quit-after 12 res://scenes/garage.tscn > shots/garage.log 2>&1 || true

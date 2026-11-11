@@ -272,7 +272,7 @@
       "breakLimit": 0.25,
       "thrust": 5200,
       "boostSpeed": 1700,
-      "boostFuelUse": 4.5,
+      "boostFuelUse": 3.0,
       "sprite": 11,
       "cost": {
         "Scrap": 2,
