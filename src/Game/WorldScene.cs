@@ -27,6 +27,9 @@ public partial class WorldScene : Node2D
     private CanvasModulate _darkness;
     private PointLight2D _lamp;
     private Label _hint, _toast, _status;
+    private Sfx _sfx;
+    private float _pickTimer;
+    private int _puffs;
     private readonly Label[] _counts = new Label[GameSession.Items.Length];
     private Vector2 _garageDoor;
     private bool _driving;
@@ -99,6 +102,10 @@ public partial class WorldScene : Node2D
         };
         _lamp = new PointLight2D { Texture = glow, Energy = 0f, TextureScale = 1.1f };
         AddChild(_lamp);
+
+        _sfx = new Sfx { Name = "Sfx" };
+        AddChild(_sfx);
+        _player.Placed += () => _sfx.Play("place");
 
         BuildHud();
         GD.Print($"[world] ready: design=\"{GameSession.CurrentDesign.Name}\" autoplay={GameSession.AutoPlay} " +
@@ -188,7 +195,7 @@ public partial class WorldScene : Node2D
         _car.Parked = false;
         _car.Occupied = true;
         _car.PlayerControlled = !GameSession.AutoPlay;
-        _car.AutoThrottle = GameSession.AutoPlay ? 1f : 0f;
+        _car.AutoThrottle = GameSession.AutoPlay ? (GameSession.DriveLeft ? -1f : 1f) : 0f;
         if (GameSession.AutoPlay) _car.DrillEnabled = true;
     }
 
@@ -248,6 +255,15 @@ public partial class WorldScene : Node2D
         _lamp.TextureScale = _driving ? 1.6f : 1.1f;
         _backdrop.CameraPosition = _camera.GetScreenCenterPosition();
         _backdrop.Underground = under;
+        (_backdrop.Desert, _backdrop.Frozen) = TileWorld.BiomeBlend(focus.X);
+
+        _sfx.UpdateCar(_driving, _car.Speed, _car.Throttle, _car.IsDrilling && _car.DrillEnabled);
+        _pickTimer -= dt;
+        if (!_driving && _player.IsMining && _pickTimer <= 0f)
+        {
+            _sfx.Play("pick", -10f);
+            _pickTimer = 0.22f;
+        }
 
         UpdateHud(dt);
     }
@@ -256,11 +272,47 @@ public partial class WorldScene : Node2D
 
     private void OnTileBroken(int x, int y, Tile tile)
     {
+        _sfx?.Play("break", -9f, 0.06f);
+        Puff(x, y, tile);
+
         var (item, amount) = TileWorld.Drop(tile);
         if (item == null) return;
+        if (item != "Dirt" && item != "Stone") _sfx?.Play("pickup", -8f, 0.1f);
         GameSession.Add(item, amount);
         if (item != "Dirt" && item != "Stone") Toast($"+{amount} {item}");
         if (GameSession.AutoPlay && item != "Dirt" && item != "Stone") GD.Print($"[mining] +{amount} {item} at ({x},{y})");
+    }
+
+    /// <summary>A small burst of debris in the tile's colour where it broke.</summary>
+    private void Puff(int x, int y, Tile tile)
+    {
+        if (_puffs >= 14) return;
+        _puffs++;
+        Color color = tile switch
+        {
+            Tile.Grass or Tile.Dirt => new Color(0.52f, 0.33f, 0.22f),
+            Tile.Sand => new Color(0.89f, 0.77f, 0.49f),
+            Tile.Sandstone => new Color(0.77f, 0.59f, 0.38f),
+            Tile.Snow => new Color(0.95f, 0.97f, 1f),
+            Tile.Ice => new Color(0.6f, 0.82f, 0.93f),
+            Tile.ScrapOre => new Color(0.8f, 0.82f, 0.86f),
+            Tile.IronOre => new Color(0.71f, 0.4f, 0.29f),
+            Tile.CopperOre => new Color(0.91f, 0.55f, 0.24f),
+            _ => new Color(0.47f, 0.49f, 0.52f),
+        };
+        var puff = new CpuParticles2D
+        {
+            Position = new Vector2((x + 0.5f) * Ts, (y + 0.5f) * Ts),
+            OneShot = true, Emitting = true, Amount = 8, Lifetime = 0.5f, Explosiveness = 1f, Spread = 180f,
+            InitialVelocityMin = 30f, InitialVelocityMax = 110f, Gravity = new Vector2(0f, 500f),
+            ScaleAmountMin = 2f, ScaleAmountMax = 4f, Color = color,
+        };
+        AddChild(puff);
+        GetTree().CreateTimer(0.8).Timeout += () =>
+        {
+            _puffs--;
+            if (IsInstanceValid(puff)) puff.QueueFree();
+        };
     }
 
     // ---- HUD --------------------------------------------------------------------------------
@@ -320,6 +372,13 @@ public partial class WorldScene : Node2D
         return label;
     }
 
+    private static string BiomeName(float worldX) => TileWorld.BiomeAt(Mathf.FloorToInt(worldX / Ts)) switch
+    {
+        Biome.Desert => "The Wastes",
+        Biome.Frozen => "Frozen North",
+        _ => "Home Meadow",
+    };
+
     private void Toast(string text)
     {
         _toast.Text = text;
@@ -341,7 +400,7 @@ public partial class WorldScene : Node2D
             _hint.Text = "A/D: drive   Q/E: tilt (also rolls you back over)   Space: handbrake   F: get out" +
                          (_car.HasDrill ? $"   X: drill {(_car.DrillEnabled ? "ON" : "OFF")}" : "") +
                          (NearGarage() ? "   G: garage   R: repair" : "");
-            _status.Text = $"{_car.Speed / PixelsPerMeter * 3.6f:0} km/h   Fuel {_car.Fuel:0}/{_car.FuelCapacity:0}   Damage {_car.Damage:0}";
+            _status.Text = $"{BiomeName(_car.CenterPosition.X)}   {_car.Speed / PixelsPerMeter * 3.6f:0} km/h   Fuel {_car.Fuel:0}/{_car.FuelCapacity:0}   Damage {_car.Damage:0}";
         }
         else
         {
@@ -349,7 +408,7 @@ public partial class WorldScene : Node2D
             if (NearCar()) hint += "\nF: get in the car";
             if (NearGarage()) hint += "\nG: open the garage (build and upgrade your car)";
             _hint.Text = hint;
-            _status.Text = $"Depth {Mathf.Max(0f, (_player.Position.Y / Ts - _world.SurfaceRow(Mathf.FloorToInt(_player.Position.X / Ts))) * 0.25f):0} m";
+            _status.Text = $"{BiomeName(_player.Position.X)}   Depth {Mathf.Max(0f, (_player.Position.Y / Ts - _world.SurfaceRow(Mathf.FloorToInt(_player.Position.X / Ts))) * 0.25f):0} m";
         }
 
         if (_toastTime > 0f)
@@ -368,7 +427,7 @@ public partial class WorldScene : Node2D
         {
             Vector2 feet = _player.Position + new Vector2(0f, Player.HalfHeight);
             if (_elapsed < 3f)
-                _player.Override = new PlayerInput { Move = -1f, Jump = Mathf.Abs(_player.Velocity.X) < 5f, Aim = feet };
+                _player.Override = new PlayerInput { Move = GameSession.DriveLeft ? 1f : -1f, Jump = Mathf.Abs(_player.Velocity.X) < 5f, Aim = feet };
             else if (_elapsed < 9f)
                 _player.Override = new PlayerInput { Mine = true, Aim = feet + new Vector2(((int)(_elapsed * 3f) & 1) == 0 ? -7f : 7f, 8f) };
             else if (_elapsed < 10f)
@@ -380,16 +439,17 @@ public partial class WorldScene : Node2D
         // With a drill: after a stretch of driving, point the nose down and tunnel for a while.
         if (_driving && _car.HasDrill)
         {
-            bool dig = _elapsed > 16f && _elapsed < 30f;
+            // First it meets hills with the drill on (level tunnelling), later it noses down to dig deeper.
+            bool dig = _elapsed > 26f && _elapsed < 36f;
             _car.AutoTilt = dig && _car.PitchDegrees() < 30f ? 1f : dig ? 0.001f : 0f;
-            _car.AutoThrottle = dig ? 0.6f : 1f;
+            _car.AutoThrottle = (dig ? 0.6f : 1f) * (GameSession.DriveLeft ? -1f : 1f);
         }
 
         if (_elapsed < _nextLog) return;
         _nextLog += 2f;
         Vector2 p = _player.Position, c = _car.CenterPosition;
         int surface = _world.SurfaceRow(Mathf.FloorToInt(c.X / Ts));
-        GD.Print($"[autoplay] t={_elapsed:0}s {(_driving ? "driving" : "on foot")} player=({p.X / Ts:0.0},{p.Y / Ts:0.0}) grounded={_player.Grounded} " +
+        GD.Print($"[autoplay] t={_elapsed:0}s {(_driving ? "driving" : "on foot")} biome={TileWorld.BiomeAt(Mathf.FloorToInt(c.X / Ts))} grip={_world.GripAt(c + new Vector2(0f, 60f)):0.00} player=({p.X / Ts:0.0},{p.Y / Ts:0.0}) grounded={_player.Grounded} " +
                  $"car=({c.X / Ts:0.0},{c.Y / Ts:0.0}) surfaceRow={surface} depth={(c.Y / Ts - surface) * 0.25f:0.0}m speed={_car.Speed / PixelsPerMeter * 3.6f:0}km/h pitch={_car.PitchDegrees():0} " +
                  $"fuel={_car.Fuel:0} damage={_car.Damage:0} drilling={_car.IsDrilling} | " +
                  string.Join(" ", System.Array.ConvertAll(GameSession.Items, i => $"{i}={GameSession.Count(i)}")));

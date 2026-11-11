@@ -2,6 +2,15 @@
 
 Newest first. One entry per big decision: what, why, and what would make us revisit it.
 
+## 2026-11-11 — Biomes, graphics pass, first sounds
+
+- **Biomes by distance from the garage:** Home Meadow in the middle (380 tiles each way), The Wastes to the east (sand over sandstone, long dunes, copper from 9 tiles down), Frozen North to the west (snow, taller hills, more caves, richer iron, flat stretches of ice). Sky and far hills change colour with the biome.
+- **Ice** has 22% grip for tyres and makes walking slippery; snow 75%, sand 85%.
+- **Graphics:** trees, bushes, flowers, cacti, pines and rocks on untouched surface tiles; shaded edges where tiles meet open space; debris puffs when tiles break; the truck has a headlight, tail light, fenders, wheel dust and exhaust smoke.
+- **Sound:** generated placeholder effects (engine and drill loops that follow speed and throttle, pickaxe, break, place, pickup).
+- **Drill fix:** the bite's bottom is now the level the wheels stand on, so the tunnel floor stays flat when the car noses up a slope; tilting the nose down more than 14 degrees digs downward. In the playtest the drill car no longer wedges: it tunnels 8.8 m deep in 30 s and brings back stone, scrap, iron and copper.
+- **Housekeeping:** build downloads are kept 5 days so storage does not fill up.
+
 ## 2026-11-11 — Direction change: on-foot character in a tile world
 
 - **Why:** Owner feedback on the first prototype: it should be a game where you control a person who mines, builds a car and drives it, and it must look like a game. The car-only prototype with flat shapes missed that.

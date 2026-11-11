@@ -16,6 +16,17 @@ public enum Tile : byte
     CopperOre,
     Bedrock,
     Planks,
+    Sand,
+    Sandstone,
+    Snow,
+    Ice,
+}
+
+public enum Biome
+{
+    Meadow,
+    Desert,
+    Frozen,
 }
 
 /// <summary>
@@ -23,14 +34,14 @@ public enum Tile : byte
 /// saving, and circle collision for the soft-body vehicles. Exposed one-tile steps are
 /// automatically bevelled into 45-degree slopes so wheels (and feet) can travel over them.
 /// </summary>
-public sealed class TileWorld : ITerrainCollider, IMineable
+public sealed class TileWorld : ITerrainCollider, IMineable, ISurfaceInfo
 {
     public const int TileSize = 16;
     public const int Width = 2560;           // 640 m across
     public const int Height = 192;
     public const int BaseSurface = 64;       // surface row at the spawn pad
     public const int PadFrom = 1258, PadTo = 1302;   // flat ground for the garage (tile columns)
-    private const uint SaveMagic = 0x34574847;   // "GHW4": bump when generation changes
+    private const uint SaveMagic = 0x35574847;   // "GHW5": bump when generation changes
 
     private readonly byte[] _tiles = new byte[Width * Height];
     private readonly int[] _surface = new int[Width];
@@ -64,7 +75,11 @@ public sealed class TileWorld : ITerrainCollider, IMineable
 
     public static float Hardness(Tile tile) => tile switch
     {
+        Tile.Snow => 5f,
+        Tile.Sand => 7f,
         Tile.Grass or Tile.Dirt => 10f,
+        Tile.Ice => 18f,
+        Tile.Sandstone => 22f,
         Tile.Planks => 14f,
         Tile.Stone => 28f,
         Tile.ScrapOre => 32f,
@@ -76,8 +91,8 @@ public sealed class TileWorld : ITerrainCollider, IMineable
     /// <summary>What a mined tile gives: inventory key and amount.</summary>
     public static (string Item, int Amount) Drop(Tile tile) => tile switch
     {
-        Tile.Grass or Tile.Dirt => ("Dirt", 1),
-        Tile.Stone => ("Stone", 1),
+        Tile.Grass or Tile.Dirt or Tile.Sand => ("Dirt", 1),
+        Tile.Stone or Tile.Sandstone => ("Stone", 1),
         Tile.ScrapOre => ("Scrap", 2),
         Tile.IronOre => ("Iron", 1),
         Tile.CopperOre => ("Copper", 1),
@@ -142,6 +157,44 @@ public sealed class TileWorld : ITerrainCollider, IMineable
         return float.NaN;
     }
 
+    // ---- Biomes --------------------------------------------------------------------------
+
+    /// <summary>How far (in tiles) the meadow reaches from the garage before the next biome starts.</summary>
+    public const int MeadowReach = 380;
+
+    /// <summary>Desert to the right (east), frozen land to the left (west), meadow around the garage.</summary>
+    public static Biome BiomeAt(int x)
+    {
+        int middle = (PadFrom + PadTo) / 2;
+        // A ragged border a few tiles wide, so biomes do not meet in a straight line.
+        int wobble = (int)(((uint)(x * 2654435761u) >> 28) % 7) - 3;
+        int d = x - middle + wobble;
+        return d > MeadowReach ? Biome.Desert : d < -MeadowReach ? Biome.Frozen : Biome.Meadow;
+    }
+
+    /// <summary>0..1 share of desert and frozen at a world x, blended over a stretch (for sky colours).</summary>
+    public static (float Desert, float Frozen) BiomeBlend(float worldX)
+    {
+        float d = worldX / TileSize - (PadFrom + PadTo) / 2f;
+        float t = Mathf.Clamp((Mathf.Abs(d) - MeadowReach + 30f) / 60f, 0f, 1f);
+        return d > 0f ? (t, 0f) : (0f, t);
+    }
+
+    /// <summary>Tyre and boot grip of the ground at a point: 1 = normal, ice is very slippery.</summary>
+    public float GripAt(Vector2 point)
+    {
+        int tx = Mathf.FloorToInt(point.X / TileSize), ty = Mathf.FloorToInt(point.Y / TileSize);
+        Tile t = Get(tx, ty);
+        if (t == Tile.Air) t = Get(tx, ty + 1);
+        return t switch
+        {
+            Tile.Ice => 0.22f,
+            Tile.Snow => 0.75f,
+            Tile.Sand => 0.85f,
+            _ => 1f,
+        };
+    }
+
     // ---- Changing ---------------------------------------------------------------------------
 
     public void Set(int x, int y, Tile tile)
@@ -178,15 +231,18 @@ public sealed class TileWorld : ITerrainCollider, IMineable
 
     /// <summary>
     /// Drill mining. The bite is a box in front of the tip, sized so a car can dig a tunnel it fits
-    /// through: 3 tiles wide, from well above the tip down to just above the floor the car stands on.
-    /// On level ground the floor is left alone; tilt the nose down to dig downward.
+    /// through: 3 tiles wide and reaching well above the tip. Its bottom is the level the car's wheels
+    /// stand on (floorY), so the tunnel floor stays flat even when the car is nosing up a slope.
+    /// With no floorY (the car is tilted nose-down on purpose) it reaches below the tip and digs down.
     /// </summary>
-    public bool Mine(Vector2 point, float reach, float work)
+    public bool Mine(Vector2 point, float reach, float work, float floorY = float.NaN)
     {
-        const float halfWidth = 26f, above = 54f, below = 40f;
+        const float halfWidth = 26f, above = 56f;
+        float top = point.Y - above;
+        float bottom = float.IsNaN(floorY) ? point.Y + 44f : Mathf.Max(floorY - 5f, point.Y);
         bool any = false;
         int x0 = Mathf.FloorToInt((point.X - halfWidth) / TileSize), x1 = Mathf.FloorToInt((point.X + halfWidth) / TileSize);
-        int y0 = Mathf.FloorToInt((point.Y - above) / TileSize), y1 = Mathf.FloorToInt((point.Y + below) / TileSize);
+        int y0 = Mathf.FloorToInt(top / TileSize), y1 = Mathf.FloorToInt(bottom / TileSize);
         for (int ty = y0; ty <= y1; ty++)
         {
             for (int tx = x0; tx <= x1; tx++)
@@ -194,7 +250,7 @@ public sealed class TileWorld : ITerrainCollider, IMineable
                 Tile tile = Get(tx, ty);
                 if (tile == Tile.Air || float.IsInfinity(Hardness(tile))) continue;
                 float cx = (tx + 0.5f) * TileSize, cy = (ty + 0.5f) * TileSize;
-                if (Mathf.Abs(cx - point.X) > halfWidth || cy < point.Y - above || cy > point.Y + below) continue;
+                if (Mathf.Abs(cx - point.X) > halfWidth || cy < top || cy > bottom) continue;
                 Damage(tx, ty, work * 2f);
                 any = true;
             }
@@ -300,17 +356,22 @@ public sealed class TileWorld : ITerrainCollider, IMineable
         var caves = new FastNoiseLite { Seed = seed, Frequency = 0.045f, NoiseType = FastNoiseLite.NoiseTypeEnum.Simplex };
         var ore = new FastNoiseLite { Seed = seed + 1, Frequency = 0.16f, NoiseType = FastNoiseLite.NoiseTypeEnum.Simplex };
         var hills = new FastNoiseLite { Seed = seed + 2, Frequency = 0.012f, NoiseType = FastNoiseLite.NoiseTypeEnum.Simplex };
+        var patches = new FastNoiseLite { Seed = seed + 3, Frequency = 0.03f, NoiseType = FastNoiseLite.NoiseTypeEnum.Simplex };
         var rng = new RandomNumberGenerator { Seed = (ulong)seed };
 
-        // Surface line: flat at the garage pad, hillier the further you go. Steps are at most one tile.
+        // Surface line: flat at the garage pad, hillier the further you go.
+        // Desert dunes are long and smooth; the frozen land is rugged.
         float padMiddle = (PadFrom + PadTo) / 2f;
         for (int x = 0; x < Width; x++)
         {
+            Biome biome = BiomeAt(x);
             float away = Mathf.Max(0f, Mathf.Abs(x - padMiddle) - (PadTo - PadFrom) / 2f);
-            float amplitude = Mathf.Min(16f, away * 0.1f);
-            float h = hills.GetNoise1D(x) * amplitude + Mathf.Sin(x / 9f) * Mathf.Min(2f, away * 0.05f);
+            float amplitude = Mathf.Min(biome == Biome.Frozen ? 22f : biome == Biome.Desert ? 12f : 16f, away * 0.1f);
+            float stretch = biome == Biome.Desert ? 0.6f : 1f;
+            float h = hills.GetNoise1D(x * stretch) * amplitude + Mathf.Sin(x / 9f) * Mathf.Min(2f, away * 0.05f) * (biome == Biome.Desert ? 0.3f : 1f);
             world._surface[x] = BaseSurface + Mathf.RoundToInt(h);
         }
+
         // Walk outward from the pad: at most one tile of change every three columns (about 18 degrees),
         // so every slope is a ramp a car can climb.
         for (int side = -1; side <= 1; side += 2)
@@ -328,27 +389,39 @@ public sealed class TileWorld : ITerrainCollider, IMineable
 
         for (int x = 0; x < Width; x++)
         {
+            Biome biome = BiomeAt(x);
             int surface = world._surface[x];
-            int dirtDepth = 5 + (int)(rng.Randi() % 4);
+            int topDepth = 5 + (int)(rng.Randi() % 4);
             bool nearPad = x > PadFrom - 6 && x < PadTo + 6;
+            bool flat = world._surface[Mathf.Max(0, x - 1)] == surface && world._surface[Mathf.Min(Width - 1, x + 1)] == surface;
+            bool icePatch = biome == Biome.Frozen && flat && patches.GetNoise1D(x) > 0.1f;
 
             for (int y = surface; y < Height; y++)
             {
                 int depth = y - surface;
-                Tile tile = depth == 0 ? Tile.Grass : depth < dirtDepth ? Tile.Dirt : Tile.Stone;
+                Tile tile = biome switch
+                {
+                    Biome.Desert => depth < topDepth + 2 ? Tile.Sand : depth < topDepth + 18 ? Tile.Sandstone : Tile.Stone,
+                    Biome.Frozen => depth == 0 ? (icePatch ? Tile.Ice : Tile.Snow)
+                        : depth == 1 ? (icePatch ? Tile.Ice : Tile.Snow)
+                        : depth < topDepth ? Tile.Dirt : Tile.Stone,
+                    _ => depth == 0 ? Tile.Grass : depth < topDepth ? Tile.Dirt : Tile.Stone,
+                };
 
-                // Caves, away from the surface and the garage.
-                if (depth > 7 && !(nearPad && depth < 14) && caves.GetNoise2D(x, y * 1.6f) > 0.42f) tile = Tile.Air;
+                // Caves, away from the surface and the garage. The frozen land has more of them.
+                float caveLimit = biome == Biome.Frozen ? 0.36f : 0.42f;
+                if (depth > 7 && !(nearPad && depth < 14) && caves.GetNoise2D(x, y * 1.6f) > caveLimit) tile = Tile.Air;
 
                 // Ore pockets: scrap is shallow and common, iron deeper, copper deepest.
+                // The frozen land is rich in iron; the desert has copper close to the surface.
                 if (tile != Tile.Air && depth >= 2)
                 {
                     float n = ore.GetNoise2D(x, y);
                     float n2 = ore.GetNoise2D(x + 500, y + 500);
                     float n3 = ore.GetNoise2D(x - 500, y + 900);
                     if (n > 0.62f && depth < 40) tile = Tile.ScrapOre;
-                    else if (n2 > 0.66f && depth >= 8) tile = Tile.IronOre;
-                    else if (n3 > 0.7f && depth >= 22) tile = Tile.CopperOre;
+                    else if (n2 > (biome == Biome.Frozen ? 0.58f : 0.66f) && depth >= (biome == Biome.Frozen ? 5 : 8)) tile = Tile.IronOre;
+                    else if (n3 > (biome == Biome.Desert ? 0.62f : 0.7f) && depth >= (biome == Biome.Desert ? 9 : 22)) tile = Tile.CopperOre;
                 }
 
                 if (y >= Height - 2 || x < 2 || x >= Width - 2) tile = Tile.Bedrock;
