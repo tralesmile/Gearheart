@@ -38,16 +38,23 @@ jobs:
       - name: Smoke test (run scenes headless, fail on errors)
         run: |
           set +e
-          for scene in res://scenes/garage.tscn res://scenes/tests/physics_test.tscn; do
-            echo "=== $scene"
-            timeout 120 godot --headless --path . "$scene" --quit-after 600 > smoke.log 2>&1
-            cat smoke.log | tail -40
+          fail=0
+          run() {
+            name="$1"; shift
+            echo "=== $name"
+            timeout 300 godot --headless --path . --fixed-fps 120 "$@" > smoke.log 2>&1
+            grep -E "\[(drive|race|mining|autodrive|debug)\]" smoke.log | tail -60
             if grep -E "ERROR|Unhandled exception|SCRIPT ERROR|System\.[A-Za-z]*Exception" smoke.log; then
-              echo "Smoke test failed for $scene"
-              exit 1
+              echo "::error::Smoke test failed: $name"
+              tail -60 smoke.log
+              fail=1
             fi
-          done
-          exit 0
+          }
+          run "garage"            res://scenes/garage.tscn --quit-after 300
+          run "physics lab"       res://scenes/tests/physics_test.tscn --quit-after 600
+          run "hill climb, starter car, 40 s" res://scenes/drive.tscn --quit-after 4800 -- --hillclimb --autodrive
+          run "free drive, driller, 40 s"     res://scenes/drive.tscn --quit-after 4800 -- --freedrive --autodrive --design=driller
+          exit $fail
 
       - name: Export Windows
         run: |

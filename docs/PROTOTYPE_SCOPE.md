@@ -25,9 +25,9 @@ Procedural world, crafting tiers, combat, bosses, multiplayer, life-sim, final a
 | 15 parts as data files | Done |
 | Garage grid editor, save/load | Done |
 | Damage and repair | Done (free repair in test drive) |
-| Hill-climb race with timer | Next |
-| Mining 3 materials with the drill | Next |
-| itch.io build + tester survey | After the race and mining |
+| Hill-climb race with timer | Done (best time saved) |
+| Mining 3 materials with the drill | Done (ore rocks; digging the ground comes with the tile world) |
+| itch.io build + tester survey | Next: needs your go-ahead (D7, D18) |
 
 ## Gate
 

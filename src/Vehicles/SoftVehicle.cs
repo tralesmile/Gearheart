@@ -53,6 +53,14 @@ public partial class SoftVehicle : Node2D, IVehicle
         public int Hub;
         public float Radius, Grip, Mass, Spin, Angle;
         public bool Attached = true;
+        public bool Grounded;
+    }
+
+    private sealed class DrillTip
+    {
+        public int Node;
+        public float Power;
+        public Cell Block;
     }
 
     private sealed class Cell
@@ -73,13 +81,37 @@ public partial class SoftVehicle : Node2D, IVehicle
     private readonly List<Beam> _beams = new();
     private readonly List<Wheel> _wheels = new();
     private readonly List<Cell> _cells = new();
+    private readonly List<DrillTip> _drills = new();
     private float[] _nodeRadius;
     private float _totalMass;
     private float _engineTorque, _engineMaxSpin, _fuelUse;
     private VehicleInput _input;
+    private float _drillContactTime;
+    private float _autoStuckTime, _autoReverseTime;
+    private int _rearHub = -1, _frontHub = -1;
     private Vector2 _centerAtTickStart;
 
     public float RadiusOf(int node) => _nodeRadius[node];
+
+    /// <summary>Drill tip positions (for diagnostics and effects).</summary>
+    public IEnumerable<Vector2> DrillTips
+    {
+        get
+        {
+            foreach (var d in _drills) yield return Pos[d.Node];
+        }
+    }
+
+    /// <summary>One-line state summary for automated playtest logs.</summary>
+    public string DebugSummary()
+    {
+        var parts = new List<string>();
+        foreach (var w in _wheels)
+            parts.Add($"wheel(att={w.Attached} spin={w.Spin:0} y={Pos[w.Hub].Y:0})");
+        Vector2 c = BodyCenter();
+        parts.Add($"body=({c.X:0},{c.Y:0}) nodes={Pos.Length} broken={_beams.FindAll(b => b.Broken).Count}");
+        return string.Join(" ", parts);
+    }
 
     public IEnumerable<int> HubNodes
     {
@@ -146,6 +178,19 @@ public partial class SoftVehicle : Node2D, IVehicle
             FuelCapacity += part.FuelCapacity;
         }
 
+        // Drill tips: a point in front of each drill block's right edge.
+        var drillSetups = new List<(int Tip, Cell Cell)>();
+        foreach (var cell in _cells)
+        {
+            if (cell.Part.Category != PartCategory.Drill) continue;
+            int tip = positions.Count;
+            Vector2 edgeMiddle = (positions[cell.Corners[1]] + positions[cell.Corners[2]]) / 2f;
+            positions.Add(edgeMiddle + new Vector2(CellSize * 0.8f, 0f));
+            masses.Add(cell.Part.Mass * 0.25f);
+            _drills.Add(new DrillTip { Node = tip, Power = cell.Part.DrillPower, Block = cell });
+            drillSetups.Add((tip, cell));
+        }
+
         BodyNodeCount = positions.Count;
         FuelCapacity += VehicleDesign.BaseFuelCapacity;
         Fuel = FuelCapacity;
@@ -188,6 +233,13 @@ public partial class SoftVehicle : Node2D, IVehicle
         }
         foreach (var w in _wheels) _nodeRadius[w.Hub] = w.Radius;
 
+        // Rearmost and frontmost wheels, for measuring pitch.
+        foreach (var w in _wheels)
+        {
+            if (_rearHub < 0 || Pos[w.Hub].X < Pos[_rearHub].X) _rearHub = w.Hub;
+            if (_frontHub < 0 || Pos[w.Hub].X > Pos[_frontHub].X) _frontHub = w.Hub;
+        }
+
         // Body beams: four edges and both diagonals per block. Shared edges keep the stronger part.
         var edgeBeams = new Dictionary<(int, int), Beam>();
         var edgeUse = new Dictionary<(int, int), int>();
@@ -214,6 +266,11 @@ public partial class SoftVehicle : Node2D, IVehicle
 
         foreach (var (key, uses) in edgeUse)
             if (uses == 1) BoundaryEdges.Add(key);
+
+        // Drill tips are braced to all four corners of their block.
+        foreach (var (tip, cell) in drillSetups)
+            foreach (int corner in cell.Corners)
+                AddBeam(tip, corner, BodyStiffness, cell.Part.Yield, cell.Part.BreakLimit);
 
         // Suspension beams.
         foreach (var (hub, suspension, anchors) in wheelSetups)
@@ -250,7 +307,7 @@ public partial class SoftVehicle : Node2D, IVehicle
 
     public void BeginTick()
     {
-        _input = PlayerControlled ? VehicleInput.ReadPlayer() : VehicleInput.Auto(AutoThrottle);
+        _input = PlayerControlled ? VehicleInput.ReadPlayer() : AutoPilot();
         _centerAtTickStart = BodyCenter();
     }
 
@@ -293,9 +350,25 @@ public partial class SoftVehicle : Node2D, IVehicle
     }
 
     /// <summary>Velocity fixes after the constraint passes: damping, friction, tyres, damage.</summary>
-    public void EndSubstep(float dt, ITerrainCollider terrain)
+    public void EndSubstep(float dt, ITerrainCollider terrain, IMineable mineable = null)
     {
         DampSuspension();
+
+        if (mineable != null)
+        {
+            // The tip and the drill block's front corners all cut, so a shrinking rock
+            // that ends up under the nose still gets mined.
+            foreach (var drill in _drills)
+            {
+                if (!DrillIntact(drill)) continue;
+                int[] c = drill.Block.Corners;
+                float work = drill.Power * dt;
+                if (mineable.Mine(Pos[drill.Node], NodeRadius + 6f, work)
+                    || mineable.Mine(Pos[c[1]], NodeRadius + 6f, work)
+                    || mineable.Mine(Pos[c[2]], NodeRadius + 6f, work))
+                    _drillContactTime = 0.5f;
+            }
+        }
 
         for (int i = 0; i < BodyNodeCount; i++)
         {
@@ -308,16 +381,24 @@ public partial class SoftVehicle : Node2D, IVehicle
         bool drive = Fuel > 0f && !Mathf.IsZeroApprox(_input.Throttle);
         if (drive) Fuel = Mathf.Max(0f, Fuel - _fuelUse * Mathf.Abs(_input.Throttle) * dt);
 
-        int attached = 0;
-        foreach (var w in _wheels) if (w.Attached) attached++;
+        // Engine torque goes to attached wheels that touch the ground (like a locked differential),
+        // so a wheel spinning in the air does not waste half the power.
+        int attached = 0, driven = 0;
+        foreach (var w in _wheels)
+        {
+            if (!w.Attached) continue;
+            attached++;
+            if (w.Grounded) driven++;
+        }
         foreach (var wheel in _wheels)
-            UpdateWheel(wheel, dt, terrain, drive, attached);
+            UpdateWheel(wheel, dt, terrain, drive, attached, driven);
 
         ApplyDeformation();
     }
 
     public void EndTick(float delta)
     {
+        _drillContactTime = Mathf.Max(0f, _drillContactTime - delta);
         Speed = (BodyCenter() - _centerAtTickStart).Length() / delta;
         QueueRedraw();
     }
@@ -390,7 +471,7 @@ public partial class SoftVehicle : Node2D, IVehicle
         }
     }
 
-    private void UpdateWheel(Wheel wheel, float dt, ITerrainCollider terrain, bool drive, int attachedWheels)
+    private void UpdateWheel(Wheel wheel, float dt, ITerrainCollider terrain, bool drive, int attachedWheels, int drivenWheels)
     {
         float inertia = 0.5f * wheel.Mass * wheel.Radius * wheel.Radius;
 
@@ -400,17 +481,19 @@ public partial class SoftVehicle : Node2D, IVehicle
             {
                 wheel.Spin *= 0.8f;
             }
-            else if (drive && attachedWheels > 0)
+            else if (drive && attachedWheels > 0 && (wheel.Grounded || drivenWheels == 0))
             {
                 bool belowTopSpeed = Mathf.Abs(wheel.Spin) < _engineMaxSpin || Mathf.Sign(wheel.Spin) != Mathf.Sign(_input.Throttle);
-                float torque = _engineTorque / attachedWheels * _input.Throttle;
+                float share = drivenWheels > 0 ? drivenWheels : attachedWheels;
+                float torque = _engineTorque / share * _input.Throttle;
                 if (belowTopSpeed) wheel.Spin += torque / inertia * dt;
             }
         }
         wheel.Spin *= 0.99995f; // rolling resistance
 
         int h = wheel.Hub;
-        if (terrain.Collide(Pos[h], wheel.Radius + 0.5f, out Vector2 n, out _))
+        wheel.Grounded = terrain.Collide(Pos[h], wheel.Radius + 0.5f, out Vector2 n, out _);
+        if (wheel.Grounded)
         {
             Vector2 v = (Pos[h] - Prev[h]) / dt;
             Vector2 tangent = new Vector2(-n.Y, n.X); // along the ground, pointing right on flat ground
@@ -465,6 +548,65 @@ public partial class SoftVehicle : Node2D, IVehicle
         }
     }
 
+    /// <summary>True while a drill tip has touched ore in the last half second.</summary>
+    public bool IsDrilling => _drillContactTime > 0f;
+
+    /// <summary>Body pitch in degrees from the rear to the front wheel; negative = nose up.</summary>
+    public float PitchDegrees()
+    {
+        if (_rearHub < 0 || _frontHub < 0 || _rearHub == _frontHub) return 0f;
+        Vector2 d = Pos[_frontHub] - Pos[_rearHub];
+        return Mathf.RadToDeg(Mathf.Atan2(d.Y, d.X));
+    }
+
+    /// <summary>
+    /// Drives like a careful player, for bots and automated playtests: full throttle,
+    /// ease off while drilling, and tilt the nose back down if the car starts to flip.
+    /// </summary>
+    private VehicleInput AutoPilot()
+    {
+        float throttle = AutoThrottle;
+        float tilt = 0f;
+        float pitch = PitchDegrees() * Mathf.Sign(AutoThrottle == 0f ? 1f : AutoThrottle);
+
+        // Steep ramps reach about 30 degrees, so only steeper than that counts as flipping.
+        if (pitch < -38f)
+        {
+            tilt = Mathf.Sign(throttle == 0f ? 1f : throttle);   // nose down
+            throttle *= pitch < -55f ? 0f : 0.5f;
+        }
+        else if (pitch > 25f)
+        {
+            tilt = -Mathf.Sign(throttle == 0f ? 1f : throttle);
+        }
+
+        if (IsDrilling) throttle = Mathf.Clamp(throttle, -0.45f, 0.45f);
+
+        // Stuck for 3 s without drilling: back up for a moment, then try again.
+        const float tick = 1f / 120f;
+        if (_autoReverseTime > 0f)
+        {
+            _autoReverseTime -= tick;
+            return new VehicleInput(-AutoThrottle * 0.8f, 0f, false);
+        }
+        _autoStuckTime = Speed < 15f && !IsDrilling && AutoThrottle != 0f ? _autoStuckTime + tick : 0f;
+        if (_autoStuckTime > 3f)
+        {
+            _autoStuckTime = 0f;
+            _autoReverseTime = 1.2f;
+        }
+
+        return new VehicleInput(throttle, tilt, false);
+    }
+
+    private bool DrillIntact(DrillTip drill)
+    {
+        foreach (var beam in _beams)
+            if (!beam.Broken && (beam.A == drill.Node || beam.B == drill.Node))
+                return true;
+        return false;
+    }
+
     private Vector2 BodyCenter()
     {
         if (Pos == null || BodyNodeCount == 0) return Spawn;
@@ -486,17 +628,19 @@ public partial class SoftVehicle : Node2D, IVehicle
             FillTriangle(Pos[c[0]], Pos[c[1]], Pos[c[2]], color);
             FillTriangle(Pos[c[0]], Pos[c[2]], Pos[c[3]], color);
 
-            if (cell.Part.Category == PartCategory.Drill)
-            {
-                // Spike on the right-hand edge.
-                Vector2 tip = (Pos[c[1]] + Pos[c[2]]) / 2f + (Pos[c[1]] - Pos[c[0]]).Normalized() * CellSize * 0.8f;
-                FillTriangle(Pos[c[1]], tip, Pos[c[2]], color.Darkened(0.2f));
-            }
-            else if (cell.Part.Category == PartCategory.Engine)
+            if (cell.Part.Category == PartCategory.Engine)
             {
                 Vector2 middle = (Pos[c[0]] + Pos[c[2]]) / 2f;
                 DrawCircle(ToLocal(middle), 5f, color.Darkened(0.4f));
             }
+        }
+
+        foreach (var drill in _drills)
+        {
+            // Spike from the drill block's right edge to the tip point.
+            int[] c = drill.Block.Corners;
+            if (DrillIntact(drill))
+                FillTriangle(Pos[c[1]], Pos[drill.Node], Pos[c[2]], drill.Block.Part.GodotColor.Darkened(0.2f));
         }
 
         var beamColor = new Color(0f, 0f, 0f, 0.25f);

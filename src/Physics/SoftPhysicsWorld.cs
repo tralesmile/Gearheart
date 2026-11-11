@@ -17,11 +17,18 @@ public partial class SoftPhysicsWorld : Node
 {
     public const string LooseObjectsGroup = "loose_objects";
 
+    /// <summary>Loose objects in this group smash when a car hits them faster than <see cref="BreakSpeed"/>.</summary>
+    public const string BreakableGroup = "breakable";
+    public const float BreakSpeed = 200f;   // px/s, about 11 km/h
+
     public const int Substeps = 8;
     public const int Iterations = 4;
     private const float ContactMargin = 4f;
 
     public ITerrainCollider Terrain { get; set; }
+
+    /// <summary>What drills can mine (optional).</summary>
+    public IMineable Mineable { get; set; }
 
     private readonly List<SoftVehicle> _bodies = new();
     private readonly List<LooseObject> _loose = new();
@@ -40,6 +47,7 @@ public partial class SoftPhysicsWorld : Node
         public float AngularVelocity;
         public Vector2 Impulse;           // collected, applied to Godot at the end of the tick
         public float TorqueImpulse;
+        public float MaxImpact;           // fastest approach speed this tick
     }
 
     public void Register(SoftVehicle body)
@@ -71,7 +79,7 @@ public partial class SoftPhysicsWorld : Node
             ResolveVehicleContacts();
             ResolveLooseContacts(dt);
 
-            foreach (var body in _bodies) body.EndSubstep(dt, Terrain);
+            foreach (var body in _bodies) body.EndSubstep(dt, Terrain, Mineable);
         }
 
         foreach (var body in _bodies) body.EndTick(tick);
@@ -253,21 +261,31 @@ public partial class SoftPhysicsWorld : Node
 
         if (!ContactWithObject(p, radius, obj, out Vector2 normal, out float depth)) return;
 
-        // Positional: push the node out (the object only moves when Godot steps it).
-        p += normal * depth;
-        body.Pos[i] = p;
-
-        // Velocity: an impulse between the node and the object along the normal.
+        // Velocity is measured before the push-out, so the correction itself never reads as motion.
         Vector2 nodeVelocity = (p - body.Prev[i]) / dt;
+        float invNode = body.InvMass[i];
+
+        // Positional: the node takes its mass share of the overlap. The rest is handed to the object
+        // as separating velocity (below), because the object only moves when Godot steps it.
+        float nodeShare = invNode / (invNode + obj.InvMass);
+        Vector2 push = normal * depth * nodeShare;
+        p += push;
+        body.Pos[i] = p;
+        body.Prev[i] += push;
+
+        // Velocity: an impulse along the normal that stops the approach and works off the remaining overlap,
+        // so a car leaning on an object keeps pushing it with a steady force.
         Vector2 contact = p - normal * radius;
         Vector2 r = contact - obj.Xform.Origin;
         Vector2 objectPointVelocity = obj.Velocity + new Vector2(-obj.AngularVelocity * r.Y, obj.AngularVelocity * r.X);
         float approach = (nodeVelocity - objectPointVelocity).Dot(normal);
-        if (approach >= 0f) return;
+        obj.MaxImpact = Mathf.Max(obj.MaxImpact, -approach);
+        float bias = 0.3f * depth * (1f - nodeShare) / dt;
+        float target = -approach + bias;
+        if (target <= 0f) return;
 
         float rCrossN = r.Cross(normal);
-        float invNode = body.InvMass[i];
-        float j = -approach / (invNode + obj.InvMass + rCrossN * rCrossN * obj.InvInertia);
+        float j = target / (invNode + obj.InvMass + rCrossN * rCrossN * obj.InvInertia);
 
         nodeVelocity += normal * (j * invNode);
         body.Prev[i] = p - nodeVelocity * dt;
@@ -334,8 +352,42 @@ public partial class SoftPhysicsWorld : Node
         foreach (var obj in _loose)
         {
             if (!IsInstanceValid(obj.Body)) continue;
+            if (obj.MaxImpact > BreakSpeed && obj.Body.IsInGroup(BreakableGroup))
+            {
+                Smash(obj.Body);
+                continue;
+            }
             if (obj.Impulse != Vector2.Zero) obj.Body.ApplyCentralImpulse(obj.Impulse);
             if (obj.TorqueImpulse != 0f) obj.Body.ApplyTorqueImpulse(obj.TorqueImpulse);
         }
+    }
+
+    /// <summary>Removes a breakable object with a burst of debris.</summary>
+    private static void Smash(RigidBody2D body)
+    {
+        var parent = body.GetParent();
+        if (parent != null)
+        {
+            Color color = body.GetNodeOrNull<Polygon2D>("Look")?.Color ?? new Color(0.7f, 0.5f, 0.25f);
+            var debris = new CpuParticles2D
+            {
+                Position = body.Position,
+                OneShot = true,
+                Emitting = true,
+                Amount = 14,
+                Lifetime = 0.8f,
+                Explosiveness = 1f,
+                Spread = 180f,
+                InitialVelocityMin = 80f,
+                InitialVelocityMax = 260f,
+                Gravity = new Vector2(0f, 900f),
+                ScaleAmountMin = 3f,
+                ScaleAmountMax = 6f,
+                Color = color,
+            };
+            parent.AddChild(debris);
+            debris.GetTree().CreateTimer(1.5).Timeout += debris.QueueFree;
+        }
+        body.QueueFree();
     }
 }

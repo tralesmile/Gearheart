@@ -201,4 +201,13 @@ public sealed class VehicleDesign
         d.SetWheel(7, 4, "wheel_standard", "susp_soft");
         return d;
     }
+
+    /// <summary>The starter car with a drill on the nose, for mining.</summary>
+    public static VehicleDesign Driller()
+    {
+        var d = Default();
+        d.Name = "Driller";
+        d.SetBlock(9, 3, "drill_basic");
+        return d;
+    }
 }

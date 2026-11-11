@@ -2,6 +2,22 @@
 
 Newest first. One entry per big decision: what, why, and what would make us revisit it.
 
+## 2026-11-11 — Race and mining for the prototype
+
+- **Hill Climb:** one track, about 340 m from START to FINISH, slopes up to about 41 degrees near the end. In simulation the starter car finishes in about 21 s, a light buggy and a heavy truck in about 26–27 s, so design choices change the time. The clock runs between the flags; 4 seconds below 0.5 m/s (stuck or out of fuel) ends the run. Best time per track is saved in `user://progress.json`.
+- **Mining:** ore is placed as loose boulders (Scrap, Iron, Copper; rarer further out), 46–60 px radius, heavy and slow to roll. Any car can push them; a Drill Head (its tip and its front corners) grinds them down, and they break at 30% health and pay out. Digging into the ground itself waits for the tile world in the vertical slice, because the prototype ground is a height line.
+- **Changes found by the automated playtests** (each was a real problem in the game, not just in the test):
+  - Small half-buried rocks were axle-high: wheels could not climb them and the drill could not reach them. → Big loose boulders.
+  - Small round rocks acted as conveyor belts under spinning wheels. → Heavier boulders with strong rolling resistance.
+  - Ramming a boulder at full throttle flipped the car backwards (strong engine, short wheelbase, drill force above the axles). → On-screen hint while drilling (ease off, press E); the autopilot does the same.
+  - Soft cars could not push crates or boulders with a steady force (contact velocity was measured after the push-out). → Fixed in the contact solver: pushing now transmits force.
+  - A wheel in the air took half the engine torque. → Torque goes only to grounded wheels (locked differential).
+  - Crate stacks bulldozed into dips blocked the path. → Crates smash when hit faster than about 11 km/h.
+  - The car fell off the world after the hill-climb finish. → End wall on every track.
+- **Playtest result after the fixes:** in 40 s the drill car drives 141 m, smashes the crates, clears the ramp and mines 8 boulders (12 Scrap, 6 Iron, 1 Copper). The starter car finishes the hill climb in about 21 s.
+- **Why:** answers the prototype question (is building and driving fun?) with the least code that will be thrown away.
+- **Automated playtests:** CI drives both modes headless every build, so a broken race or mining loop shows up immediately.
+
 ## 2026-11-11 — Garage: side-view grid of 1x1 blocks; parts as data
 
 - **What:** Vehicles are designed on a 12 x 6 side-view grid. Each block is one part (frame, engine, armor, fuel tank, drill). Wheels sit in the cell under a block, with a chosen suspension. All 15 parts are defined in `data/parts/parts.json`. The soft body is generated from the design: 4 points per block, shared between neighbours, with edge and diagonal beams. Every beam takes its strength from its part.
