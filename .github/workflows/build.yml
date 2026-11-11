@@ -28,7 +28,9 @@ jobs:
           include-templates: true
 
       - name: Build C#
-        run: dotnet build Gearheart.csproj -c ExportRelease
+        run: |
+          dotnet build Gearheart.csproj -c Debug
+          dotnet build Gearheart.csproj -c ExportRelease
 
       - name: Import project
         run: godot --headless --import || true
