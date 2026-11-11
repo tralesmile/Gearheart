@@ -148,7 +148,7 @@ public partial class GarageScreen : Control
 
         right.AddChild(Heading("PARTS", 22));
 
-        var scroll = new ScrollContainer { SizeFlagsVertical = SizeFlags.ExpandFill, CustomMinimumSize = new Vector2(0f, 300f), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
+        var scroll = new ScrollContainer { SizeFlagsVertical = SizeFlags.ExpandFill, CustomMinimumSize = new Vector2(0f, 230f), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
         var palette = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
         scroll.AddChild(palette);
         right.AddChild(scroll);
@@ -204,7 +204,7 @@ public partial class GarageScreen : Control
         suspensionRow.AddChild(_suspension);
         right.AddChild(suspensionRow);
 
-        _partInfo = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart, CustomMinimumSize = new Vector2(0f, 110f) };
+        _partInfo = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart, CustomMinimumSize = new Vector2(0f, 96f) };
         right.AddChild(_partInfo);
 
 

@@ -338,7 +338,7 @@ public partial class WorldScene : Node2D
 
         if (_driving)
         {
-            _hint.Text = "A/D: drive   Q/E: tilt   Space: handbrake   F: get out" +
+            _hint.Text = "A/D: drive   Q/E: tilt (also rolls you back over)   Space: handbrake   F: get out" +
                          (_car.HasDrill ? $"   X: drill {(_car.DrillEnabled ? "ON" : "OFF")}" : "") +
                          (NearGarage() ? "   G: garage   R: repair" : "");
             _status.Text = $"{_car.Speed / PixelsPerMeter * 3.6f:0} km/h   Fuel {_car.Fuel:0}/{_car.FuelCapacity:0}   Damage {_car.Damage:0}";
@@ -368,13 +368,21 @@ public partial class WorldScene : Node2D
         {
             Vector2 feet = _player.Position + new Vector2(0f, Player.HalfHeight);
             if (_elapsed < 3f)
-                _player.Override = new PlayerInput { Move = 1f, Jump = Mathf.Abs(_player.Velocity.X) < 5f, Aim = feet };
+                _player.Override = new PlayerInput { Move = -1f, Jump = Mathf.Abs(_player.Velocity.X) < 5f, Aim = feet };
             else if (_elapsed < 9f)
                 _player.Override = new PlayerInput { Mine = true, Aim = feet + new Vector2(((int)(_elapsed * 3f) & 1) == 0 ? -7f : 7f, 8f) };
             else if (_elapsed < 10f)
-                _player.Override = new PlayerInput { Place = true, Aim = _player.Position + new Vector2(-Ts * 1.5f, 0f) };
+                _player.Override = new PlayerInput { Place = true, Aim = _player.Position + new Vector2(0f, -Player.HalfHeight - Ts * 1.5f) };
             else
                 EnterCar();
+        }
+
+        // With a drill: after a stretch of driving, point the nose down and tunnel for a while.
+        if (_driving && _car.HasDrill)
+        {
+            bool dig = _elapsed > 16f && _elapsed < 30f;
+            _car.AutoTilt = dig && _car.PitchDegrees() < 30f ? 1f : dig ? 0.001f : 0f;
+            _car.AutoThrottle = dig ? 0.6f : 1f;
         }
 
         if (_elapsed < _nextLog) return;
@@ -382,7 +390,7 @@ public partial class WorldScene : Node2D
         Vector2 p = _player.Position, c = _car.CenterPosition;
         int surface = _world.SurfaceRow(Mathf.FloorToInt(c.X / Ts));
         GD.Print($"[autoplay] t={_elapsed:0}s {(_driving ? "driving" : "on foot")} player=({p.X / Ts:0.0},{p.Y / Ts:0.0}) grounded={_player.Grounded} " +
-                 $"car=({c.X / Ts:0.0},{c.Y / Ts:0.0}) surfaceRow={surface} speed={_car.Speed / PixelsPerMeter * 3.6f:0}km/h pitch={_car.PitchDegrees():0} " +
+                 $"car=({c.X / Ts:0.0},{c.Y / Ts:0.0}) surfaceRow={surface} depth={(c.Y / Ts - surface) * 0.25f:0.0}m speed={_car.Speed / PixelsPerMeter * 3.6f:0}km/h pitch={_car.PitchDegrees():0} " +
                  $"fuel={_car.Fuel:0} damage={_car.Damage:0} drilling={_car.IsDrilling} | " +
                  string.Join(" ", System.Array.ConvertAll(GameSession.Items, i => $"{i}={GameSession.Count(i)}")));
     }

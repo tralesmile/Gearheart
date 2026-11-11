@@ -20,6 +20,9 @@ public partial class SoftVehicle : Node2D, IVehicle
 {
     [Export] public bool PlayerControlled;
     [Export] public float AutoThrottle;
+
+    /// <summary>Bots only: forces a tilt input (-1..1) and switches off the autopilot's anti-flip.</summary>
+    public float AutoTilt;
     [Export] public Vector2 Spawn = new(200f, -150f);
     [Export] public float AirControl = 9f;          // rad/s² of tilt
 
@@ -569,6 +572,8 @@ public partial class SoftVehicle : Node2D, IVehicle
     /// </summary>
     private VehicleInput AutoPilot()
     {
+        if (AutoTilt != 0f) return new VehicleInput(AutoThrottle, AutoTilt, false);
+
         float throttle = AutoThrottle;
         float tilt = 0f;
         float pitch = PitchDegrees() * Mathf.Sign(AutoThrottle == 0f ? 1f : AutoThrottle);
