@@ -19,6 +19,8 @@ public partial class DriveScene : Node2D
     private const float StuckSpeed = 0.5f * PixelsPerMeter;  // below 0.5 m/s ...
     private const float StuckSeconds = 4f;                    // ... for this long = stuck
 
+    private static readonly float[] CrateStacks = { 1500f, 4200f };
+
     private enum RaceState { WaitingForStart, Running, Finished, Stuck }
 
     private bool _isRace;
@@ -55,7 +57,7 @@ public partial class DriveScene : Node2D
 
         _ore = new OreField { Name = "Ore" };
         AddChild(_ore);
-        if (!_isRace) _ore.Scatter(_terrain, 700f, 11500f, 650f, 99);
+        if (!_isRace) _ore.Scatter(_terrain, 700f, 11500f, 650f, 99, CrateStacks);
         _ore.Mined += OnMined;
 
         _world = new SoftPhysicsWorld
@@ -73,8 +75,7 @@ public partial class DriveScene : Node2D
         }
         else
         {
-            SpawnCrates(900f);
-            SpawnCrates(4200f);
+            foreach (float x in CrateStacks) SpawnCrates(x);
         }
 
         _camera = new Camera2D
