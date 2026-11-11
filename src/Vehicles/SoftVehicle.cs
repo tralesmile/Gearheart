@@ -89,6 +89,26 @@ public partial class SoftVehicle : Node2D, IVehicle
 
     public float RadiusOf(int node) => _nodeRadius[node];
 
+    /// <summary>Drill tip positions (for diagnostics and effects).</summary>
+    public IEnumerable<Vector2> DrillTips
+    {
+        get
+        {
+            foreach (var d in _drills) yield return Pos[d.Node];
+        }
+    }
+
+    /// <summary>One-line state summary for automated playtest logs.</summary>
+    public string DebugSummary()
+    {
+        var parts = new List<string>();
+        foreach (var w in _wheels)
+            parts.Add($"wheel(att={w.Attached} spin={w.Spin:0} y={Pos[w.Hub].Y:0})");
+        Vector2 c = BodyCenter();
+        parts.Add($"body=({c.X:0},{c.Y:0}) nodes={Pos.Length} broken={_beams.FindAll(b => b.Broken).Count}");
+        return string.Join(" ", parts);
+    }
+
     public IEnumerable<int> HubNodes
     {
         get

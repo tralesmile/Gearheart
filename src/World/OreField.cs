@@ -84,6 +84,21 @@ public partial class OreField : Node2D, IMineable
         _rocks.Add(rock);
     }
 
+    /// <summary>Distance from a point to the nearest rock surface, with that rock's state (diagnostics).</summary>
+    public string DebugNearest(Vector2 point)
+    {
+        OreRock best = null;
+        float bestDistance = float.MaxValue;
+        foreach (var rock in _rocks)
+        {
+            if (!IsInstanceValid(rock)) continue;
+            float d = point.DistanceTo(rock.GlobalPosition) - rock.Radius;
+            if (d < bestDistance) { bestDistance = d; best = rock; }
+        }
+        return best == null ? "no rocks" :
+            $"nearest rock: gap={bestDistance:0}px at=({best.GlobalPosition.X:0},{best.GlobalPosition.Y:0}) r={best.Radius:0} hp={best.Health:0}/{best.MaxHealth:0} v=({best.LinearVelocity.X:0},{best.LinearVelocity.Y:0})";
+    }
+
     public bool Mine(Vector2 point, float reach, float work)
     {
         for (int i = 0; i < _rocks.Count; i++)
