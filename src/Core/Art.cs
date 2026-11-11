@@ -5,7 +5,7 @@ namespace Gearheart.Core;
 /// <summary>The game's textures. Layouts are described in docs/ART.md.</summary>
 public static class Art
 {
-    private static Texture2D _tiles, _player, _parts, _wheels, _garage;
+    private static Texture2D _tiles, _player, _parts, _wheels, _garage, _decor;
 
     public static Texture2D Tiles => _tiles ??= GD.Load<Texture2D>("res://assets/art/tiles.png");
     public static Texture2D Player => _player ??= GD.Load<Texture2D>("res://assets/art/player.png");
@@ -13,6 +13,9 @@ public static class Art
     public static Texture2D Wheels => _wheels ??= GD.Load<Texture2D>("res://assets/art/wheels.png");
     public static Texture2D Garage => _garage ??= GD.Load<Texture2D>("res://assets/art/garage.png");
 
+    public static Texture2D Decor => _decor ??= GD.Load<Texture2D>("res://assets/art/decor.png");
+
+    public const int DecorWidth = 48, DecorHeight = 64;
     public const int PartSize = 22;
     public const int WheelCell = 56;
 

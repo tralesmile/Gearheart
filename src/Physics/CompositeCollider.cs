@@ -36,5 +36,13 @@ public sealed class CompositeCollider : ITerrainCollider
 public interface IMineable
 {
     /// <summary>Applies mining work at a point. Returns true if anything was in reach.</summary>
-    bool Mine(Vector2 point, float reach, float work);
+    /// <param name="floorY">World y of the ground the digger stands on, if it should not dig below it.</param>
+    bool Mine(Vector2 point, float reach, float work, float floorY = float.NaN);
+}
+
+/// <summary>Extra facts about the ground that physics can ask for.</summary>
+public interface ISurfaceInfo
+{
+    /// <summary>Grip multiplier of the ground at a point: 1 = normal, lower = slippery.</summary>
+    float GripAt(Vector2 point);
 }

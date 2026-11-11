@@ -104,7 +104,7 @@ public partial class OreField : Node2D, IMineable
             $"nearest rock: gap={bestDistance:0}px at=({best.GlobalPosition.X:0},{best.GlobalPosition.Y:0}) r={best.Radius:0} hp={best.Health:0}/{best.MaxHealth:0} v=({best.LinearVelocity.X:0},{best.LinearVelocity.Y:0})";
     }
 
-    public bool Mine(Vector2 point, float reach, float work)
+    public bool Mine(Vector2 point, float reach, float work, float floorY = float.NaN)
     {
         for (int i = 0; i < _rocks.Count; i++)
         {

@@ -82,6 +82,7 @@ public partial class SoftVehicle : Node2D, IVehicle
     private sealed class Cell
     {
         public int[] Corners;          // top-left, top-right, bottom-right, bottom-left
+        public int GridX, GridY;
         public PartDefinition Part;
     }
 
@@ -103,6 +104,8 @@ public partial class SoftVehicle : Node2D, IVehicle
     private float _engineTorque, _engineMaxSpin, _fuelUse;
     private VehicleInput _input;
     private float _drillContactTime;
+    private Cell _frontCell, _rearCell;
+    private CpuParticles2D _dust, _exhaust;
     private float _upsideDownTime;
     private bool _selfRighting;
     private const float AirSpinDamping = 0.003f;   // share of spin removed per substep while airborne
@@ -143,8 +146,34 @@ public partial class SoftVehicle : Node2D, IVehicle
     public override void _Ready()
     {
         Build(Design ?? VehicleDesign.Default());
+        // Lights go on the frontmost and rearmost body blocks (the lowest one when several tie).
+        foreach (var cell in _cells)
+        {
+            if (cell.Part.Category == PartCategory.Drill) continue;
+            if (_frontCell == null || cell.GridX > _frontCell.GridX || (cell.GridX == _frontCell.GridX && cell.GridY > _frontCell.GridY)) _frontCell = cell;
+            if (_rearCell == null || cell.GridX < _rearCell.GridX || (cell.GridX == _rearCell.GridX && cell.GridY > _rearCell.GridY)) _rearCell = cell;
+        }
+
+        _dust = new CpuParticles2D
+        {
+            Emitting = false, Amount = 20, Lifetime = 0.55f, Spread = 35f, Direction = new Vector2(-1f, -0.7f),
+            InitialVelocityMin = 30f, InitialVelocityMax = 90f, Gravity = new Vector2(0f, 120f),
+            ScaleAmountMin = 2f, ScaleAmountMax = 5f, Color = new Color(0.82f, 0.74f, 0.6f, 0.7f),
+        };
+        AddChild(_dust);
+        _exhaust = new CpuParticles2D
+        {
+            Emitting = false, Amount = 12, Lifetime = 0.7f, Spread = 25f, Direction = new Vector2(-1f, -0.5f),
+            InitialVelocityMin = 20f, InitialVelocityMax = 50f, Gravity = new Vector2(0f, -60f),
+            ScaleAmountMin = 2f, ScaleAmountMax = 4f, Color = new Color(0.3f, 0.3f, 0.34f, 0.55f),
+        };
+        AddChild(_exhaust);
+
         World?.Register(this);
     }
+
+    /// <summary>Current throttle input, -1..1 (for engine sound and effects).</summary>
+    public float Throttle => Parked || Fuel <= 0f ? 0f : _input.Throttle;
 
     public override void _ExitTree() => World?.Unregister(this);
 
@@ -189,7 +218,7 @@ public partial class SoftVehicle : Node2D, IVehicle
                 Corner(block.X, block.Y + 1),
             };
             foreach (int c in corners) masses[c] += part.Mass / 4f;
-            _cells.Add(new Cell { Corners = corners, Part = part });
+            _cells.Add(new Cell { Corners = corners, Part = part, GridX = block.X, GridY = block.Y });
 
             _engineTorque += part.Torque;
             _engineMaxSpin = Mathf.Max(_engineMaxSpin, part.MaxSpin);
@@ -381,8 +410,17 @@ public partial class SoftVehicle : Node2D, IVehicle
 
         if (mineable != null && DrillEnabled)
         {
+            // The tunnel floor is the level the wheels stand on, unless the nose is tilted well down
+            // (then the drill digs downward).
+            float floorY = float.NaN;
+            if (PitchDegrees() < 14f)
+            {
+                foreach (var w in _wheels)
+                    if (w.Attached) floorY = float.IsNaN(floorY) ? Pos[w.Hub].Y + w.Radius : Mathf.Max(floorY, Pos[w.Hub].Y + w.Radius);
+            }
+
             foreach (var drill in _drills)
-                if (DrillIntact(drill) && mineable.Mine(Pos[drill.Node], NodeRadius + 6f, drill.Power * dt))
+                if (DrillIntact(drill) && mineable.Mine(Pos[drill.Node], NodeRadius + 6f, drill.Power * dt, floorY))
                     _drillContactTime = 0.5f;
         }
 
@@ -449,6 +487,15 @@ public partial class SoftVehicle : Node2D, IVehicle
 
         _drillContactTime = Mathf.Max(0f, _drillContactTime - delta);
         Speed = (BodyCenter() - _centerAtTickStart).Length() / delta;
+
+        // Dust from the rearmost grounded wheel when moving; exhaust smoke under throttle.
+        Wheel dusty = null;
+        foreach (var w in _wheels)
+            if (w.Attached && w.Grounded && (dusty == null || Pos[w.Hub].X < Pos[dusty.Hub].X)) dusty = w;
+        _dust.Emitting = dusty != null && (Speed > 90f || Mathf.Abs(dusty.Spin * dusty.Radius) > Speed + 120f);
+        if (dusty != null) _dust.Position = ToLocal(Pos[dusty.Hub] + new Vector2(0f, dusty.Radius - 2f));
+        _exhaust.Emitting = _rearCell != null && Mathf.Abs(Throttle) > 0.1f;
+        if (_rearCell != null) _exhaust.Position = ToLocal((Pos[_rearCell.Corners[0]] + Pos[_rearCell.Corners[3]]) / 2f);
         QueueRedraw();
     }
 
@@ -553,7 +600,8 @@ public partial class SoftVehicle : Node2D, IVehicle
             float impulse = -slip / (1f / wheel.Mass + wheel.Radius * wheel.Radius / inertia);
             float carried = wheel.Attached && attachedWheels > 0 ? _totalMass / attachedWheels : wheel.Mass;
             float load = carried * Gravity * dt * Mathf.Max(0f, -n.Y) + wheel.Mass * Mathf.Max(0f, -normalSpeed);
-            float maxImpulse = wheel.Grip * load;
+            float surface = terrain is ISurfaceInfo info ? info.GripAt(Pos[h] - n * (wheel.Radius + 4f)) : 1f;
+            float maxImpulse = wheel.Grip * surface * load;
             impulse = Mathf.Clamp(impulse, -maxImpulse, maxImpulse);
 
             v += tangent * (impulse / wheel.Mass);
@@ -725,6 +773,31 @@ public partial class SoftVehicle : Node2D, IVehicle
         foreach (var (a, b) in BoundaryEdges)
             if (Pos[a].DistanceTo(Pos[b]) < CellSize * 2f)
                 DrawLine(ToLocal(Pos[a]), ToLocal(Pos[b]), outlineColor, 2f);
+
+        // Headlight and tail light.
+        if (_frontCell != null)
+        {
+            Vector2 at = ToLocal(Pos[_frontCell.Corners[1]].Lerp(Pos[_frontCell.Corners[2]], 0.45f)) + new Vector2(-3f, 0f);
+            DrawCircle(at, 4.5f, outlineColor);
+            DrawCircle(at, 3.2f, new Color(1f, 0.93f, 0.55f));
+            DrawCircle(at + new Vector2(-1f, -1f), 1.2f, Colors.White);
+        }
+        if (_rearCell != null)
+        {
+            Vector2 at = ToLocal(Pos[_rearCell.Corners[0]].Lerp(Pos[_rearCell.Corners[3]], 0.45f)) + new Vector2(3f, 0f);
+            DrawRect(new Rect2(at + new Vector2(-2.5f, -3.5f), new Vector2(5f, 7f)), outlineColor);
+            DrawRect(new Rect2(at + new Vector2(-1.5f, -2.5f), new Vector2(3f, 5f)), new Color(0.95f, 0.2f, 0.18f));
+        }
+
+        // Fenders arching over each wheel.
+        float lean = Mathf.DegToRad(PitchDegrees());
+        foreach (var wheel in _wheels)
+        {
+            if (!wheel.Attached) continue;
+            Vector2 hub = ToLocal(Pos[wheel.Hub]);
+            DrawArc(hub, wheel.Radius + 4f, lean + Mathf.Pi * 1.1f, lean + Mathf.Pi * 1.9f, 12, outlineColor, 5f);
+            DrawArc(hub, wheel.Radius + 4f, lean + Mathf.Pi * 1.12f, lean + Mathf.Pi * 1.88f, 12, new Color(0.62f, 0.17f, 0.13f), 3f);
+        }
 
         // Wheels on top, spinning.
         Texture2D wheels = Art.Wheels;

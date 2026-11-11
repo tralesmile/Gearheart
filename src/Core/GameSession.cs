@@ -58,6 +58,7 @@ public static class GameSession
 
     public static bool AutoDrive => UserArgs.Contains("--autodrive");
     public static bool AutoPlay => UserArgs.Contains("--autoplay");
+    public static bool DriveLeft => UserArgs.Contains("--left");
     private static bool FreshStart => UserArgs.Contains("--fresh");
 
     public static void ApplyCommandLine()

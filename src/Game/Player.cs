@@ -37,6 +37,11 @@ public partial class Player : Node2D
     /// <summary>Raised with an inventory key and amount when something is picked up.</summary>
     public event System.Action<string, int> Collected;
 
+    /// <summary>Raised when a block is placed.</summary>
+    public event System.Action Placed;
+
+    public bool IsMining => _mining;
+
     public const float HalfWidth = 9f, HalfHeight = 22f;
     private const float WalkSpeed = 150f, Acceleration = 1400f, Gravity = 1250f, JumpSpeed = 430f;
     private const float Reach = 92f;
@@ -58,7 +63,8 @@ public partial class Player : Node2D
 
         // Horizontal movement.
         float wanted = input.Move * WalkSpeed;
-        Velocity.X = Mathf.MoveToward(Velocity.X, wanted, Acceleration * dt);
+        float footing = Grounded && World.GripAt(Position + new Vector2(0f, HalfHeight + 4f)) < 0.5f ? 0.1f : 1f;   // ice is slippery
+        Velocity.X = Mathf.MoveToward(Velocity.X, wanted, Acceleration * footing * dt);
         if (Mathf.Abs(input.Move) > 0.1f && !input.Mine) _facingLeft = input.Move < 0f;
 
         // Jump and gravity.
@@ -197,6 +203,7 @@ public partial class Player : Node2D
         World.Set(x, y, SelectedBlock == "Stone" ? TileType.Stone : TileType.Dirt);
         GameSession.Add(SelectedBlock, -1);
         _placeCooldown = 0.12f;
+        Placed?.Invoke();
     }
 
     /// <summary>Called by the scene when a tile this player mined breaks.</summary>

@@ -130,6 +130,46 @@ def icon(color, light, dark):
     return img
 
 
+SAND = [(226, 196, 124), (212, 180, 108), (238, 212, 146), (198, 164, 96)]
+SANDSTONE = [(196, 150, 96), (180, 134, 84), (210, 166, 110), (160, 116, 72)]
+SNOW = [(240, 246, 252), (224, 234, 246), (250, 252, 255), (204, 220, 240)]
+ICE = [(150, 208, 236), (130, 192, 226), (176, 224, 244), (112, 172, 212)]
+
+
+def sand(rng):
+    img = noise_tile(rng, SAND, [16, 4, 3, 1])
+    px = img.load()
+    for y in (5, 11):                                # wind ripples
+        for x in range(T):
+            if rng.random() < 0.55: px[x, (y + (x // 5) % 2) % T] = SAND[3] + (255,)
+    return img
+
+
+def sandstone(rng):
+    img = noise_tile(rng, SANDSTONE, [16, 3, 2, 1])
+    px = img.load()
+    for y in (3, 8, 13):                             # layers
+        for x in range(T):
+            if rng.random() < 0.8: px[x, y] = SANDSTONE[3] + (255,)
+    return img
+
+
+def snow(rng):
+    img = noise_tile(rng, SNOW, [18, 4, 3, 1])
+    blobs(img, rng, [(255, 255, 255)], 2, 2)
+    return img
+
+
+def ice(rng):
+    img = noise_tile(rng, ICE, [18, 3, 2, 1])
+    px = img.load()
+    for _ in range(3):                               # glints
+        x, y = rng.randrange(2, T - 4), rng.randrange(2, T - 2)
+        for i in range(rng.randrange(2, 5)):
+            px[(x + i) % T, (y - i) % T] = (226, 244, 252, 255)
+    return img
+
+
 def make_tiles():
     rng = random.Random(1234)
     sheet = Image.new("RGBA", (8 * T, 8 * T), (0, 0, 0, 0))
@@ -143,6 +183,7 @@ def make_tiles():
         put(bedrock(rng), 6 + i, 3)
         put(wall(rng, DIRT), 4 + i, 4); put(wall(rng, STONE), 6 + i, 4)
         put(planks(rng), i, 5)
+        put(sand(rng), 2 + i, 5); put(sandstone(rng), 4 + i, 5); put(snow(rng), 6 + i, 5); put(ice(rng), 5 + i, 6)
     put(icon((134, 84, 57), (168, 118, 84), (70, 42, 28)), 0, 6)       # dirt
     put(icon((120, 124, 133), (160, 164, 172), (60, 62, 70)), 1, 6)    # stone
     put(icon((180, 186, 196), (236, 240, 246), (90, 94, 104)), 2, 6)   # scrap
@@ -391,7 +432,96 @@ def make_garage():
     return outline(img).save(os.path.join(OUT, "garage.png"))
 
 
+# ---------------------------------------------------------------------------- decorations
+
+DW, DH = 48, 64   # decoration cell; art sits on the bottom edge, centred
+
+
+def blob(d, cx, cy, r, colors, rng, n=26):
+    for _ in range(n):
+        a, q = rng.random() * math.tau, rng.random() ** 0.5 * r
+        x, y = cx + math.cos(a) * q, cy + math.sin(a) * q * 0.8
+        rr = rng.choice([3, 4, 5])
+        d.ellipse([x - rr, y - rr, x + rr, y + rr], fill=rng.choice(colors))
+
+
+def decor_oak(rng):
+    img = Image.new("RGBA", (DW, DH), (0, 0, 0, 0)); d = ImageDraw.Draw(img)
+    d.rectangle([21, 34, 26, DH - 1], fill=(110, 76, 46)); d.rectangle([21, 34, 22, DH - 1], fill=(84, 56, 34))
+    d.line([(24, 40), (31, 33)], fill=(110, 76, 46), width=2)
+    blob(d, 24, 22, 17, [(58, 130, 52), (72, 150, 60), (48, 112, 46)], rng, 40)
+    blob(d, 20, 16, 9, [(96, 178, 76), (84, 164, 68)], rng, 12)
+    return outline(img)
+
+
+def decor_pine(rng):
+    img = Image.new("RGBA", (DW, DH), (0, 0, 0, 0)); d = ImageDraw.Draw(img)
+    d.rectangle([22, 50, 25, DH - 1], fill=(96, 66, 42))
+    for i, (y, w) in enumerate(((8, 7), (20, 11), (33, 15), (46, 19))):
+        d.polygon([(24, y - 8), (24 - w, y + 10), (24 + w, y + 10)], fill=(40, 96, 72))
+        d.polygon([(24, y - 8), (24 - w * 0.55, y + 2), (24 + w * 0.5, y)], fill=(240, 246, 252))     # snow cap
+    return outline(img)
+
+
+def decor_cactus(rng):
+    img = Image.new("RGBA", (DW, DH), (0, 0, 0, 0)); d = ImageDraw.Draw(img)
+    g, gl, gd = (70, 150, 84), (104, 184, 110), (48, 112, 62)
+    d.rounded_rectangle([20, 22, 27, DH - 1], 3, fill=g); d.rectangle([20, 26, 21, DH - 1], fill=gd); d.rectangle([25, 26, 25, DH - 4], fill=gl)
+    d.rounded_rectangle([11, 34, 16, 46], 2, fill=g); d.rectangle([14, 43, 21, 47], fill=g)
+    d.rounded_rectangle([31, 28, 36, 40], 2, fill=g); d.rectangle([27, 37, 33, 41], fill=g)
+    d.point((23, 21), fill=(240, 120, 160)); d.point((24, 21), fill=(240, 120, 160))
+    return outline(img)
+
+
+def decor_bush(rng):
+    img = Image.new("RGBA", (DW, DH), (0, 0, 0, 0)); d = ImageDraw.Draw(img)
+    blob(d, 24, DH - 9, 10, [(58, 130, 52), (72, 150, 60), (48, 112, 46)], rng, 18)
+    for x, y in ((18, DH - 12), (27, DH - 15), (30, DH - 8)): d.point((x, y), fill=(220, 60, 70))
+    return outline(img)
+
+
+def decor_flowers(rng):
+    img = Image.new("RGBA", (DW, DH), (0, 0, 0, 0)); d = ImageDraw.Draw(img)
+    for x, h, c in ((16, 9, (250, 220, 80)), (23, 12, (240, 110, 150)), (30, 8, (250, 250, 250)), (35, 11, (160, 130, 240))):
+        d.line([(x, DH - 1), (x, DH - h)], fill=(60, 140, 56))
+        d.rectangle([x - 1, DH - h - 2, x + 1, DH - h], fill=c); d.point((x, DH - h - 1), fill=(250, 180, 60))
+    return img
+
+
+def decor_grass(rng):
+    img = Image.new("RGBA", (DW, DH), (0, 0, 0, 0)); d = ImageDraw.Draw(img)
+    for x in range(14, 35, 2):
+        h = rng.randrange(3, 8)
+        d.line([(x, DH - 1), (x + rng.choice([-1, 0, 1]), DH - h)], fill=rng.choice(GRASS))
+    return img
+
+
+def decor_desert_rock(rng):
+    img = Image.new("RGBA", (DW, DH), (0, 0, 0, 0)); d = ImageDraw.Draw(img)
+    d.polygon([(12, DH - 1), (16, DH - 10), (26, DH - 13), (34, DH - 7), (36, DH - 1)], fill=(176, 130, 86))
+    d.polygon([(16, DH - 10), (26, DH - 13), (24, DH - 8)], fill=(204, 160, 110))
+    for x0, y0, x1, y1 in ((38, DH - 1, 41, DH - 9), (41, DH - 9, 45, DH - 12), (41, DH - 6, 44, DH - 6)):   # dead twig
+        d.line([(x0, y0), (x1, y1)], fill=(120, 90, 60))
+    return outline(img)
+
+
+def decor_snow_rock(rng):
+    img = Image.new("RGBA", (DW, DH), (0, 0, 0, 0)); d = ImageDraw.Draw(img)
+    d.polygon([(12, DH - 1), (15, DH - 9), (25, DH - 12), (33, DH - 8), (36, DH - 1)], fill=(120, 128, 142))
+    d.polygon([(15, DH - 9), (25, DH - 12), (33, DH - 8), (27, DH - 6), (19, DH - 6)], fill=(240, 246, 252))
+    return outline(img)
+
+
+def make_decor():
+    rng = random.Random(99)
+    cells = [decor_oak(rng), decor_pine(rng), decor_cactus(rng), decor_bush(rng), decor_flowers(rng), decor_grass(rng), decor_desert_rock(rng), decor_snow_rock(rng)]
+    sheet = Image.new("RGBA", (DW * len(cells), DH), (0, 0, 0, 0))
+    for i, c in enumerate(cells):
+        sheet.paste(c, (i * DW, 0))
+    sheet.save(os.path.join(OUT, "decor.png"))
+
+
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
-    make_tiles(); make_player(); make_parts(); make_garage()
+    make_tiles(); make_player(); make_parts(); make_garage(); make_decor()
     print("art written to", os.path.abspath(OUT))
