@@ -13,28 +13,22 @@ public enum OreType
     Copper,
 }
 
-/// <summary>
-/// Half-buried ore rocks along the ground. Cars collide with them like solid rock;
-/// a drill tip pressed against one grinds it down, and it pays out its material when gone.
-/// </summary>
-public partial class OreField : Node2D, ITerrainCollider, IMineable
+/// <summary>Places and tracks ore boulders, and lets drills mine them.</summary>
+public partial class OreField : Node2D, IMineable
 {
     /// <summary>Raised when a rock is mined out: material and amount.</summary>
     public event Action<OreType, int> Mined;
 
-    public int RocksLeft => _rocks.Count;
-
-    private sealed class Rock
+    public int RocksLeft
     {
-        public Vector2 Center;
-        public float MaxRadius;
-        public float Health, MaxHealth;
-        public OreType Ore;
-        public int Yield;
-        public float Shake;
+        get
+        {
+            _rocks.RemoveAll(r => !IsInstanceValid(r));
+            return _rocks.Count;
+        }
     }
 
-    private readonly List<Rock> _rocks = new();
+    private readonly List<OreRock> _rocks = new();
     private CpuParticles2D _sparks;
 
     public static Color ColorOf(OreType ore) => ore switch
@@ -66,7 +60,7 @@ public partial class OreField : Node2D, ITerrainCollider, IMineable
         AddChild(_sparks);
     }
 
-    /// <summary>Places rocks along the ground between two x positions. Further away = rarer materials.</summary>
+    /// <summary>Places boulders on the ground between two x positions. Further away = rarer materials.</summary>
     public void Scatter(TestTerrain terrain, float fromX, float toX, float spacing, ulong seed)
     {
         var rng = new RandomNumberGenerator { Seed = seed };
@@ -77,53 +71,17 @@ public partial class OreField : Node2D, ITerrainCollider, IMineable
             OreType ore = roll < 0.55f - progress * 0.3f ? OreType.Scrap
                 : roll < 0.85f - progress * 0.1f ? OreType.Iron
                 : OreType.Copper;
-            float radius = rng.RandfRange(18f, 30f);
-            float groundY = terrain.SurfaceY(x);
-            AddRock(new Vector2(x, groundY + radius * 0.35f), radius, ore);
+            float radius = rng.RandfRange(32f, 46f);
+            AddRock(new Vector2(x, terrain.SurfaceY(x) - radius - 2f), radius, ore);
         }
     }
 
     public void AddRock(Vector2 center, float radius, OreType ore)
     {
-        int yield = ore switch { OreType.Scrap => 3, OreType.Iron => 2, _ => 1 };
-        float health = radius * (ore == OreType.Copper ? 3f : 2f);
-        _rocks.Add(new Rock
-        {
-            Center = center,
-            MaxRadius = radius,
-            Health = health,
-            MaxHealth = health,
-            Ore = ore,
-            Yield = yield,
-        });
-        QueueRedraw();
-    }
-
-    private static float RadiusOf(Rock rock) =>
-        rock.MaxRadius * Mathf.Max(0.35f, Mathf.Sqrt(rock.Health / rock.MaxHealth));
-
-    public bool Collide(Vector2 point, float radius, out Vector2 normal, out float penetration)
-    {
-        normal = Vector2.Up;
-        penetration = 0f;
-        bool hit = false;
-
-        foreach (var rock in _rocks)
-        {
-            Vector2 d = point - rock.Center;
-            float reach = RadiusOf(rock) + radius;
-            float distanceSq = d.LengthSquared();
-            if (distanceSq >= reach * reach) continue;
-
-            float distance = Mathf.Sqrt(distanceSq);
-            float depth = reach - distance;
-            if (depth <= penetration) continue;
-            normal = distance > 1e-4f ? d / distance : Vector2.Up;
-            penetration = depth;
-            hit = true;
-        }
-
-        return hit;
+        var rock = OreRock.Create(ore, radius);
+        rock.Position = ToLocal(center);
+        AddChild(rock);
+        _rocks.Add(rock);
     }
 
     public bool Mine(Vector2 point, float reach, float work)
@@ -131,10 +89,9 @@ public partial class OreField : Node2D, ITerrainCollider, IMineable
         for (int i = 0; i < _rocks.Count; i++)
         {
             var rock = _rocks[i];
-            if (point.DistanceTo(rock.Center) > RadiusOf(rock) + reach) continue;
+            if (!IsInstanceValid(rock)) continue;
+            if (point.DistanceTo(rock.GlobalPosition) > rock.Radius + reach) continue;
 
-            rock.Health -= work;
-            rock.Shake = 1f;
             if (_sparks != null && !_sparks.Emitting)
             {
                 _sparks.Position = ToLocal(point);
@@ -142,42 +99,15 @@ public partial class OreField : Node2D, ITerrainCollider, IMineable
                 _sparks.Restart();
             }
 
-            if (rock.Health <= 0f)
+            if (rock.TakeWork(work))
             {
                 _rocks.RemoveAt(i);
                 Mined?.Invoke(rock.Ore, rock.Yield);
+                rock.QueueFree();
             }
-
-            QueueRedraw();
             return true;
         }
 
         return false;
-    }
-
-    public override void _Process(double delta)
-    {
-        bool shaking = false;
-        foreach (var rock in _rocks)
-        {
-            if (rock.Shake <= 0f) continue;
-            rock.Shake = Mathf.Max(0f, rock.Shake - (float)delta * 6f);
-            shaking = true;
-        }
-        if (shaking) QueueRedraw();
-    }
-
-    public override void _Draw()
-    {
-        foreach (var rock in _rocks)
-        {
-            float radius = RadiusOf(rock);
-            Vector2 c = ToLocal(rock.Center) + new Vector2(Mathf.Sin(rock.Shake * 40f), 0f) * rock.Shake * 2f;
-            Color color = ColorOf(rock.Ore);
-            DrawCircle(c, radius, color.Darkened(0.35f));
-            DrawCircle(c + new Vector2(-radius * 0.15f, -radius * 0.15f), radius * 0.8f, color);
-            DrawCircle(c + new Vector2(radius * 0.3f, -radius * 0.25f), radius * 0.18f, color.Lightened(0.35f));
-            DrawCircle(c + new Vector2(-radius * 0.35f, radius * 0.2f), radius * 0.12f, color.Lightened(0.25f));
-        }
     }
 }

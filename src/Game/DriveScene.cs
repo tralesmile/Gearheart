@@ -55,13 +55,13 @@ public partial class DriveScene : Node2D
 
         _ore = new OreField { Name = "Ore" };
         AddChild(_ore);
-        if (!_isRace) _ore.Scatter(_terrain, 600f, 11000f, 380f, 99);
+        if (!_isRace) _ore.Scatter(_terrain, 700f, 11500f, 650f, 99);
         _ore.Mined += OnMined;
 
         _world = new SoftPhysicsWorld
         {
             Name = "SoftPhysicsWorld",
-            Terrain = new CompositeCollider(_terrain, _ore),
+            Terrain = _terrain,
             Mineable = _ore,
         };
         AddChild(_world);

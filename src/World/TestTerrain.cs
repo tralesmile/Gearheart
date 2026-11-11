@@ -42,7 +42,10 @@ public partial class TestTerrain : StaticBody2D, ITerrainCollider
             new(WallX, -400f),
         };
         outline.AddRange(surface);
-        outline.Add(new Vector2(Length, 2000f));
+        float endY = surface[^1].Y;
+        outline.Add(new Vector2(Length, endY - 400f));       // wall at the far end
+        outline.Add(new Vector2(Length + 40f, endY - 400f));
+        outline.Add(new Vector2(Length + 40f, 2000f));
         outline.Add(new Vector2(WallX - 40f, 2000f));
 
         Vector2[] polygon = outline.ToArray();
@@ -67,6 +70,12 @@ public partial class TestTerrain : StaticBody2D, ITerrainCollider
         {
             normal = Vector2.Right;
             penetration = WallX - (p.X - radius);
+            hit = true;
+        }
+        else if (p.X + radius > Length)
+        {
+            normal = Vector2.Left;
+            penetration = p.X + radius - Length;
             hit = true;
         }
 

@@ -175,12 +175,12 @@
       "name": "Drill Head",
       "short": "DR",
       "category": "Drill",
-      "description": "Mount at the front. Press the tip into ore rocks to mine them.",
+      "description": "Mount at the front. Press the tip into ore boulders to mine them.",
       "mass": 0.8,
       "color": "#c9a227",
       "yield": 0.05,
       "breakLimit": 0.4,
-      "drillPower": 45
+      "drillPower": 60
     }
   ]
 }
