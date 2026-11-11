@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Gearheart.Core;
 using Gearheart.Physics;
 using Gearheart.Vehicles;
 using Gearheart.World;
@@ -14,7 +15,7 @@ namespace Gearheart.Tests;
 public partial class PhysicsTest : Node2D
 {
     private const float PixelsPerMeter = 64f;
-    private static readonly Vector2 SpawnPoint = new(200f, -150f);
+    private static readonly Vector2 SpawnPoint = new(200f, -200f);
 
     private enum PhysicsMode { Rigid, Soft }
 
@@ -60,6 +61,7 @@ public partial class PhysicsTest : Node2D
         switch (key.PhysicalKeycode)
         {
             case Key.R: SpawnPlayer(); break;
+            case Key.G: GetTree().ChangeSceneToFile(GameSession.GarageScene); break;
             case Key.V: ToggleMode(); break;
             case Key.C: SpawnOncoming(); break;
             case Key.Key1: SetBotCount(0); break;
@@ -78,10 +80,11 @@ public partial class PhysicsTest : Node2D
         float kmh = vehicle != null ? vehicle.Speed / PixelsPerMeter * 3.6f : 0f;
         float damage = vehicle?.Damage ?? 0f;
         string physics = vehicle?.PhysicsName ?? "-";
+        string fuel = _player is SoftVehicle soft ? $"   Fuel {soft.Fuel:0}/{soft.FuelCapacity:0}" : "";
 
         _hud.Text =
-            $"Physics {physics}   FPS {Engine.GetFramesPerSecond():0}   Vehicles {1 + _bots.Count}   Speed {kmh:0} km/h   Damage {damage:0}\n" +
-            "D/A or arrows: drive   Q/E: tilt   Space: handbrake   R: reset   V: switch physics A/B\n" +
+            $"Physics {physics}   FPS {Engine.GetFramesPerSecond():0}   Vehicles {1 + _bots.Count}   Speed {kmh:0} km/h   Damage {damage:0}{fuel}\n" +
+            "D/A or arrows: drive   Q/E: tilt   Space: handbrake   R: repair and reset   G: garage   V: switch physics A/B\n" +
             "C: oncoming car (head-on test)   1/4/8: vehicle count   Esc: quit";
     }
 
@@ -101,10 +104,10 @@ public partial class PhysicsTest : Node2D
             {
                 Name = name,
                 World = _softWorld,
+                Design = player ? GameSession.CurrentDesign.Clone() : VehicleDesign.Default(),
                 Spawn = at,
                 PlayerControlled = player,
                 AutoThrottle = autoThrottle,
-                BodyColor = color,
             };
         }
 

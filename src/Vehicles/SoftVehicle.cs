@@ -1,14 +1,16 @@
 using System.Collections.Generic;
+using Gearheart.Parts;
 using Gearheart.Physics;
 using Godot;
 
 namespace Gearheart.Vehicles;
 
 /// <summary>
-/// Physics approach B (chosen 2026-11-11): node-and-beam soft body, the idea BeamNG uses, in 2D.
-/// The chassis is a lattice of mass points joined by beams. Beams that stretch past
-/// their yield point bend permanently (dents); after too much total bend they snap.
-/// Wheels are hub nodes on soft suspension beams with their own spin and tyre friction.
+/// Physics approach B (chosen 2026-11-11): node-and-beam soft body, generated from a
+/// <see cref="VehicleDesign"/>. Every grid block becomes a square of four mass points with
+/// edge and diagonal beams; neighbouring blocks share points and edges. Each beam takes
+/// its strength from its part: past its yield it bends permanently (dents), and after too
+/// much total bend it snaps. Wheels are hub points on suspension beams under a block.
 ///
 /// The vehicle does not step itself: <see cref="SoftPhysicsWorld"/> steps every soft body
 /// together so they can collide with each other and with loose rigid objects.
@@ -18,129 +20,230 @@ public partial class SoftVehicle : Node2D, IVehicle
     [Export] public bool PlayerControlled;
     [Export] public float AutoThrottle;
     [Export] public Vector2 Spawn = new(200f, -150f);
-    [Export] public Color BodyColor = new(0.25f, 0.55f, 0.85f);
-    [Export] public float WheelTorque = 20000f;
-    [Export] public float MaxWheelSpin = 60f;       // rad/s
     [Export] public float AirControl = 9f;          // rad/s² of tilt
-    [Export] public float TyreGrip = 1.1f;
 
+    public VehicleDesign Design { get; set; }
     public SoftPhysicsWorld World { get; set; }
 
     public string PhysicsName => "B: soft body";
     public Vector2 CenterPosition => BodyCenter();
     public float Speed { get; private set; }
     public float Damage { get; private set; }
+    public float Fuel { get; private set; }
+    public float FuelCapacity { get; private set; }
 
+    public const float CellSize = 22f;
     public const float NodeRadius = 3f;
-    public const float WheelRadius = 20f;
-    public const int BodyNodeCount = 16;          // 0-6 floor, 7-13 roof line, 14-15 cabin top
-    public const int RearHub = 16, FrontHub = 17;
-
-    /// <summary>Body outline, in order, used for car-to-car collisions.</summary>
-    public static readonly int[] Outline = { 0, 1, 2, 3, 4, 5, 6, 13, 12, 11, 15, 14, 9, 8, 7 };
 
     private const float Gravity = 980f;
-    private const float BodyNodeMass = 0.2f;
-    private const float HubMass = 1f;
+    private const float MinNodeMass = 0.05f;
     private const float AirDrag = 0.99998f;        // per substep (about 2% per second)
     private const float GroundFriction = 0.3f;     // scraping body nodes
-    private const float SuspensionDamping = 0.15f;
     private const float BodyStiffness = 0.5f;
-    private const float SuspensionStiffness = 0.03f;
-    private const float BodyYield = 0.015f, BodyBreak = 0.18f;         // break = total permanent bend
-    private const float SuspensionYield = 0.3f, SuspensionBreak = 0.4f;
 
     private sealed class Beam
     {
         public int A, B;
-        public float Rest, OriginalRest, Stiffness;
+        public float Rest, OriginalRest, Stiffness, Yield, BreakLimit, Damping;
         public bool Suspension, Broken;
     }
 
     private sealed class Wheel
     {
         public int Hub;
-        public float Spin, Angle;
+        public float Radius, Grip, Mass, Spin, Angle;
         public bool Attached = true;
+    }
+
+    private sealed class Cell
+    {
+        public int[] Corners;          // top-left, top-right, bottom-right, bottom-left
+        public PartDefinition Part;
     }
 
     // Node state, shared with SoftPhysicsWorld for collisions.
     public Vector2[] Pos { get; private set; }
     public Vector2[] Prev { get; private set; }
     public float[] InvMass { get; private set; }
+    public int BodyNodeCount { get; private set; }
+
+    /// <summary>Edges on the outside of the body, used for car-to-car collisions.</summary>
+    public List<(int A, int B)> BoundaryEdges { get; } = new();
 
     private readonly List<Beam> _beams = new();
-    private readonly Wheel[] _wheels = { new() { Hub = RearHub }, new() { Hub = FrontHub } };
+    private readonly List<Wheel> _wheels = new();
+    private readonly List<Cell> _cells = new();
+    private float[] _nodeRadius;
     private float _totalMass;
+    private float _engineTorque, _engineMaxSpin, _fuelUse;
     private VehicleInput _input;
     private Vector2 _centerAtTickStart;
 
-    private static readonly int[] BodyTriangles =
-    {
-        0, 1, 8, 0, 8, 7, 1, 2, 9, 1, 9, 8, 2, 3, 10, 2, 10, 9,
-        3, 4, 11, 3, 11, 10, 4, 5, 12, 4, 12, 11, 5, 6, 13, 5, 13, 12,
-    };
-    private static readonly int[] CabinTriangles = { 9, 10, 14, 10, 15, 14, 10, 11, 15 };
+    public float RadiusOf(int node) => _nodeRadius[node];
 
-    public static float RadiusOf(int node) => node < BodyNodeCount ? NodeRadius : WheelRadius;
+    public IEnumerable<int> HubNodes
+    {
+        get
+        {
+            foreach (var w in _wheels) yield return w.Hub;
+        }
+    }
 
     public override void _Ready()
     {
-        float[] xs = { -65f, -43f, -22f, 0f, 22f, 43f, 65f };
-        var layout = new List<Vector2>();
-        foreach (float x in xs) layout.Add(new Vector2(x, 14f));    // 0-6 floor
-        foreach (float x in xs) layout.Add(new Vector2(x, -14f));   // 7-13 roof line
-        layout.Add(new Vector2(-12f, -38f));                         // 14 cabin
-        layout.Add(new Vector2(10f, -38f));                          // 15 cabin
-        layout.Add(new Vector2(-46f, 40f));                          // 16 rear hub
-        layout.Add(new Vector2(46f, 40f));                           // 17 front hub
-
-        int count = layout.Count;
-        Pos = new Vector2[count];
-        Prev = new Vector2[count];
-        InvMass = new float[count];
-        for (int i = 0; i < count; i++)
-        {
-            Pos[i] = Prev[i] = Spawn + layout[i];
-            float mass = i < BodyNodeCount ? BodyNodeMass : HubMass;
-            InvMass[i] = 1f / mass;
-            _totalMass += mass;
-        }
-
-        // Chassis lattice: floor, roof line, verticals and both diagonals of every cell.
-        for (int i = 0; i < 6; i++)
-        {
-            Link(i, i + 1);
-            Link(7 + i, 8 + i);
-            Link(i, 8 + i);
-            Link(i + 1, 7 + i);
-        }
-        for (int i = 0; i < 7; i++) Link(i, 7 + i);
-
-        // Cabin truss.
-        Link(14, 15); Link(9, 14); Link(10, 14); Link(10, 15); Link(11, 15); Link(9, 15); Link(11, 14);
-
-        // Suspension: each hub hangs from three floor nodes.
-        foreach (int n in new[] { 0, 1, 2 }) Link(RearHub, n, SuspensionStiffness, true);
-        foreach (int n in new[] { 4, 5, 6 }) Link(FrontHub, n, SuspensionStiffness, true);
-
+        Build(Design ?? VehicleDesign.Default());
         World?.Register(this);
     }
 
     public override void _ExitTree() => World?.Unregister(this);
 
-    private void Link(int a, int b, float stiffness = BodyStiffness, bool suspension = false)
+    // ---- Building from a design ------------------------------------------------------------
+
+    private void Build(VehicleDesign design)
     {
-        float rest = (Pos[b] - Pos[a]).Length();
-        _beams.Add(new Beam
+        var positions = new List<Vector2>();
+        var masses = new List<float>();
+        var cornerIndex = new Dictionary<(int, int), int>();
+
+        // Centre the body on the spawn point.
+        Vector2 min = new(float.MaxValue, float.MaxValue), max = new(float.MinValue, float.MinValue);
+        foreach (var b in design.Blocks)
+        {
+            min = new Vector2(Mathf.Min(min.X, b.X), Mathf.Min(min.Y, b.Y));
+            max = new Vector2(Mathf.Max(max.X, b.X + 1), Mathf.Max(max.Y, b.Y + 1));
+        }
+        Vector2 gridCenter = design.Blocks.Count > 0 ? (min + max) / 2f : Vector2.Zero;
+
+        int Corner(int gx, int gy)
+        {
+            if (cornerIndex.TryGetValue((gx, gy), out int index)) return index;
+            index = positions.Count;
+            positions.Add(Spawn + (new Vector2(gx, gy) - gridCenter) * CellSize);
+            masses.Add(0f);
+            cornerIndex[(gx, gy)] = index;
+            return index;
+        }
+
+        // Blocks: four corners each, mass shared out to the corners.
+        foreach (var block in design.Blocks)
+        {
+            var part = PartCatalog.Get(block.Part);
+            if (part == null || !part.IsBlock) continue;
+
+            var corners = new[]
+            {
+                Corner(block.X, block.Y),
+                Corner(block.X + 1, block.Y),
+                Corner(block.X + 1, block.Y + 1),
+                Corner(block.X, block.Y + 1),
+            };
+            foreach (int c in corners) masses[c] += part.Mass / 4f;
+            _cells.Add(new Cell { Corners = corners, Part = part });
+
+            _engineTorque += part.Torque;
+            _engineMaxSpin = Mathf.Max(_engineMaxSpin, part.MaxSpin);
+            _fuelUse += part.FuelUse;
+            FuelCapacity += part.FuelCapacity;
+        }
+
+        BodyNodeCount = positions.Count;
+        FuelCapacity += VehicleDesign.BaseFuelCapacity;
+        Fuel = FuelCapacity;
+
+        // Wheels: a hub point under the block above, hung on suspension beams.
+        var wheelSetups = new List<(int Hub, PartDefinition Suspension, int[] Anchors)>();
+        foreach (var dw in design.Wheels)
+        {
+            var wheelPart = PartCatalog.Get(dw.Wheel);
+            var suspension = PartCatalog.Get(dw.Suspension);
+            if (wheelPart == null || suspension == null) continue;
+            if (!cornerIndex.TryGetValue((dw.X, dw.Y), out int left) || !cornerIndex.TryGetValue((dw.X + 1, dw.Y), out int right))
+                continue; // no block above: the garage should have caught this
+
+            var anchors = new List<int> { left, right };
+            if (cornerIndex.TryGetValue((dw.X - 1, dw.Y), out int farLeft)) anchors.Add(farLeft);
+            if (cornerIndex.TryGetValue((dw.X + 2, dw.Y), out int farRight)) anchors.Add(farRight);
+
+            int hub = positions.Count;
+            Vector2 attach = (positions[left] + positions[right]) / 2f;
+            positions.Add(attach + new Vector2(0f, suspension.RestLength));
+            masses.Add(wheelPart.Mass);
+
+            _wheels.Add(new Wheel { Hub = hub, Radius = wheelPart.Radius, Grip = wheelPart.Grip, Mass = Mathf.Max(wheelPart.Mass, MinNodeMass) });
+            wheelSetups.Add((hub, suspension, anchors.ToArray()));
+        }
+
+        // Node arrays.
+        int count = positions.Count;
+        Pos = positions.ToArray();
+        Prev = positions.ToArray();
+        InvMass = new float[count];
+        _nodeRadius = new float[count];
+        for (int i = 0; i < count; i++)
+        {
+            float mass = Mathf.Max(masses[i], MinNodeMass);
+            InvMass[i] = 1f / mass;
+            _totalMass += mass;
+            _nodeRadius[i] = NodeRadius;
+        }
+        foreach (var w in _wheels) _nodeRadius[w.Hub] = w.Radius;
+
+        // Body beams: four edges and both diagonals per block. Shared edges keep the stronger part.
+        var edgeBeams = new Dictionary<(int, int), Beam>();
+        var edgeUse = new Dictionary<(int, int), int>();
+        foreach (var cell in _cells)
+        {
+            int[] c = cell.Corners;
+            for (int e = 0; e < 4; e++)
+            {
+                var key = EdgeKey(c[e], c[(e + 1) % 4]);
+                edgeUse[key] = edgeUse.GetValueOrDefault(key) + 1;
+                if (edgeBeams.TryGetValue(key, out var existing))
+                {
+                    existing.Yield = Mathf.Max(existing.Yield, cell.Part.Yield);
+                    existing.BreakLimit = Mathf.Max(existing.BreakLimit, cell.Part.BreakLimit);
+                }
+                else
+                {
+                    edgeBeams[key] = AddBeam(key.Item1, key.Item2, BodyStiffness, cell.Part.Yield, cell.Part.BreakLimit);
+                }
+            }
+            AddBeam(c[0], c[2], BodyStiffness, cell.Part.Yield, cell.Part.BreakLimit);
+            AddBeam(c[1], c[3], BodyStiffness, cell.Part.Yield, cell.Part.BreakLimit);
+        }
+
+        foreach (var (key, uses) in edgeUse)
+            if (uses == 1) BoundaryEdges.Add(key);
+
+        // Suspension beams.
+        foreach (var (hub, suspension, anchors) in wheelSetups)
+        {
+            foreach (int anchor in anchors)
+            {
+                var beam = AddBeam(hub, anchor, suspension.SpringStiffness, suspension.Yield, suspension.BreakLimit);
+                beam.Suspension = true;
+                beam.Damping = suspension.Damping;
+            }
+        }
+    }
+
+    private static (int, int) EdgeKey(int a, int b) => a < b ? (a, b) : (b, a);
+
+    private Beam AddBeam(int a, int b, float stiffness, float yieldStrain, float breakLimit)
+    {
+        float rest = Pos[a].DistanceTo(Pos[b]);
+        var beam = new Beam
         {
             A = a,
             B = b,
             Rest = rest,
             OriginalRest = rest,
             Stiffness = stiffness,
-            Suspension = suspension,
-        });
+            Yield = yieldStrain,
+            BreakLimit = breakLimit,
+        };
+        _beams.Add(beam);
+        return beam;
     }
 
     // ---- Stepping, called by SoftPhysicsWorld -------------------------------------------
@@ -150,6 +253,8 @@ public partial class SoftVehicle : Node2D, IVehicle
         _input = PlayerControlled ? VehicleInput.ReadPlayer() : VehicleInput.Auto(AutoThrottle);
         _centerAtTickStart = BodyCenter();
     }
+
+    public void Refuel() => Fuel = FuelCapacity;
 
     /// <summary>Verlet integration with gravity, plus air control.</summary>
     public void Integrate(float dt)
@@ -182,7 +287,7 @@ public partial class SoftVehicle : Node2D, IVehicle
 
         for (int i = 0; i < Pos.Length; i++)
         {
-            if (terrain.Collide(Pos[i], RadiusOf(i), out Vector2 n, out float depth))
+            if (terrain.Collide(Pos[i], _nodeRadius[i], out Vector2 n, out float depth))
                 Pos[i] += n * depth;
         }
     }
@@ -200,8 +305,13 @@ public partial class SoftVehicle : Node2D, IVehicle
             Prev[i] = Pos[i] - tangential * (1f - GroundFriction);
         }
 
+        bool drive = Fuel > 0f && !Mathf.IsZeroApprox(_input.Throttle);
+        if (drive) Fuel = Mathf.Max(0f, Fuel - _fuelUse * Mathf.Abs(_input.Throttle) * dt);
+
+        int attached = 0;
+        foreach (var w in _wheels) if (w.Attached) attached++;
         foreach (var wheel in _wheels)
-            UpdateWheel(wheel, dt, terrain);
+            UpdateWheel(wheel, dt, terrain, drive, attached);
 
         ApplyDeformation();
     }
@@ -215,13 +325,38 @@ public partial class SoftVehicle : Node2D, IVehicle
     /// <summary>Axis-aligned bounds of all nodes including wheel radius, for broad-phase checks.</summary>
     public Rect2 Bounds()
     {
+        if (Pos.Length == 0) return new Rect2(Spawn, Vector2.Zero);
         Vector2 min = Pos[0], max = Pos[0];
         foreach (var p in Pos)
         {
             min = new Vector2(Mathf.Min(min.X, p.X), Mathf.Min(min.Y, p.Y));
             max = new Vector2(Mathf.Max(max.X, p.X), Mathf.Max(max.Y, p.Y));
         }
-        return new Rect2(min, max - min).Grow(WheelRadius);
+        float grow = NodeRadius;
+        foreach (var w in _wheels) grow = Mathf.Max(grow, w.Radius);
+        return new Rect2(min, max - min).Grow(grow);
+    }
+
+    /// <summary>True if the point is inside any block of the body.</summary>
+    public bool ContainsPoint(Vector2 p)
+    {
+        foreach (var cell in _cells)
+        {
+            int[] c = cell.Corners;
+            if (InTriangle(p, Pos[c[0]], Pos[c[1]], Pos[c[2]]) || InTriangle(p, Pos[c[0]], Pos[c[2]], Pos[c[3]]))
+                return true;
+        }
+        return false;
+    }
+
+    private static bool InTriangle(Vector2 p, Vector2 a, Vector2 b, Vector2 c)
+    {
+        float d1 = (p - b).Cross(a - b);
+        float d2 = (p - c).Cross(b - c);
+        float d3 = (p - a).Cross(c - a);
+        bool hasNeg = d1 < 0f || d2 < 0f || d3 < 0f;
+        bool hasPos = d1 > 0f || d2 > 0f || d3 > 0f;
+        return !(hasNeg && hasPos);
     }
 
     // ---- Internals -------------------------------------------------------------------------
@@ -233,10 +368,9 @@ public partial class SoftVehicle : Node2D, IVehicle
         if (length < 1e-4f) return;
 
         float wa = InvMass[beam.A], wb = InvMass[beam.B];
-        float w = wa + wb;
         float correction = (length - beam.Rest) / length * beam.Stiffness;
-        Pos[beam.A] += d * correction * (wa / w);
-        Pos[beam.B] -= d * correction * (wb / w);
+        Pos[beam.A] += d * correction * (wa / (wa + wb));
+        Pos[beam.B] -= d * correction * (wb / (wa + wb));
     }
 
     private void DampSuspension()
@@ -247,19 +381,18 @@ public partial class SoftVehicle : Node2D, IVehicle
             Vector2 dir = (Pos[beam.B] - Pos[beam.A]).Normalized();
             Vector2 va = Pos[beam.A] - Prev[beam.A];
             Vector2 vb = Pos[beam.B] - Prev[beam.B];
-            float relative = (vb - va).Dot(dir) * SuspensionDamping;
+            float relative = (vb - va).Dot(dir) * beam.Damping;
             float wa = InvMass[beam.A], wb = InvMass[beam.B];
-            float w = wa + wb;
-            va += dir * relative * (wa / w);
-            vb -= dir * relative * (wb / w);
+            va += dir * relative * (wa / (wa + wb));
+            vb -= dir * relative * (wb / (wa + wb));
             Prev[beam.A] = Pos[beam.A] - va;
             Prev[beam.B] = Pos[beam.B] - vb;
         }
     }
 
-    private void UpdateWheel(Wheel wheel, float dt, ITerrainCollider terrain)
+    private void UpdateWheel(Wheel wheel, float dt, ITerrainCollider terrain, bool drive, int attachedWheels)
     {
-        float inertia = 0.5f * HubMass * WheelRadius * WheelRadius;
+        float inertia = 0.5f * wheel.Mass * wheel.Radius * wheel.Radius;
 
         if (wheel.Attached)
         {
@@ -267,31 +400,32 @@ public partial class SoftVehicle : Node2D, IVehicle
             {
                 wheel.Spin *= 0.8f;
             }
-            else if (!Mathf.IsZeroApprox(_input.Throttle))
+            else if (drive && attachedWheels > 0)
             {
-                bool belowTopSpeed = Mathf.Abs(wheel.Spin) < MaxWheelSpin || Mathf.Sign(wheel.Spin) != Mathf.Sign(_input.Throttle);
-                if (belowTopSpeed) wheel.Spin += WheelTorque * _input.Throttle / inertia * dt;
+                bool belowTopSpeed = Mathf.Abs(wheel.Spin) < _engineMaxSpin || Mathf.Sign(wheel.Spin) != Mathf.Sign(_input.Throttle);
+                float torque = _engineTorque / attachedWheels * _input.Throttle;
+                if (belowTopSpeed) wheel.Spin += torque / inertia * dt;
             }
         }
         wheel.Spin *= 0.99995f; // rolling resistance
 
         int h = wheel.Hub;
-        if (terrain.Collide(Pos[h], WheelRadius + 0.5f, out Vector2 n, out _))
+        if (terrain.Collide(Pos[h], wheel.Radius + 0.5f, out Vector2 n, out _))
         {
             Vector2 v = (Pos[h] - Prev[h]) / dt;
             Vector2 tangent = new Vector2(-n.Y, n.X); // along the ground, pointing right on flat ground
             float normalSpeed = v.Dot(n);
-            float slip = v.Dot(tangent) - wheel.Spin * WheelRadius;
+            float slip = v.Dot(tangent) - wheel.Spin * wheel.Radius;
 
             // Tyre friction: an impulse that cancels slip, capped by grip x load.
-            float impulse = -slip / (1f / HubMass + WheelRadius * WheelRadius / inertia);
-            float load = (wheel.Attached ? _totalMass * 0.5f : HubMass) * Gravity * dt * Mathf.Max(0f, -n.Y)
-                         + HubMass * Mathf.Max(0f, -normalSpeed);
-            float maxImpulse = TyreGrip * load;
+            float impulse = -slip / (1f / wheel.Mass + wheel.Radius * wheel.Radius / inertia);
+            float carried = wheel.Attached && attachedWheels > 0 ? _totalMass / attachedWheels : wheel.Mass;
+            float load = carried * Gravity * dt * Mathf.Max(0f, -n.Y) + wheel.Mass * Mathf.Max(0f, -normalSpeed);
+            float maxImpulse = wheel.Grip * load;
             impulse = Mathf.Clamp(impulse, -maxImpulse, maxImpulse);
 
-            v += tangent * (impulse / HubMass);
-            wheel.Spin -= impulse * WheelRadius / inertia;
+            v += tangent * (impulse / wheel.Mass);
+            wheel.Spin -= impulse * wheel.Radius / inertia;
             if (normalSpeed < 0f) v -= n * normalSpeed;
             Prev[h] = Pos[h] - v * dt;
         }
@@ -299,24 +433,21 @@ public partial class SoftVehicle : Node2D, IVehicle
         wheel.Angle += wheel.Spin * dt;
     }
 
-    /// <summary>Permanent bending (dents) and breaking. A beam snaps once its total permanent bend passes the break limit.</summary>
+    /// <summary>Permanent bending (dents) and breaking. A beam snaps once its total permanent bend passes its part's limit.</summary>
     private void ApplyDeformation()
     {
         foreach (var beam in _beams)
         {
-            if (beam.Broken) continue;
+            if (beam.Broken || beam.OriginalRest <= 0f) continue;
             float length = (Pos[beam.B] - Pos[beam.A]).Length();
             float strain = (length - beam.Rest) / beam.Rest;
-            float yieldStrain = beam.Suspension ? SuspensionYield : BodyYield;
-            float breakStrain = beam.Suspension ? SuspensionBreak : BodyBreak;
+            if (Mathf.Abs(strain) <= beam.Yield) continue;
 
-            if (Mathf.Abs(strain) <= yieldStrain) continue;
-
-            float newRest = length / (1f + Mathf.Sign(strain) * yieldStrain);
+            float newRest = length / (1f + Mathf.Sign(strain) * beam.Yield);
             Damage += Mathf.Abs(newRest - beam.Rest);
             beam.Rest = newRest;
 
-            if (Mathf.Abs(beam.Rest - beam.OriginalRest) / beam.OriginalRest > breakStrain)
+            if (Mathf.Abs(beam.Rest - beam.OriginalRest) / beam.OriginalRest > beam.BreakLimit)
             {
                 beam.Broken = true;
                 Damage += 5f;
@@ -336,7 +467,7 @@ public partial class SoftVehicle : Node2D, IVehicle
 
     private Vector2 BodyCenter()
     {
-        if (Pos == null) return Spawn;
+        if (Pos == null || BodyNodeCount == 0) return Spawn;
         Vector2 sum = Vector2.Zero;
         for (int i = 0; i < BodyNodeCount; i++) sum += Pos[i];
         return sum / BodyNodeCount;
@@ -348,41 +479,56 @@ public partial class SoftVehicle : Node2D, IVehicle
     {
         if (Pos == null) return;
 
-        DrawTriangles(BodyTriangles, BodyColor);
-        DrawTriangles(CabinTriangles, BodyColor.Darkened(0.3f));
+        foreach (var cell in _cells)
+        {
+            int[] c = cell.Corners;
+            Color color = cell.Part.GodotColor;
+            FillTriangle(Pos[c[0]], Pos[c[1]], Pos[c[2]], color);
+            FillTriangle(Pos[c[0]], Pos[c[2]], Pos[c[3]], color);
 
-        var beamColor = new Color(0f, 0f, 0f, 0.35f);
-        var springColor = new Color(0.8f, 0.8f, 0.8f, 0.8f);
+            if (cell.Part.Category == PartCategory.Drill)
+            {
+                // Spike on the right-hand edge.
+                Vector2 tip = (Pos[c[1]] + Pos[c[2]]) / 2f + (Pos[c[1]] - Pos[c[0]]).Normalized() * CellSize * 0.8f;
+                FillTriangle(Pos[c[1]], tip, Pos[c[2]], color.Darkened(0.2f));
+            }
+            else if (cell.Part.Category == PartCategory.Engine)
+            {
+                Vector2 middle = (Pos[c[0]] + Pos[c[2]]) / 2f;
+                DrawCircle(ToLocal(middle), 5f, color.Darkened(0.4f));
+            }
+        }
+
+        var beamColor = new Color(0f, 0f, 0f, 0.25f);
+        var springColor = new Color(0.85f, 0.85f, 0.85f, 0.9f);
         foreach (var beam in _beams)
         {
             if (beam.Broken) continue;
-            DrawLine(ToLocal(Pos[beam.A]), ToLocal(Pos[beam.B]), beam.Suspension ? springColor : beamColor, beam.Suspension ? 2f : 1.5f);
+            DrawLine(ToLocal(Pos[beam.A]), ToLocal(Pos[beam.B]), beam.Suspension ? springColor : beamColor, beam.Suspension ? 2f : 1f);
         }
+
+        var outlineColor = new Color(0f, 0f, 0f, 0.6f);
+        foreach (var (a, b) in BoundaryEdges)
+            if (Pos[a].DistanceTo(Pos[b]) < CellSize * 2f)
+                DrawLine(ToLocal(Pos[a]), ToLocal(Pos[b]), outlineColor, 2f);
 
         foreach (var wheel in _wheels)
         {
             Vector2 c = ToLocal(Pos[wheel.Hub]);
-            DrawCircle(c, WheelRadius, new Color(0.12f, 0.12f, 0.14f));
-            DrawCircle(c, WheelRadius * 0.55f, new Color(0.6f, 0.6f, 0.65f));
-            Vector2 spoke = new Vector2(Mathf.Cos(wheel.Angle), Mathf.Sin(wheel.Angle)) * WheelRadius * 0.9f;
+            DrawCircle(c, wheel.Radius, new Color(0.12f, 0.12f, 0.14f));
+            DrawCircle(c, wheel.Radius * 0.55f, new Color(0.6f, 0.6f, 0.65f));
+            Vector2 spoke = new Vector2(Mathf.Cos(wheel.Angle), Mathf.Sin(wheel.Angle)) * wheel.Radius * 0.9f;
             DrawLine(c, c + spoke, new Color(0.9f, 0.9f, 0.9f), 3f);
         }
     }
 
-    private void DrawTriangles(int[] indices, Color color)
+    private void FillTriangle(Vector2 a, Vector2 b, Vector2 c, Color color)
     {
-        var points = new Vector2[3];
-        var colors = new[] { color };
-        for (int t = 0; t + 2 < indices.Length; t += 3)
-        {
-            points[0] = ToLocal(Pos[indices[t]]);
-            points[1] = ToLocal(Pos[indices[t + 1]]);
-            points[2] = ToLocal(Pos[indices[t + 2]]);
-            float area = Mathf.Abs((points[1] - points[0]).Cross(points[2] - points[0]));
-            if (area < 2f) continue; // skip crushed triangles
-            if (points[0].DistanceTo(points[1]) > 80f || points[1].DistanceTo(points[2]) > 80f || points[2].DistanceTo(points[0]) > 80f)
-                continue; // skip torn-apart triangles
-            DrawPolygon(points, colors);
-        }
+        Vector2 la = ToLocal(a), lb = ToLocal(b), lc = ToLocal(c);
+        float area = Mathf.Abs((lb - la).Cross(lc - la));
+        if (area < 2f) return; // crushed
+        if (la.DistanceTo(lb) > CellSize * 3f || lb.DistanceTo(lc) > CellSize * 3f || lc.DistanceTo(la) > CellSize * 3f)
+            return; // torn apart
+        DrawPolygon(new[] { la, lb, lc }, new[] { color });
     }
 }

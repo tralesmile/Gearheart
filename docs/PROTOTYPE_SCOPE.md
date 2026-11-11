@@ -6,7 +6,7 @@
 
 - 1 test map (hills, a ramp, a cliff, crates to smash)
 - 1 vehicle built from parts in a grid garage editor
-- 15 parts: 3 chassis, 3 engines, 3 wheel types, 2 suspensions, 2 armor plates, 1 fuel tank, 1 drill
+- 15 parts: 3 frames, 3 engines, 3 wheel types, 2 suspensions, 2 armor blocks, 1 fuel tank, 1 drill
 - Driving, damage (parts bend, detach, break) and repair
 - 1 hill-climb race with a timer
 - Mining 3 materials with the drill
@@ -15,6 +15,19 @@
 ## Out of scope (goes to the "later" list)
 
 Procedural world, crafting tiers, combat, bosses, multiplayer, life-sim, final art, music.
+
+## Progress
+
+| Item | Status |
+| --- | --- |
+| Physics approaches A and B, compare | Done; B chosen (needs your FPS test, D1) |
+| Soft-body collisions (cars, crates) | Done |
+| 15 parts as data files | Done |
+| Garage grid editor, save/load | Done |
+| Damage and repair | Done (free repair in test drive) |
+| Hill-climb race with timer | Next |
+| Mining 3 materials with the drill | Next |
+| itch.io build + tester survey | After the race and mining |
 
 ## Gate
 

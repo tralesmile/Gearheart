@@ -52,7 +52,7 @@ public partial class SoftPhysicsWorld : Node
     public override void _PhysicsProcess(double delta)
     {
         if (Terrain == null) return;
-        _bodies.RemoveAll(b => !IsInstanceValid(b) || b.Pos == null);
+        _bodies.RemoveAll(b => !IsInstanceValid(b) || b.Pos == null || b.Pos.Length == 0);
         if (_bodies.Count == 0) return;
 
         float tick = (float)delta;
@@ -97,27 +97,30 @@ public partial class SoftPhysicsWorld : Node
         }
     }
 
-    /// <summary>Pushes every node of <paramref name="mover"/> out of <paramref name="shape"/>'s body outline.</summary>
+    /// <summary>Pushes every node of <paramref name="mover"/> out of <paramref name="shape"/>'s body.</summary>
     private static void PushNodesOutOf(SoftVehicle mover, SoftVehicle shape)
     {
-        int[] outline = SoftVehicle.Outline;
+        var edges = shape.BoundaryEdges;
         Vector2[] sp = shape.Pos;
+        Rect2 shapeBounds = shape.Bounds();
 
         for (int i = 0; i < mover.Pos.Length; i++)
         {
             Vector2 p = mover.Pos[i];
-            float radius = SoftVehicle.RadiusOf(i);
-            bool inside = PointInOutline(p, sp, outline);
+            float radius = mover.RadiusOf(i);
+            if (!shapeBounds.Grow(radius).HasPoint(p)) continue;
 
-            // Closest outline edge.
+            bool inside = shape.ContainsPoint(p);
+
+            // Closest outside edge of the other body.
             float bestDistance = float.MaxValue;
             int bestEdge = -1;
             float bestT = 0f;
             Vector2 bestPoint = Vector2.Zero;
-            for (int e = 0; e < outline.Length; e++)
+            for (int e = 0; e < edges.Count; e++)
             {
-                Vector2 e0 = sp[outline[e]];
-                Vector2 e1 = sp[outline[(e + 1) % outline.Length]];
+                Vector2 e0 = sp[edges[e].A];
+                Vector2 e1 = sp[edges[e].B];
                 Vector2 edge = e1 - e0;
                 float lengthSq = edge.LengthSquared();
                 float t = lengthSq < 1e-6f ? 0f : Mathf.Clamp((p - e0).Dot(edge) / lengthSq, 0f, 1f);
@@ -132,26 +135,24 @@ public partial class SoftPhysicsWorld : Node
                 }
             }
 
-            if (bestEdge < 0) continue;
+            if (bestEdge < 0 || bestDistance < 1e-4f) continue;
             if (!inside && bestDistance >= radius) continue;
 
             Vector2 normal;
             float depth;
             if (inside)
             {
-                if (bestDistance < 1e-4f) continue;
                 normal = (bestPoint - p) / bestDistance;   // out through the nearest edge
                 depth = bestDistance + radius;
             }
             else
             {
-                if (bestDistance < 1e-4f) continue;
                 normal = (p - bestPoint) / bestDistance;
                 depth = radius - bestDistance;
             }
 
-            int n0 = outline[bestEdge];
-            int n1 = outline[(bestEdge + 1) % outline.Length];
+            int n0 = edges[bestEdge].A;
+            int n1 = edges[bestEdge].B;
             float wp = mover.InvMass[i];
             float w0 = shape.InvMass[n0] * (1f - bestT);
             float w1 = shape.InvMass[n1] * bestT;
@@ -167,13 +168,13 @@ public partial class SoftPhysicsWorld : Node
 
     private static void PushWheelsApart(SoftVehicle a, SoftVehicle b)
     {
-        foreach (int ha in new[] { SoftVehicle.RearHub, SoftVehicle.FrontHub })
+        foreach (int ha in a.HubNodes)
         {
-            foreach (int hb in new[] { SoftVehicle.RearHub, SoftVehicle.FrontHub })
+            foreach (int hb in b.HubNodes)
             {
                 Vector2 d = b.Pos[hb] - a.Pos[ha];
                 float distance = d.Length();
-                float minDistance = SoftVehicle.WheelRadius * 2f;
+                float minDistance = a.RadiusOf(ha) + b.RadiusOf(hb);
                 if (distance >= minDistance || distance < 1e-4f) continue;
 
                 Vector2 n = d / distance;
@@ -183,19 +184,6 @@ public partial class SoftPhysicsWorld : Node
                 b.Pos[hb] += n * overlap * (wb / (wa + wb));
             }
         }
-    }
-
-    private static bool PointInOutline(Vector2 p, Vector2[] pos, int[] outline)
-    {
-        bool inside = false;
-        for (int i = 0, j = outline.Length - 1; i < outline.Length; j = i++)
-        {
-            Vector2 a = pos[outline[i]];
-            Vector2 b = pos[outline[j]];
-            if ((a.Y > p.Y) != (b.Y > p.Y) && p.X < (b.X - a.X) * (p.Y - a.Y) / (b.Y - a.Y) + a.X)
-                inside = !inside;
-        }
-        return inside;
     }
 
     // ---- Soft car vs loose rigid objects -----------------------------------------------------
@@ -260,7 +248,7 @@ public partial class SoftPhysicsWorld : Node
 
     private static void ResolveNodeVsObject(SoftVehicle body, int i, LooseObject obj, float dt)
     {
-        float radius = SoftVehicle.RadiusOf(i);
+        float radius = body.RadiusOf(i);
         Vector2 p = body.Pos[i];
 
         if (!ContactWithObject(p, radius, obj, out Vector2 normal, out float depth)) return;
