@@ -2,6 +2,15 @@
 
 Newest first. One entry per big decision: what, why, and what would make us revisit it.
 
+## 2026-11-12 — The Deep: a slate layer with glow crystals, and what crystals are for
+
+- **What:** below `DeepDepth` = 48 rows (12 m) under the natural ground, give or take 6 rows by noise, stone becomes **Slate** (hardness 36 vs 28, drops Stone) and caves open wider (cave threshold −0.08). After the caves are dug, slate tiles touching a cave grow **glow crystals** where a noise field passes 0.28 (inside the rock only above 0.62, as rare seams). Crystals drop the new **Crystal** material (hardness 30). The first slate row per column is saved with the world (save **GHWA**).
+- **Look:** crystals are redrawn above the underground darkness at full brightness, with an additive cyan halo that breathes and the odd sparkle; crystals still buried glow at about a third, so a seam shows through the rock. Ore inside slate is drawn cooler and darker so its stone background does not glare. A "THE DEEP" title card the first time you reach it in a session; "THE DEEP" on the status line while there.
+- **Crystal use:** the **Crystal Drill** (3 Iron + 4 Crystal, drill power 150 vs 60, cyan cone). A part made from the Deep that gets you into the Deep faster is the smallest loop that makes the new material matter. Crystals also count on the trip report's haul (worth as much as Copper).
+- **Depth record:** the deepest point reached (player or car, metres below the surface line of that column) is kept in progress.json across worlds; "NEW DEPTH RECORD" is called out at 5 m and then every 2.5 m past the last call-out, and the status line shows "Depth 9 m (best 14 m)" for the player and the car.
+- **Why:** six sessions in a row improved the surface drive; underground was still one grey rock at every depth. Terraria's and Minecraft's best underground moments are breaking into a new, different-looking layer.
+- **Revisit when:** you have played (D1): if crystals are too common (about 8,500 tiles on this seed, a hundred in view in a deep cavern) raise the 0.28 threshold; if the Deep is too far down for players on foot, lower `DeepDepth`. Next steps for the Deep are in the work log.
+
 ## 2026-11-12 — Long-jump records per kicker
 
 - **What:** a jump is measured from the kicker's crest edge to the car's centre at the first touchdown (only if the car took off within 1.2 s of crossing the crest, flew at least 0.25 s and came down at least 1.5 m out). The longest landed jump per kicker is saved with the world (GHW9) and marked by a chequered flag on the ground with the distance over it. Roof landings, nose dives, tail slams and belly flops are measured and told ("6.1 m, but it doesn't count") but never set a record. The call-out rides on the landing grade's call-out instead of adding a second one.

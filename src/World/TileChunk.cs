@@ -45,6 +45,9 @@ public partial class TileChunk : Node2D
                 int variant = Hash(tx, ty);
                 float shade = 1f - 0.3f * Mathf.Clamp(depth / 70f, 0f, 1f);
                 var tint = new Color(shade, shade, shade);
+                // Ore in the Deep sits in slate: cool and darken its stone background so it does not glare.
+                if (tile is Tile.IronOre or Tile.CopperOre or Tile.ScrapOre && ty >= World.DeepRow(tx))
+                    tint = new Color(shade * 0.62f, shade * 0.68f, shade * 0.86f);
 
                 if (tile == Tile.Air)
                 {
