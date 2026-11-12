@@ -2,6 +2,44 @@
 
 Newest entry first. Each session: what was built and why, how it was verified, what is not verified, and what comes next.
 
+## 2026-11-12, about 16:20–17:35 UTC — Air cam (PR #25, feel session)
+
+**Started by** checking for unfinished work: no open pull requests; main's build after PR #24 (run 43257455503) was running and finished green. The branches `polish/dashboard-speed-smash` and `polish/engine-gearbox` belong to old merged PRs (left alone).
+
+**Built — air cam** (`src/Game/AirCam.cs`, `WorldScene._Process`, `SoftVehicle.CenterVelocity`, bot log in `WorldScene.AirCam.cs`)
+
+- **Look-ahead on the road**: the camera aims 0.22 s of travel ahead of the car (at most 220 px, about 3.4 m), from a smoothed velocity so bumps don't wobble it. The camera now eases itself (AirCam, rate 7/s, same feel as before on foot) instead of the Camera2D's built-in smoothing, and aims an extra speed / 7 ahead to cancel its own trailing lag, so at speed the car really sits behind centre with the road ahead on screen.
+- **Big jumps**: once the car is off the ground, a ballistic arc (gravity only, from the tyres, against tiles and kicker ramps) predicts where it comes down. If the whole flight is predicted at 0.7 s or more, the camera eases toward the midpoint of car and landing and zooms out until both fit (never below 0.85), and a soft dark **shadow** sits on the ground where you will land. On touchdown it eases back in. The car is clamped to stay on screen whatever happens.
+- **Bot log / CI**: `[aircam] big air …` (predicted landing, flight time, zoom), `[aircam] touchdown …` (how far the first and last guesses were off, widest zoom, frames with the car off screen), `[aircam] driving …` (look-ahead and where the car sits on screen); `aircam_*` screenshots from the flip, rocket and long-jump runs.
+
+**Why this** — Brainstorm in `docs/IDEAS.md` (seventeenth session). In `flip_mid_47.png` and `kicker_trip_77.png` the camera sits dead on the car: on every jump half the screen is the road behind you and the landing is off the edge, and since flips you spin in the air without seeing where you come down. Air cam was #1 on the last Next list, and the previous session was a feature, so this one is feel and clarity — something a player notices in the first ten seconds of driving.
+
+**How it got there (CI runs 43258815704, 43261486743, 43263783109, all green)**
+
+1. Run 1: framing worked (rocket jumps eased out to 0.87–0.98 zoom with car and landing in view, car never off screen), but the landing guess was 1–2 m long (probed from 26 px under the body centre; the tyres touch first), the shadow was too faint to see, and at 93 km/h the Camera2D's smoothing lag (about 300 px) ate the whole look-ahead: the car sat 51 px *ahead* of centre.
+2. Run 2: probe at the tyres (44 px), a darker shadow, a lag correction — the shadow now reads clearly (`aircam_flip_69.png`), but the correction did not match Godot's smoothing, and the Deep test's teleport left the car off screen for 22 frames.
+3. Run 3: AirCam eases the camera itself, so the correction is exact, and snaps on a teleport.
+
+**Verified (run 43263783109)**
+
+- **53 big-air touchdowns** across all world runs: the last guess was off by 1.3 m on average, 36 of 53 within 1 m (the misses are bounces off kicker lips and heaps); **0 frames with the car off screen** (run 2: 22, all from the Deep test's teleport). Rocket jumps ease out to 0.87–0.98 zoom; the starter's 0.7–1 s kicker hops ease out only a little (1.45 → 1.30–1.40).
+- **Look-ahead**: starter at 39 km/h sits 165 px left of centre driving right (zoom 1.46); 20–26 km/h 100–145 px. The rocket car sits only 20–68 px behind centre at 71–100 km/h on the ground, because it is nearly always just back from a jump while the air framing eases out.
+- **Screenshots**: `aircam_rocket_146.png` and `aircam_flip_69.png` (car upper left mid-jump, landing slope and shadow in view on the right), `world_130.png` (starter at 34 km/h left of centre, the hill ahead in view).
+- **Gameplay unchanged** (the camera is not read by physics or bots): 40 s positions identical to main — starter 2209.3, left 465.7, spiked 424.9, Crystal Drill 1480.1, rocket 2552.7; Hill Climb 19.18 s / 14.08 s. No errors.
+
+**Not verified / known issues**
+
+- Feel is my judgement: whether the look-ahead is pleasant or seasick, and whether the zoom-out on big jumps feels cinematic or distracting, needs you to play (D1). Headless runs at 120 fps; at 60 fps the easing is the same (it is time-based).
+- The prediction ignores the booster and air drag, so with Shift held the shadow creeps forward during the jump (first guesses up to 9 m short on rocket jumps, last guesses within about 2 m).
+- The shadow is a flat ellipse even on a slope; it can sit slightly in the hill.
+- The drive scene (Hill Climb, `drive.tscn`) still uses the old fixed camera.
+
+**Next**
+
+1. Start-light gantry (S, IDEAS #82) or the wind-assist kicker (S, #104) so the starter car gets a flip chance.
+2. Trick goals (S, #96) / Gyro part (S, #94); the landing target ring (S, #101) now that the shadow lets you aim.
+3. Crystal Lamp (S, #64), surface lift (S–M, #68), then the first underground danger (#65 / #56, M).
+
 ## 2026-11-12, about 15:20–16:25 UTC — Merged rock it free (PR #23), then flip tricks (PR #24)
 
 **Started by** checking for unfinished work: PR #23 (rock it free) was open with its last run (43244969181) still going; it finished green at 15:24 with a playtest log matching the PR (2-tile trench out in 4.7 s with 12 rocks, Crystal Drill car's wedge free in 1.2 s, 40 s positions unchanged, no errors), so I squash-merged it (d231b47).
