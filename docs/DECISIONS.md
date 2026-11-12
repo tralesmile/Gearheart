@@ -2,6 +2,13 @@
 
 Newest first. One entry per big decision: what, why, and what would make us revisit it.
 
+## 2026-11-12 — Long-jump records per kicker
+
+- **What:** a jump is measured from the kicker's crest edge to the car's centre at the first touchdown (only if the car took off within 1.2 s of crossing the crest, flew at least 0.25 s and came down at least 1.5 m out). The longest landed jump per kicker is saved with the world (GHW9) and marked by a chequered flag on the ground with the distance over it. Roof landings, nose dives, tail slams and belly flops are measured and told ("6.1 m, but it doesn't count") but never set a record. The call-out rides on the landing grade's call-out instead of adding a second one.
+- **Why per kicker, saved with the world:** each kicker is a different jump, so one global "longest jump" would only ever be beaten on the biggest kicker; a record per kicker gives a small challenge every 30–40 m. Records belong to the kicker's place, so they live in the world file, and a new world starts with no flags.
+- **Why centre-to-crest:** simple and consistent between cars; it slightly favours long cars (their centre sits further back at take-off and lands further forward). Fine for personal records, not for comparing cars.
+- **Revisit when:** jumps are compared between players or cars (then measure the rear wheel), or if the flags clutter the road once every kicker has one.
+
 ## 2026-11-12 — Jump kickers: shape and placement
 
 - **What:** world generation raises the surface line into kickers facing away from the garage: an ease-in (one tile over three columns), then one tile every two columns (about 27°) to a crest 4–7 tiles (1.0–1.75 m) above the run-up, then a back slope of one tile every three columns down to wherever the ground is. First kicker about 23 m out on each side (shifted up to 15 m to find a good spot), then one every 26–42 m. A spot needs six level columns of run-up and ground that does not rise under the face or just past the crest. The fill below a kicker uses the natural depth, so caves, ore and stashes do not move. World save GHW8 stores the kicker list.

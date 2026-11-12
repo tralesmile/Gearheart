@@ -2,6 +2,42 @@
 
 Newest entry first. Each session: what was built and why, how it was verified, what is not verified, and what comes next.
 
+## 2026-11-12, about 09:20–09:50 UTC — Long-jump record flags (PR #17)
+
+**Started by** merging PR #16 (jump kickers) left open by the last run: its final build (run 43189928768) was green, the `[kicker]` lines matched its description and the screenshots showed the signs and kickers.
+
+**Built**
+
+- **Long jumps** (`WorldScene.MeasureLongJump`): after a take-off from a kicker's crest, the first touchdown measures how far past the crest the car came down (car centre from the crest edge). It is told with the landing grade: "LONG JUMP 4.2 m · flag planted" the first time, "… · NEW RECORD! (+2.2 m)" with a short higher-pitched fanfare when you beat the flag, "… · flag at 9.0 m" when you don't. Jumps too short to be graded (0.25–0.6 s of air) get their own call-out. Roof landings, nose dives and tail slams are measured but never count ("6.1 m, but it doesn't count").
+- **Record flags** (`src/World/JumpMarks.cs`): a chequered flag on a red-and-white pole stands on the ground where the record landed, with the distance over it (white; "RECORD 4.2 m" in gold for 4 s after a new record, the flag dropping in with a bounce and a gold ring). New art in `tools/make_art.py` (decor cells 10/11, flag flies away from the kicker; the other cells are byte-identical).
+- **Saved with the world**: world save **GHW9** stores each kicker's record (old worlds regenerate). Records are per kicker, so every kicker is its own small challenge.
+- **CI**: `[kicker] long jump` lines (distance, air, take-off speed, record / no record / botched), `[kicker] approach` lines when the car nears a kicker with a flag, `longJumps=jumps/records/longest` on `[autoplay]`, a new `--jumptest` run (plants a 2.0 m flag on the first kicker east and 9.0 m flags on the other seven, so it checks both beating and missing a record) headless and as screenshots, and `longjump_*` / `flag_*` screenshots.
+
+**Why this** — Brainstorm in `docs/IDEAS.md` (tenth session): kickers give jumps, but nothing about a jump was remembered, so the next kicker was just the next bump and there was no reason to hit one again faster. A number to beat is Hill Climb Racing's whole hook, and a flag where your best was is Trials'. It was "Next" item 1 last session, small, and turns every trip past the gate into a few personal records to chase.
+
+**Verified (CI run 43191957784, green)**
+
+- Long jumps measured in every driving run: starter 4.2 / 4.3 / 3.6 / 3.9 m (25–30 km/h, all "flag planted"); left run 4.4 and 4.5 m; Spiked Tyres left run 3.2 m and **7.6 m with a perfect landing**; rocket 5.8 and 7.0 m at 35 km/h, and a tail slam off the 187 m kicker measured 2.1 m "botched (does not count)" with records unchanged; trip test 3.2 and 8.0 m (39 km/h).
+- Jump test: approach lines for the 2.0 m and 9.0 m flags; "4.2 m … **NEW RECORD (was 2.0 m)**" on the first kicker, then "no record (best 9.0 m)" on the next three (4.3, 3.6, 3.9 m). `longJumps=4/1/4.3m` at 40 s.
+- No gameplay change: 40 s positions identical to main (starter 2189.5, drill 1473.5/97.2, left 603.2, spiked 300.1, rocket 2155.9), roll-overs the same, trip reports 259 and 443 as before, Hill Climb 18.97 s / 15.25 s. No errors.
+- Screenshots: `longjump_jump_181.png` ("LONG JUMP 4.2 m / NEW RECORD! (+2.2 m)", gold "RECORD 4.2 m" flag with its ring on the meadow back slope), `longjump_jump_263.png` ("LONG JUMP 4.3 m / flag at 9.0 m" with the white "9.0 m" flag in the dunes), `longjump_rocket_256.png` (gold "RECORD 7.0 m" flag in The Wastes).
+
+**Not verified / known issues**
+
+- Fun is my judgement. At the bot's speeds jumps are 3–8 m; a player with a run-up and the booster should do much more, so flags will spread out.
+- The `flag_*` approach screenshots are taken too early: the flag is still off-screen to the right in them (the flags do show in the `longjump_*` shots). Harmless; the screenshot offset could be later.
+- When a scrap heap sits just past a kicker's landing, its SMASH call-out can show first and the long-jump call-out replaces it a moment later (seen in `longjump_jump_257/263`). Both are readable, but it is busy.
+- The distance is measured car centre to crest, so long cars score slightly more (see DECISIONS).
+- No sound check possible; the record fanfare reuses `record` at a higher pitch.
+
+**Next**
+
+1. Trip goal "Beat a kicker record" (S) — sends trips at the flags (IDEAS #58).
+2. Perfect chain: "PERFECT x3" stacking the kick (S, #46).
+3. Slow-motion beat at the peak of a big jump or a new record (S, #59).
+4. A Wastes part: big-bore copper engine or Sand Paddles (S–M, #41), and engine sound per engine part (#54).
+5. Glow caves or a lava seam to make digging deeper exciting (M, #62/#56).
+
 ## 2026-11-12, about 08:20–09:20 UTC — Jump kickers on the road (PR #16)
 
 **Built**
