@@ -1318,7 +1318,25 @@ public partial class SoftVehicle : Node2D, IVehicle
     private VehicleInput AutoPilot()
     {
         if (AutoHandbrake) return new VehicleInput(AutoThrottle, 0f, true);
-        if (AutoTilt != 0f) return new VehicleInput(AutoThrottle, AutoTilt, false, AutoBoostNow());
+        const float tick = 1f / 120f;
+        if (AutoTilt != 0f)
+        {
+            // Digging with the nose held down: if the car is wedged (slow, the drill biting nothing)
+            // for 3 s, back out for a moment like the plain bot does.
+            if (_autoReverseTime > 0f)
+            {
+                _autoReverseTime -= tick;
+                return new VehicleInput(-AutoThrottle * 0.8f, -AutoTilt, false);
+            }
+            _autoStuckTime = Speed < 15f && !IsDrilling && AutoThrottle != 0f ? _autoStuckTime + tick : 0f;
+            if (_autoStuckTime > 3f)
+            {
+                _autoStuckTime = 0f;
+                _autoReverseTime = 1.2f;
+                GD.Print($"[autoplay] wedged while digging at x={CenterPosition.X / 16f:0.0} pitch={PitchDegrees():0}: backing out");
+            }
+            return new VehicleInput(AutoThrottle, AutoTilt, false, AutoBoostNow());
+        }
 
         float throttle = AutoThrottle;
         float tilt = 0f;
@@ -1338,7 +1356,6 @@ public partial class SoftVehicle : Node2D, IVehicle
         if (IsDrilling) throttle = Mathf.Clamp(throttle, -0.45f, 0.45f);
 
         // Stuck for 3 s without drilling: back up for a moment, then try again.
-        const float tick = 1f / 120f;
         if (_autoReverseTime > 0f)
         {
             _autoReverseTime -= tick;
