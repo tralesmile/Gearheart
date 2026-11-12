@@ -2,7 +2,7 @@
 
 Newest entry first. Each session: what was built and why, how it was verified, what is not verified, and what comes next.
 
-## 2026-11-12, about 22:24–23:30 UTC — Merged the grappling hook (PR #30), then vein runs (PR #31, polish and feel)
+## 2026-11-12, about 22:24–23:55 UTC — Merged the grappling hook (PR #30), then vein runs (PR #31, polish and feel)
 
 **Started by** checking for unfinished work: PR #30 (grappling hook) was open, its docs run (43319246575) still going. I waited for it past the usual 10 minutes (it was already in the screenshot step and the code commit before it was green); it finished green at 22:39 with `[hook]` lines matching the PR (out of the 12.0 m shaft in 2.23 s with 4 throws, the miss, the fling) and `hook_8.png` / `hook_50.png` looking right, so I squash-merged it (72194a5).
 
@@ -19,7 +19,7 @@ Newest entry first. Each session: what was built and why, how it was verified, w
 
 **Why this** — Brainstorm in `docs/IDEAS.md` (twenty-third session). The last two sessions were features (devils, hook), so this one is polish and feel, and it was the top of last session's "Next". Mining is the most repeated action in the game and gave the least back: a tile vanishes, "+1 Iron" takes over the centre of the screen. Ore already lies in blobs; a combo with a climbing sound turns "hold the mouse" into following a vein (Minecraft's vein joy, Hill Climb's coin ding), and the sparkle trail shows there is more. Felt in the first minute: the walk bot hits ore within seconds of spawning.
 
-**CI runs**: 43322687840, 43325159287 (both green), one more for the toast fix and these docs.
+**CI runs**: 43322687840, 43325159287, 43327542167 (all green), and one for this last docs edit.
 
 1. Run 1: everything worked, but the test vein ran 4 tiles down-right and the last two were out of the pickaxe's reach from the surface (the bot mined 5, x5, one bonus); "+1 Iron" in the iron tile's own brown was hard to read on dirt (`vein_13.png`).
 2. Run 2: a compact 7-tile blob and brighter pop colours (fine), but my first toast fix made long call-outs grow both ways around the box's left edge, so they sat 200 px left of centre (`vein_22.png`). Run 3 sets the box's offsets to -200..200 so it grows around the centre.
@@ -36,7 +36,7 @@ Newest entry first. Each session: what was built and why, how it was verified, w
 - Fun is my judgement (D1): whether the pops and the tink make mining feel good or busy, and whether 3 s / 3 tiles is too strict or too loose.
 - The sound is tuned by numbers only; I cannot hear it.
 - The bonus also pays while drilling (a drill run past a big vein gets about +25%). Deliberate for now; see DECISIONS.
-- The toast centring fix (run 3) changes where every long centre call-out sits; I check it in run 3's screenshots, but the docs in this commit were written before that run finished (see the PR comment / next session's entry if it was wrong).
+- The toast centring fix is checked in run 3 (43327542167): `vein_22.png` shows "VEIN RUN!" and its long second line centred on the screen; the vein test and every 40 s position were unchanged in that run.
 
 **Next**
 
