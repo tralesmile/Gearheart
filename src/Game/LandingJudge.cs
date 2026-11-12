@@ -13,16 +13,17 @@ public readonly record struct Landing(LandingGrade Grade, float Air, float AllDo
 /// <list type="bullet">
 /// <item>PERFECT: every wheel down within a blink of the first, the car matching the slope it lands on,
 /// no metal on the ground and no damage. Worth a speed kick.</item>
-/// <item>CLEAN: all wheels down and the body never touched.</item>
+/// <item>CLEAN: all wheels down within half a second, the body never touched, no real damage.</item>
 /// <item>ROUGH: anything else that ends on the wheels (a bounce, a body scrape).</item>
 /// </list>
 /// Landings on the body (roof, nose, tail) are handled by the scene from the crash event.
-/// Start it at touchdown, feed it every physics frame, and it answers once, a quarter second later.
+/// Start it at touchdown, feed it every physics frame, and it answers once, a quarter to half a second later.
 /// </summary>
 public sealed class LandingJudge
 {
     public const float MinAir = 0.6f;          // shorter hops are not judged
-    public const float Window = 0.25f;         // seconds watched after touchdown
+    public const float Window = 0.25f;         // seconds watched after touchdown before a perfect landing is called
+    public const float CleanWindow = 0.5f;     // all wheels down within this long (and no body hit) is clean
     public const float PerfectSpread = 0.12f;  // all wheels down within this long of the first
     public const float PerfectAngle = 15f;     // degrees between the car and the slope at touchdown
 
@@ -59,16 +60,18 @@ public sealed class LandingJudge
         if (_allDownAt < 0f && car.WheelsAttached > 0 && car.WheelsGrounded >= car.WheelsAttached) _allDownAt = _t;
         if (_t < Window) return null;
 
-        _judging = false;
         float damage = car.Damage - _damageAtStart;
-        LandingGrade grade =
-            _allDownAt >= 0f && _allDownAt <= PerfectSpread && _mismatch >= 0f && _mismatch <= PerfectAngle && !_bodyHit && damage < 0.5f
-                ? LandingGrade.Perfect
-                : _allDownAt >= 0f && !_bodyHit ? LandingGrade.Clean
-                : LandingGrade.Rough;
+        bool perfect = _allDownAt >= 0f && _allDownAt <= PerfectSpread && _mismatch >= 0f && _mismatch <= PerfectAngle && !_bodyHit && damage < 0.5f;
+        // Not perfect: keep watching a little longer, a tail-first landing still slaps down clean.
+        if (!perfect && _t < CleanWindow && !_bodyHit && _allDownAt < 0f) return null;
+
+        _judging = false;
+        LandingGrade grade = perfect ? LandingGrade.Perfect
+            : _allDownAt >= 0f && !_bodyHit && damage < 2f ? LandingGrade.Clean
+            : LandingGrade.Rough;
         return new Landing(grade, _air, _allDownAt, _mismatch, _bodyHit, damage);
     }
 
-    /// <summary>Extra speed for a perfect landing, in px/s: about 9 km/h after a short jump, up to about 17 km/h after a long one.</summary>
-    public static float KickFor(float air) => 160f + 70f * Mathf.Clamp(air - MinAir, 0f, 2f);
+    /// <summary>Extra speed for a perfect landing, in px/s: about 12 km/h after a short jump, up to about 21 km/h after a long one.</summary>
+    public static float KickFor(float air) => 210f + 80f * Mathf.Clamp(air - MinAir, 0f, 2f);
 }

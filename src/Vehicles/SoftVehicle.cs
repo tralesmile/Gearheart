@@ -105,9 +105,16 @@ public partial class SoftVehicle : Node2D, IVehicle
 
     /// <summary>
     /// A short shove along the way the car is already rolling (a perfect landing), in px/s.
-    /// Applied on the next physics substep; the tyres spin up with it so they do not brake it away.
+    /// Spread over <see cref="KickTime"/> seconds like a short nitro shot; the tyres spin up with it
+    /// so they do not brake it away.
     /// </summary>
-    public void Kick(float speed) => _kickPending += speed;
+    public void Kick(float speed)
+    {
+        _kickPending += speed;
+        _kickRate = _kickPending / KickTime;
+    }
+
+    public const float KickTime = 0.3f;
 
     /// <summary>Shows the driver in the cab window.</summary>
     public bool Occupied { get; set; }
@@ -190,7 +197,7 @@ public partial class SoftVehicle : Node2D, IVehicle
     private bool _selfRighting;
     private float _rightingTime;
     private bool _hopPending;
-    private float _kickPending;
+    private float _kickPending, _kickRate;
     private const float AirSpinDamping = 0.003f;   // share of spin removed per substep while airborne
     private float _autoStuckTime, _autoReverseTime;
     private int _rearHub = -1, _frontHub = -1;
@@ -535,10 +542,11 @@ public partial class SoftVehicle : Node2D, IVehicle
 
         StabiliseInAir();
         if (Boosting) ApplyBoost(dt);
-        if (_kickPending != 0f)
+        if (_kickPending > 0f)
         {
-            ApplyKick(_kickPending, dt);
-            _kickPending = 0f;
+            float add = Mathf.Min(_kickPending, _kickRate * dt);
+            _kickPending -= add;
+            ApplyKick(add, dt);
         }
         if (_hopPending)
         {
