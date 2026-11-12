@@ -30,6 +30,9 @@ public partial class WorldScene : Node2D
     private Sfx _sfx;
     private CrashFx _crashFx;
     private StashGlints _glints;
+    private RoadsidePickups _pickups;
+    private bool _canHinted;
+    private int _cansTaken, _heapsTaken, _heapsSmashed;
     private bool _glintHinted, _stashPlanted;
     private bool _crashDropped;
     private float _pickTimer;
@@ -65,6 +68,10 @@ public partial class WorldScene : Node2D
         };
         AddChild(garage);
         _garageDoor = new Vector2(garage.Position.X + Art.Garage.GetWidth(), padY - 30f);
+
+        // Fuel cans and scrap heaps along the road (drawn behind the car and the player).
+        _pickups = new RoadsidePickups { Name = "Pickups", World = _world, Focus = TileWorld.PadCenter };
+        AddChild(_pickups);
 
         _physics = new SoftPhysicsWorld { Name = "SoftPhysicsWorld", Terrain = _world, Mineable = _world };
         AddChild(_physics);
@@ -128,6 +135,7 @@ public partial class WorldScene : Node2D
 
         BuildHud();
         LogStashes();
+        LogPickups();
         GD.Print($"[world] ready: design=\"{GameSession.CurrentDesign.Name}\" autoplay={GameSession.AutoPlay} " +
                  $"player=({_player.Position.X / Ts:0},{_player.Position.Y / Ts:0}) tiles");
     }
@@ -251,6 +259,7 @@ public partial class WorldScene : Node2D
         _elapsed += dt;
         if (GameSession.AutoPlay) RunBot();
         if (_driving) TrackStunts(dt);
+        CheckPickups();
 
         _saveTimer += dt;
         if (_saveTimer > 60f)
@@ -340,6 +349,110 @@ public partial class WorldScene : Node2D
         if (GameSession.AutoPlay)
             GD.Print($"[stash] found {TileWorld.StashName(tile).ToLowerInvariant()} at ({x},{y}) depth={depth * 0.25f:0.0}m by {(_driving ? "drill" : "pickaxe")}: {items} | " +
                      $"stashesFound={GameSession.StashesFound} " + string.Join(" ", System.Array.ConvertAll(GameSession.Items, i => $"{i}={GameSession.Count(i)}")));
+    }
+
+    // ---- Roadside pickups ----------------------------------------------------------------------
+
+    /// <summary>Drive through a fuel can to top up; smash through a scrap heap (or walk into it) for its loot.</summary>
+    private void CheckPickups()
+    {
+        _pickups.Focus = Focus;
+        Rect2 box = _driving
+            ? _car.Bounds().Grow(2f)
+            : new Rect2(_player.Position - new Vector2(Player.HalfWidth, Player.HalfHeight), new Vector2(Player.HalfWidth * 2f, Player.HalfHeight * 2f));
+
+        foreach (Pickup p in _pickups.Touching(box))
+        {
+            Rect2 at = RoadsidePickups.Box(p);
+            float kmh = _driving ? _car.Speed / PixelsPerMeter * 3.6f : 0f;
+            if (p.Kind == PickupKind.FuelCan)
+            {
+                if (!_driving)
+                {
+                    if (!_canHinted && _toastTime <= 0f)
+                    {
+                        _canHinted = true;
+                        Toast("A fuel can: drive through it to top up the tank");
+                    }
+                    continue;
+                }
+                if (_car.Fuel >= _car.FuelCapacity - 0.5f) continue;   // full: leave it for later
+                float before = _car.Fuel;
+                _car.AddFuel(RoadsidePickups.FuelAmount);
+                _pickups.Take(p);
+                _cansTaken++;
+                _sfx.Play("fuel", -5f, 0.1f, 1f);
+                Burst(at.GetCenter(), new Color(1f, 0.82f, 0.3f), 14, 140f);
+                if (_toastTime < 1.2f) Toast($"+{_car.Fuel - before:0} Fuel");
+                if (GameSession.AutoPlay)
+                    GD.Print($"[pickup] fuel can at x={p.X}: fuel {before:0} -> {_car.Fuel:0}/{_car.FuelCapacity:0} at {kmh:0} km/h frame={Engine.GetFramesDrawn()}");
+                continue;
+            }
+
+            var loot = RoadsidePickups.HeapLoot(p.X);
+            foreach (var (item, amount) in loot) GameSession.Add(item, amount);
+            _pickups.Take(p);
+            _heapsTaken++;
+            string items = string.Join("   ", loot.ConvertAll(l => $"+{l.Amount} {l.Item}"));
+            bool smash = kmh > 15f;
+            Color scrap = new(0.72f, 0.75f, 0.8f);
+            if (smash)
+            {
+                // Plough through at speed: junk flies, metal crunches, the camera kicks a little.
+                _heapsSmashed++;
+                _sfx.Play("crunch", -11f, 0.1f, 1.35f);
+                _sfx.Play("pickup", -9f, 0.1f);
+                Burst(at.GetCenter(), scrap, 22, 120f + kmh * 4f, _car.Speed > 0f ? Mathf.Sign(_car.CenterPosition.X - _lastCarX) : 0f);
+                Burst(at.GetCenter(), new Color(0.3f, 0.3f, 0.34f), 8, 90f + kmh * 3f);
+                _crashFx.AddTrauma(0.12f + Mathf.Min(0.15f, kmh / 400f));
+                if (_toastTime < 1.2f) Toast($"SMASH!\n{items}");
+            }
+            else
+            {
+                _sfx.Play("pickup", -7f, 0.1f);
+                Burst(at.GetCenter(), scrap, 10, 90f);
+                if (_toastTime < 1.2f) Toast(items);
+            }
+            if (GameSession.AutoPlay)
+                GD.Print($"[pickup] scrap heap at x={p.X} {(smash ? "smashed" : "picked up")} at {kmh:0} km/h ({(_driving ? "car" : "on foot")}): {items} frame={Engine.GetFramesDrawn()} | " +
+                         string.Join(" ", System.Array.ConvertAll(GameSession.Items, i => $"{i}={GameSession.Count(i)}")));
+        }
+        _lastCarX = _car.CenterPosition.X;
+    }
+
+    private float _lastCarX;
+
+    /// <summary>A one-shot spray of bits; <paramref name="forward"/> (-1, 0 or 1) throws them ahead of the car.</summary>
+    private void Burst(Vector2 at, Color color, int amount, float speed, float forward = 0f)
+    {
+        var burst = new CpuParticles2D
+        {
+            Position = at,
+            OneShot = true, Emitting = true, Amount = amount, Lifetime = 0.8f, Explosiveness = 1f,
+            Direction = new Vector2(forward * 0.8f, -1f).Normalized(), Spread = forward == 0f ? 80f : 50f,
+            InitialVelocityMin = speed * 0.4f, InitialVelocityMax = speed, Gravity = new Vector2(0f, 600f),
+            AngularVelocityMin = -360f, AngularVelocityMax = 360f,
+            ScaleAmountMin = 2f, ScaleAmountMax = 4.5f, Color = color,
+        };
+        AddChild(burst);
+        GetTree().CreateTimer(1.2).Timeout += () =>
+        {
+            if (IsInstanceValid(burst)) burst.QueueFree();
+        };
+    }
+
+    /// <summary>Bot log: what lies along the road.</summary>
+    private void LogPickups()
+    {
+        if (!GameSession.AutoPlay) return;
+        int cans = 0, heaps = 0, nearest = int.MaxValue;
+        int garageX = (TileWorld.PadFrom + TileWorld.PadTo) / 2;
+        foreach (Pickup p in _pickups.All)
+        {
+            if (p.Kind == PickupKind.FuelCan) cans++; else heaps++;
+            nearest = Mathf.Min(nearest, Mathf.Abs(p.X - garageX));
+        }
+        GD.Print($"[pickup] road has {cans} fuel cans and {heaps} scrap heaps; nearest {nearest * 0.25f:0} m from the garage");
     }
 
     /// <summary>Bot log: how many stashes the world has and how deep they lie.</summary>
@@ -492,8 +605,11 @@ public partial class WorldScene : Node2D
                          (_car.HasDrill ? $"   X: drill {(_car.DrillEnabled ? "ON" : "OFF")}" : "") +
                          (_car.HasBooster ? "   Shift: BOOST" : "") +
                          (NearGarage() ? "   G: garage   R: repair" : "");
-            _status.Text = $"{(_car.Boosting ? "BOOST!   " : "")}{BiomeName(_car.CenterPosition.X)}   {_car.Speed / PixelsPerMeter * 3.6f:0} km/h   Fuel {_car.Fuel:0}/{_car.FuelCapacity:0}   Damage {_car.Damage:0}";
-            _status.Modulate = _car.Boosting ? new Color(1f, 0.8f, 0.4f) : Colors.White;
+            bool lowFuel = _car.Fuel < _car.FuelCapacity * 0.2f;
+            _status.Text = $"{(_car.Boosting ? "BOOST!   " : "")}{BiomeName(_car.CenterPosition.X)}   {_car.Speed / PixelsPerMeter * 3.6f:0} km/h   " +
+                           $"{(lowFuel ? "LOW FUEL " : "Fuel ")}{_car.Fuel:0}/{_car.FuelCapacity:0}   Damage {_car.Damage:0}";
+            bool blink = lowFuel && Mathf.PosMod(_elapsed, 0.8f) < 0.4f;
+            _status.Modulate = blink ? new Color(1f, 0.45f, 0.35f) : _car.Boosting ? new Color(1f, 0.8f, 0.4f) : Colors.White;
         }
         else
         {
@@ -595,7 +711,8 @@ public partial class WorldScene : Node2D
                  $"car=({c.X / Ts:0.0},{c.Y / Ts:0.0}) surfaceRow={surface} depth={(c.Y / Ts - surface) * 0.25f:0.0}m speed={_car.Speed / PixelsPerMeter * 3.6f:0}km/h pitch={_car.PitchDegrees():0} " +
                  $"fuel={_car.Fuel:0} damage={_car.Damage:0} drilling={_car.IsDrilling} boosting={_car.Boosting} boostTotal={_boostSeconds:0.0}s " +
                  $"top={_topSpeed / PixelsPerMeter * 3.6f:0}km/h longestAir={_longestAir:0.0}s " +
-                 $"crashes={_crashFx.Hits} hardest={_crashFx.HardestHit / PixelsPerMeter * 3.6f:0}km/h sparks={_crashFx.SparkBursts} | " +
+                 $"crashes={_crashFx.Hits} hardest={_crashFx.HardestHit / PixelsPerMeter * 3.6f:0}km/h sparks={_crashFx.SparkBursts} " +
+                 $"cans={_cansTaken} heaps={_heapsTaken} smashed={_heapsSmashed} | " +
                  string.Join(" ", System.Array.ConvertAll(GameSession.Items, i => $"{i}={GameSession.Count(i)}")));
     }
 }

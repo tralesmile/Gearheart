@@ -587,7 +587,57 @@ def make_decor():
     sheet.save(os.path.join(OUT, "decor.png"))
 
 
+# ---------------------------------------------------------------------------- roadside pickups
+
+PW, PH = 32, 32   # pickup cell; art sits on the bottom edge, centred
+
+
+def pickup_fuel_can(rng):
+    """A red jerry can standing upright, with a handle and a yellow cap."""
+    img = Image.new("RGBA", (PW, PH), (0, 0, 0, 0)); d = ImageDraw.Draw(img)
+    red, light, dark = (206, 52, 44), (238, 96, 80), (148, 30, 30)
+    d.rectangle([9, 12, 23, PH - 1], fill=red)
+    d.rectangle([9, 12, 10, PH - 1], fill=light); d.rectangle([22, 12, 23, PH - 1], fill=dark)
+    d.rectangle([9, PH - 2, 23, PH - 1], fill=dark)
+    d.line([(11, 16), (21, PH - 4)], fill=dark); d.line([(21, 16), (11, PH - 4)], fill=dark)       # pressed X
+    d.rectangle([12, 8, 20, 11], fill=(60, 60, 66)); d.rectangle([14, 9, 18, 10], fill=(0, 0, 0, 0))  # handle
+    d.rectangle([20, 7, 23, 11], fill=(246, 204, 60)); d.point((21, 7), fill=(255, 240, 150))        # spout cap
+    d.rectangle([12, 19, 20, 23], fill=(246, 230, 200)); d.rectangle([14, 20, 18, 22], fill=red)       # label
+    return outline(img)
+
+
+def pickup_scrap_heap(rng, tint=None, snow=False):
+    """A pile of junk: plates, a pipe, a tyre and bolts. tint shifts it to rust (desert); snow caps it."""
+    img = Image.new("RGBA", (PW, PH), (0, 0, 0, 0)); d = ImageDraw.Draw(img)
+    metal = [(150, 156, 166), (124, 130, 142), (176, 182, 192), (104, 108, 120)]
+    if tint:
+        metal = [tuple(int(c * 0.55 + t * 0.45) for c, t in zip(m, tint)) for m in metal]
+    d.polygon([(2, PH - 1), (7, PH - 9), (13, PH - 14), (20, PH - 13), (26, PH - 8), (30, PH - 1)], fill=metal[1])
+    for _ in range(9):                                                                     # plates and panels
+        x, y = rng.randrange(5, 24), rng.randrange(PH - 13, PH - 3)
+        w, h = rng.randrange(3, 7), rng.randrange(2, 4)
+        d.rectangle([x, y, x + w, y + h], fill=rng.choice(metal))
+        d.line([(x, y), (x + w, y)], fill=metal[2])
+    d.ellipse([3, PH - 11, 13, PH - 1], fill=(44, 44, 50)); d.ellipse([6, PH - 8, 10, PH - 4], fill=metal[2])  # tyre
+    d.line([(15, PH - 15), (27, PH - 6)], fill=(196, 120, 60), width=2)                    # copper pipe
+    d.line([(14, PH - 16), (17, PH - 19)], fill=metal[0], width=2)                          # bent rod sticking out
+    for x, y in ((19, PH - 5), (24, PH - 4), (17, PH - 9)):
+        d.point((x, y), fill=(232, 236, 240))                                               # bright bolts
+    if snow:
+        d.polygon([(7, PH - 9), (13, PH - 15), (20, PH - 14), (26, PH - 8), (20, PH - 10), (12, PH - 10)], fill=(240, 246, 252))
+    return outline(img)
+
+
+def make_pickups():
+    rng = random.Random(4242)
+    cells = [pickup_fuel_can(rng), pickup_scrap_heap(rng), pickup_scrap_heap(rng, tint=(170, 96, 52)), pickup_scrap_heap(rng, snow=True)]
+    sheet = Image.new("RGBA", (PW * len(cells), PH), (0, 0, 0, 0))
+    for i, c in enumerate(cells):
+        sheet.paste(c, (i * PW, 0))
+    sheet.save(os.path.join(OUT, "pickups.png"))
+
+
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
-    make_tiles(); make_player(); make_parts(); make_garage(); make_decor()
+    make_tiles(); make_player(); make_parts(); make_garage(); make_decor(); make_pickups()
     print("art written to", os.path.abspath(OUT))
