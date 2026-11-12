@@ -2,6 +2,42 @@
 
 Newest entry first. Each session: what was built and why, how it was verified, what is not verified, and what comes next.
 
+## 2026-11-12, about 06:20–07:30 UTC — Spiked Tyres and real ice (PR #14)
+
+**Built**
+
+- **Spiked Tyres** (`data/parts/parts.json`, `wheel_spiked`): 2 Scrap + 4 Iron, radius 20, mass 1.2, grip 1.0 (standard wheel 1.1) and a new `frozenGrip` of 0.9: on snow and ice the ground's grip never drops below that (plain tyres get 0.75 on snow, 0.22 on ice). A choice, not a strict upgrade. The garage shows "Snow/ice grip 0.9".
+- **Physics** (`SoftVehicle.UpdateWheel`): the grip floor is applied when `ISurfaceInfo.FrozenAt` says the ground is snow or ice. Each wheel now remembers its leftover slip, whether it is on snow/ice and whether its studs are biting, exposed as `WheelContacts` for effects.
+- **Ice spray** (`src/Game/TyreSpray.cs`): plain tyres that spin or slide on snow/ice throw a dense fan of pale ice chips; studs throw crisp white chips behind the tyre as they bite. Chips have a dark rim so they read against snow and sky.
+- **Hints**: "ICE! Your tyres can't grip / Spiked Tyres bite here (garage)" the first time plain tyres keep spinning on ice; "SPIKES BITE!" the first time studs grip on ice. Both wait until the current call-out (for example TRIP GOAL) has been read instead of being lost.
+- **Real ice** (`TileWorld.Generate`): ice patches in the Frozen North no longer need a flat column, so they run over the hills (fewer, longer patches: noise threshold 0.1 → 0.25). World save bumped to **GHW7**; old worlds regenerate.
+- **Art**: a studded tyre with a blue-steel rim in `wheels.png` cell 3 (`tools/make_art.py`; the other sheets are byte-identical).
+- **CI**: `--icetest` lays 40 m of ice (two tiles deep) just east of the garage and drives across at full throttle, logging `[ice]` lines; it runs headless and as screenshots for the starter car and the new `--design=spiked`. One more headless run drives left into the Frozen North on Spiked Tyres. `ice=`, `slip=`, `bite=` seconds are on every `[autoplay]` line.
+
+**Why this** — Brainstorm in `docs/IDEAS.md`: in `left_330.png` the north is "the same road painted white"; the ice was single tiles between ramp steps and the car drove the same everywhere, so no part was ever a reason to go somewhere. A biome-tied part that changes how the car drives was "Next" item 1 last session and overdue on the roadmap, and the trip goals now send players north.
+
+**Verified (CI runs 43168529697, 43168607017, 43169925613, 43170758076, all green)**
+
+- Ice strip, 40 m, same start: **plain tyres 7.0 s (avg 20 km/h, top 31 km/h, 2.7 s sliding, 357 ice chips)**; **Spiked Tyres 4.7 s (avg 30 km/h, top 46 km/h, 0.0 s sliding, 1.2 s biting, 80 chips)**. On the plain car the speed falls from 28 to 14–16 km/h on the ice; on spikes it holds 26–29 km/h. No damage in either.
+- "SPIKES BITE!" shows 0.3 s after the spiked car reaches the ice (`[ice] hint shown` at frame 18). In run 2 the cheers/hints were swallowed by the TRIP GOAL call-out (seen in the screenshots), which is why they now wait. The plain-tyre "ICE! Your tyres can't grip / Spiked Tyres bite here (garage)" hint did not fire in run 3 (its slip counter forgot too fast on bumpy ice); after the fix it shows 0.8 s onto the ice (frame 23, visible in `iceplain_27.png`).
+- Left run into the Frozen North, starter car: x=876 at 30 s → 560 at 40 s, 0.5 s on ice, 0.9 s sliding; it does not get stuck (the run before this change reached 583). Same run on Spiked Tyres: 649 → 368 in the same 10 s, 0 s sliding, 3.1 s biting (it also got further overall because it did not flip in the meadow this time).
+- Screenshots `iceplain_18/27.png` (thick spray at both wheels) and `icespiked_18/27.png` (studded wheels, white chips flying back) look right; `left_390.png` shows the north with snow and no single-tile ice specks.
+- Everything else unchanged: trip reports 436 and 377, Hill Climb as before, all other bot runs green.
+
+**Not verified / known issues**
+
+- Ice in the real Frozen North is still sparse near its border (0.5 s on ice in the bot's 10 s there); a set-piece frozen lake would make the part shine more (IDEAS #40).
+- Fun is my judgement: whether ice is a fun obstacle or a chore without spikes needs you to play (D1). Spike numbers are a first guess.
+- No sound for studs or sliding (I cannot listen to check it).
+
+**Next**
+
+1. Frozen lake with a kicker jump in the Frozen North (small) — a set piece where tyres matter most.
+2. A Wastes part: Sand Paddles or a big-bore engine from copper (small–medium), so each biome has its own answer.
+3. Garage: highlight parts you can afford now / "need 1 Iron" (small).
+4. Goal streak multiplier (small).
+5. Smashable props per biome (cacti, snowmen) feeding the streak (small).
+
 ## 2026-11-12, about 05:20–06:00 UTC — Trip goals (PR #13)
 
 **Built**

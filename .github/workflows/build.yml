@@ -45,7 +45,7 @@ jobs:
             name="$1"; shift
             echo "=== $name"
             timeout 300 godot --headless --path . --fixed-fps 120 "$@" > smoke.log 2>&1
-            grep -E "\[(world|autoplay|drive|race|mining|autodrive|stunt|crash|stash|pickup|speed|trip)\]" smoke.log | tail -60
+            grep -E "\[(world|autoplay|drive|race|mining|autodrive|stunt|crash|stash|pickup|speed|trip|ice)\]" smoke.log | tail -60
             # "resources still in use at exit" is a shutdown notice about cached textures and sounds, not a fault.
             if grep -E "ERROR|Unhandled exception|SCRIPT ERROR|System\.[A-Za-z]*Exception" smoke.log | grep -v "still in use at exit" | grep .; then
               echo "::error::Smoke test failed: $name"
@@ -56,10 +56,13 @@ jobs:
           run "world: walk, mine, place, then drive 30 s" res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --design=starter
           run "world: drill car tunnelling"            res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --design=driller
           run "world: drive left to the Frozen North"  res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --left --design=starter
+          run "world: drive left to the Frozen North on Spiked Tyres" res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --left --design=spiked
           run "world: rocket booster car"             res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --design=rocket
           run "world: crash test (15 m drop, then drive)" res://scenes/world.tscn --quit-after 2400 -- --fresh --autoplay --crashtest --design=starter
           run "world: buried stash test (dig up planted stashes)" res://scenes/world.tscn --quit-after 1800 -- --fresh --autoplay --stashtest --design=starter
           run "world: trip report (two out-and-back drives)" res://scenes/world.tscn --quit-after 7800 -- --fresh --autoplay --triptest --design=starter
+          run "world: ice strip, plain tyres"  res://scenes/world.tscn --quit-after 3600 -- --fresh --autoplay --icetest --design=starter
+          run "world: ice strip, spiked tyres" res://scenes/world.tscn --quit-after 3600 -- --fresh --autoplay --icetest --design=spiked
           run "garage"            res://scenes/garage.tscn --quit-after 300
           run "physics lab"       res://scenes/tests/physics_test.tscn --quit-after 600
           run "hill climb, starter car, 40 s" res://scenes/drive.tscn --quit-after 4800 -- --hillclimb --autodrive --design=starter
@@ -72,7 +75,7 @@ jobs:
         run: |
           sudo apt-get update -qq > /dev/null 2>&1 || true
           sudo apt-get install -y -qq xvfb libgl1-mesa-dri > /dev/null 2>&1 || true
-          mkdir -p shots/world shots/left shots/drill shots/rocket shots/crash shots/stash shots/trip shots/garage keep
+          mkdir -p shots/world shots/left shots/drill shots/rocket shots/crash shots/stash shots/trip shots/garage shots/iceplain shots/icespiked keep
           # Keep Godot from importing (and exporting) the thousands of movie frames: they slowed every
           # later run, bloated the game builds and flooded the job log past the playtest lines.
           touch shots/.gdignore keep/.gdignore
@@ -83,6 +86,8 @@ jobs:
           xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/crash/f.png --quit-after 200 res://scenes/world.tscn -- --fresh --autoplay --crashtest --design=starter > shots/crash.log 2>&1 || true
           xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/stash/f.png --quit-after 110 res://scenes/world.tscn -- --fresh --autoplay --stashtest --design=starter > shots/stash.log 2>&1 || true
           xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/trip/f.png --quit-after 650 res://scenes/world.tscn -- --fresh --autoplay --triptest --design=starter > shots/trip.log 2>&1 || true
+          xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/iceplain/f.png --quit-after 220 res://scenes/world.tscn -- --fresh --autoplay --icetest --design=starter > shots/iceplain.log 2>&1 || true
+          xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/icespiked/f.png --quit-after 220 res://scenes/world.tscn -- --fresh --autoplay --icetest --design=spiked > shots/icespiked.log 2>&1 || true
           xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/garage/f.png --quit-after 12 res://scenes/garage.tscn > shots/garage.log 2>&1 || true
           for run in world left drill rocket; do
             for i in 25 98 130 180 230 280 330 390; do
@@ -130,6 +135,15 @@ jobs:
                 f=$(printf "shots/$run/f%08d.png" $((n + d))); [ -f "$f" ] && cp "$f" keep/goal_done_${run}_$((n + d)).png
               done
             done
+          done
+          # Ice strip: plain vs spiked tyres, from the moment the car rolls onto the ice.
+          for run in iceplain icespiked; do
+            grep "\[ice\] onto the ice" shots/$run.log | head -1 | sed -E 's/.*frame=([0-9]+).*/\1/' | while read n; do
+              for d in 3 12 30 60 100; do
+                f=$(printf "shots/$run/f%08d.png" $((n + d))); [ -f "$f" ] && cp "$f" keep/${run}_$((n + d)).png
+              done
+            done
+            grep "\[ice\]" shots/$run.log | head -20
           done
           grep "\[trip\]" shots/trip.log | head -40
           grep "\[speed\]" shots/*.log | head -5

@@ -463,6 +463,28 @@ def wheel(radius, tread, rim_col):
     return img
 
 
+def spiked_wheel(radius):
+    """Studded winter tyre: a dark tyre with bright steel studs poking out of the tread, blue-steel rim."""
+    img = wheel(radius, 0, (120, 150, 178))
+    d = ImageDraw.Draw(img)
+    c = 56 / 2 - 0.5
+    studs = 10
+    for i in range(studs):
+        a = math.tau * (i + 0.5) / studs
+        ca, sa = math.cos(a), math.sin(a)
+        tip = (c + ca * (radius + 4.2), c + sa * (radius + 4.2))
+        base_l = (c + math.cos(a - 0.17) * (radius - 0.5), c + math.sin(a - 0.17) * (radius - 0.5))
+        base_r = (c + math.cos(a + 0.17) * (radius - 0.5), c + math.sin(a + 0.17) * (radius - 0.5))
+        d.polygon([base_l, tip, base_r], fill=(232, 238, 246), outline=(70, 78, 92))
+    for i in range(studs):                                     # tread grooves between the studs
+        a = math.tau * i / studs
+        d.line([(c + math.cos(a) * (radius - 4), c + math.sin(a) * (radius - 4)),
+                (c + math.cos(a) * (radius - 1), c + math.sin(a) * (radius - 1))], fill=(18, 18, 22), width=2)
+    rr = radius * 0.6                                          # a frosty ring on the rim
+    d.arc([c - rr + 1.5, c - rr + 1.5, c + rr - 1.5, c + rr - 1.5], 200, 320, fill=(200, 228, 246), width=1)
+    return img
+
+
 def make_parts():
     parts = [part_frame_light(), part_steel(), part_heavy(),
              part_engine((150, 96, 60), (190, 150, 110), 2), part_engine((190, 60, 44), (220, 220, 226), 3),
@@ -473,8 +495,8 @@ def make_parts():
         sheet.paste(p, (i * P, 0))
     sheet.save(os.path.join(OUT, "parts.png"))
 
-    wheels = [wheel(16, 16, (176, 182, 192)), wheel(20, 20, (200, 204, 212)), wheel(26, 14, (214, 150, 60))]
-    sheet = Image.new("RGBA", (56 * 3, 56), (0, 0, 0, 0))
+    wheels = [wheel(16, 16, (176, 182, 192)), wheel(20, 20, (200, 204, 212)), wheel(26, 14, (214, 150, 60)), spiked_wheel(20)]
+    sheet = Image.new("RGBA", (56 * len(wheels), 56), (0, 0, 0, 0))
     for i, w in enumerate(wheels):
         sheet.paste(w, (i * 56, 0))
     sheet.save(os.path.join(OUT, "wheels.png"))

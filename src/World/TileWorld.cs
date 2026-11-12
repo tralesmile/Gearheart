@@ -44,7 +44,7 @@ public sealed class TileWorld : ITerrainCollider, IMineable, ISurfaceInfo
     public const int Height = 192;
     public const int BaseSurface = 64;       // surface row at the spawn pad
     public const int PadFrom = 1258, PadTo = 1302;   // flat ground for the garage (tile columns)
-    private const uint SaveMagic = 0x36574847;   // "GHW6": bump when generation changes
+    private const uint SaveMagic = 0x37574847;   // "GHW7": bump when generation changes
 
     private readonly byte[] _tiles = new byte[Width * Height];
     private readonly int[] _surface = new int[Width];
@@ -242,6 +242,15 @@ public sealed class TileWorld : ITerrainCollider, IMineable, ISurfaceInfo
             Tile.Sand => 0.85f,
             _ => 1f,
         };
+    }
+
+    /// <summary>True on snow or ice (where studded tyres bite).</summary>
+    public bool FrozenAt(Vector2 point)
+    {
+        int tx = Mathf.FloorToInt(point.X / TileSize), ty = Mathf.FloorToInt(point.Y / TileSize);
+        Tile t = Get(tx, ty);
+        if (t == Tile.Air) t = Get(tx, ty + 1);
+        return t is Tile.Ice or Tile.Snow;
     }
 
     // ---- Changing ---------------------------------------------------------------------------
@@ -442,8 +451,9 @@ public sealed class TileWorld : ITerrainCollider, IMineable, ISurfaceInfo
             int surface = world._surface[x];
             int topDepth = 5 + (int)(rng.Randi() % 4);
             bool nearPad = x > PadFrom - 6 && x < PadTo + 6;
-            bool flat = world._surface[Mathf.Max(0, x - 1)] == surface && world._surface[Mathf.Min(Width - 1, x + 1)] == surface;
-            bool icePatch = biome == Biome.Frozen && flat && patches.GetNoise1D(x) > 0.1f;
+            // Frozen patches run over the hills too (not only flat spots), so ice is a real obstacle
+            // for plain tyres and a reason to fit Spiked Tyres.
+            bool icePatch = biome == Biome.Frozen && patches.GetNoise1D(x) > 0.25f;
 
             for (int y = surface; y < Height; y++)
             {
