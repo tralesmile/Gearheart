@@ -77,8 +77,8 @@ public partial class Sfx : Node
         SetLoop(_engine, driving, -17f + 7f * Mathf.Abs(throttle), 0.75f + Mathf.Min(1.5f, speed / 380f) + 0.3f * Mathf.Abs(throttle));
         SetLoop(_drill, driving && drilling, -14f, 1f);
 
-        // Wind rushing past: silent below about 40 km/h, a loud whoosh near top speed.
-        float wind = Mathf.Clamp((speed / 64f * 3.6f - 40f) / 60f, 0f, 1f);
+        // Wind rushing past: silent below about 30 km/h, a loud whoosh near top speed.
+        float wind = Mathf.Clamp((speed / 64f * 3.6f - 30f) / 45f, 0f, 1f);
         WindLevel = wind;
         SetLoop(_wind, driving && wind > 0f, Mathf.LinearToDb(Mathf.Max(0.001f, wind)) - 9f, 0.8f + 0.5f * wind);
     }

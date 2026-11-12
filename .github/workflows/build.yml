@@ -45,7 +45,7 @@ jobs:
             name="$1"; shift
             echo "=== $name"
             timeout 300 godot --headless --path . --fixed-fps 120 "$@" > smoke.log 2>&1
-            grep -E "\[(world|autoplay|drive|race|mining|autodrive|stunt|crash|stash|pickup)\]" smoke.log | tail -60
+            grep -E "\[(world|autoplay|drive|race|mining|autodrive|stunt|crash|stash|pickup|speed)\]" smoke.log | tail -60
             # "resources still in use at exit" is a shutdown notice about cached textures and sounds, not a fault.
             if grep -E "ERROR|Unhandled exception|SCRIPT ERROR|System\.[A-Za-z]*Exception" smoke.log | grep -v "still in use at exit" | grep .; then
               echo "::error::Smoke test failed: $name"
@@ -104,6 +104,15 @@ jobs:
               done
             done
           done
+          # Speed streaks: the frame where they first pass 0.6, and a moment later.
+          for run in world left rocket; do
+            grep "\[speed\] streaks" shots/$run.log | head -1 | sed -E 's/.*frame=([0-9]+).*/\1/' | while read n; do
+              for d in 0 4; do
+                f=$(printf "shots/$run/f%08d.png" $((n + d))); [ -f "$f" ] && cp "$f" keep/speed_${run}_$((n + d)).png
+              done
+            done
+          done
+          grep "\[speed\]" shots/*.log | head -5
           grep "\[pickup\]" shots/world.log | head -8
           for i in 28 32 36 40 45 50 60 75 95; do
             f=$(printf "shots/stash/f%08d.png" $i); [ -f "$f" ] && cp "$f" keep/stash_$i.png

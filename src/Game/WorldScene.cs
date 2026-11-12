@@ -36,10 +36,13 @@ public partial class WorldScene : Node2D
     private int _smashStreak, _bestStreak;
     private float _lastSmashAt = -99f;
     private bool _smashToast;
-    private const float StreakWindow = 4f;     // seconds between smashes that still chain
+    private const float StreakWindow = 2.5f;     // seconds between smashes that still chain
     private Dashboard _dash;
     private SpeedLines _lines;
     private float _carDir = 1f, _dirCarX;
+    private float _peakLines;
+    private bool _linesLogged, _wasRighting;
+    private int _rollOvers;
     private bool _glintHinted, _stashPlanted;
     private bool _crashDropped;
     private float _pickTimer;
@@ -429,8 +432,11 @@ public partial class WorldScene : Node2D
                 Burst(at.GetCenter(), scrap, 22 + 4 * (int)rise, 120f + kmh * 4f, _car.Speed > 0f ? Mathf.Sign(_car.CenterPosition.X - _lastCarX) : 0f);
                 Burst(at.GetCenter(), new Color(0.3f, 0.3f, 0.34f), 8, 90f + kmh * 3f);
                 _crashFx.AddTrauma(0.12f + Mathf.Min(0.15f, kmh / 400f) + 0.03f * rise);
-                _car.Slow(HeapKeep);
-                kmhAfter = kmh * HeapKeep;
+                if (!_car.Airborne)   // slowing a car in mid-air would wreck its jump
+                {
+                    _car.Slow(HeapKeep);
+                    kmhAfter = kmh * HeapKeep;
+                }
                 if (_toastTime < 1.2f || _smashToast)
                 {
                     Toast(_smashStreak > 1 ? $"SMASH x{_smashStreak}!\n{items}" : $"SMASH!\n{items}");
@@ -656,6 +662,12 @@ public partial class WorldScene : Node2D
             _dash.Visible = true;
             _dash.Set(kmh, _car.Fuel, _car.FuelCapacity, _car.Damage, _car.Boosting);
             _lines.Set(kmh, _carDir, _car.Boosting);
+            _peakLines = Mathf.Max(_peakLines, _lines.Intensity);
+            if (GameSession.AutoPlay && !_linesLogged && _lines.Intensity > 0.6f)
+            {
+                _linesLogged = true;
+                GD.Print($"[speed] streaks at {_lines.Intensity:0.00} at {kmh:0} km/h, wind {_sfx.WindLevel:0.00}, boosting={_car.Boosting} frame={Engine.GetFramesDrawn()}");
+            }
         }
         else
         {
@@ -683,6 +695,13 @@ public partial class WorldScene : Node2D
     private void TrackStunts(float dt)
     {
         if (_car.Boosting) _boostSeconds += dt;
+        if (_car.SelfRighting != _wasRighting)
+        {
+            _wasRighting = _car.SelfRighting;
+            if (!_wasRighting) _rollOvers++;
+            if (GameSession.AutoPlay)
+                GD.Print($"[stunt] {(_wasRighting ? "upside down: car starts rocking itself over" : "back on its wheels")} at x={_car.CenterPosition.X / Ts:0} pitch={_car.PitchDegrees():0}");
+        }
         _topSpeed = Mathf.Max(_topSpeed, _car.Speed);
 
         if (_car.Airborne)
@@ -761,7 +780,7 @@ public partial class WorldScene : Node2D
                  $"top={_topSpeed / PixelsPerMeter * 3.6f:0}km/h longestAir={_longestAir:0.0}s " +
                  $"crashes={_crashFx.Hits} hardest={_crashFx.HardestHit / PixelsPerMeter * 3.6f:0}km/h sparks={_crashFx.SparkBursts} " +
                  $"cans={_cansTaken} heaps={_heapsTaken} smashed={_heapsSmashed} bestStreak={_bestStreak} " +
-                 $"dash={(_dash.Visible ? $"{_dash.ShownKmh:0}km/h" : "hidden")} lines={_lines.Intensity:0.00} wind={_sfx.WindLevel:0.00} | " +
+                 $"dash={(_dash.Visible ? $"{_dash.ShownKmh:0}km/h" : "hidden")} lines={_lines.Intensity:0.00} peakLines={_peakLines:0.00} wind={_sfx.WindLevel:0.00} rollOvers={_rollOvers} | " +
                  string.Join(" ", System.Array.ConvertAll(GameSession.Items, i => $"{i}={GameSession.Count(i)}")));
     }
 }

@@ -3,13 +3,13 @@ using Godot;
 namespace Gearheart.Game;
 
 /// <summary>
-/// Wind streaks across the screen at speed: nothing below about 50 km/h, then more, longer and faster
+/// Wind streaks across the screen at speed: nothing below about 35 km/h, then more, longer and faster
 /// streaks the faster you go, warm-tinted while the booster fires. They are kept away from the middle
 /// of the screen (where the car is) and drawn under the HUD text. Feed it every frame with <see cref="Set"/>.
 /// </summary>
 public partial class SpeedLines : Control
 {
-    public const float StartKmh = 50f, FullKmh = 95f;
+    public const float StartKmh = 35f, FullKmh = 70f;
     private const int Count = 46;
 
     private readonly Vector2[] _pos = new Vector2[Count];
