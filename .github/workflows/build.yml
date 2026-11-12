@@ -57,6 +57,7 @@ jobs:
             grep "\[aircam\]" smoke.log | head -30
             grep "\[turbo\]" smoke.log | head -14
             grep "\[night\]" smoke.log | head -24
+            grep "\[birds\]" smoke.log | head -14
             # "resources still in use at exit" is a shutdown notice about cached textures and sounds, not a fault.
             if grep -E "ERROR|Unhandled exception|SCRIPT ERROR|System\.[A-Za-z]*Exception" smoke.log | grep -v "still in use at exit" | grep .; then
               echo "::error::Smoke test failed: $name"
@@ -240,6 +241,16 @@ jobs:
             done
           done
           f=$(ls shots/garage/*.png 2>/dev/null | tail -1); [ -n "$f" ] && cp "$f" keep/garage.png
+          # Birds: the garage-roof sparrows flushed by the engine start, and the first flocks along the road
+          # (sparrows, Wastes crows, snow buntings) just before, during and after they take off.
+          for run in world left rocket; do
+            (grep "\[birds\] scatter" shots/$run.log | head -4; grep "\[birds\] scatter: crows" shots/$run.log | head -1) | sed -E 's/.*frame=([0-9]+).*/\1/' | while read n; do
+              for d in -2 3 8; do
+                f=$(printf "shots/$run/f%08d.png" $((n + d))); [ -f "$f" ] && cp "$f" keep/birds_${run}_$((n + d)).png
+              done
+            done
+            grep "\[birds\]" shots/$run.log | head -10
+          done
           # Crash frames: the frame of each of the first hits (from "[crash] ... frame=N") and the next two.
           for run in crash rocket; do
             grep "\[crash\] hit" shots/$run.log | head -4 | sed -E 's/.*frame=([0-9]+).*/\1/' | while read n; do

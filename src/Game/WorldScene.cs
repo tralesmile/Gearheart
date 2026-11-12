@@ -199,6 +199,7 @@ public partial class WorldScene : Node2D
         _sfx = new Sfx { Name = "Sfx" };
         AddChild(_sfx);
         _player.Placed += () => _sfx.Play("place");
+        SetupBirds(garage.Position);
         _crashFx.Camera = _camera;
         _crashFx.Sfx = _sfx;
         _crashFx.Toast = text =>
@@ -293,6 +294,9 @@ public partial class WorldScene : Node2D
             case Key.R:
                 if (_driving || NearCar()) Toast(NearGarageCar() ? RepairCar() : "Bring the car to the garage to repair it");
                 break;
+            case Key.H:
+                if (_driving) Honk();
+                break;
             case Key.X:
                 if (_driving)
                 {
@@ -335,6 +339,7 @@ public partial class WorldScene : Node2D
         if (GameSession.AutoPlay) _car.DrillEnabled = true;
         _car.AutoBoost = GameSession.AutoPlay && _car.HasBooster;
         _sfx.StartEngine(_car.EngineSound);
+        _birds?.Startle(_car.CenterPosition, EngineStartReach, "engine");
         _enteredAt = _elapsed;
         _stallLines = 0;
         if (GameSession.AutoPlay)
@@ -594,6 +599,7 @@ public partial class WorldScene : Node2D
         _crystals.Darkness = under;
         UpdateDepth(focus);
         _marks.Focus = focus;
+        UpdateBirds(focus);
         if (!_glintHinted && _glints.Nearest < 230f && _toastTime <= 0f)
         {
             _glintHinted = true;
@@ -660,6 +666,7 @@ public partial class WorldScene : Node2D
     private void OnTileBroken(int x, int y, Tile tile)
     {
         _sfx?.Play("break", -9f, 0.06f);
+        _birds?.Startle(new Vector2((x + 0.5f) * Ts, (y + 0.5f) * Ts), 160f, "dig");
         Puff(x, y, tile);
         if (TileWorld.IsStash(tile))
         {
@@ -1010,7 +1017,7 @@ public partial class WorldScene : Node2D
         {
             _hint.Text = (_car.Stuck ? "STUCK! Tap Q, E, Q, E to rock it free (keep the throttle on)   "
                           : _car.Speed < 60f && !_car.Airborne ? "Hold Space + D, let go in the green: PERFECT START   " : "") +
-                         "A/D: drive   Q/E: tilt (also rolls you back over)   Space: handbrake   F: get out" +
+                         "A/D: drive   Q/E: tilt (also rolls you back over)   Space: handbrake   H: horn   F: get out" +
                          (_car.HasDrill ? $"   X: drill {(_car.DrillEnabled ? "ON" : "OFF")}" : "") +
                          (_car.HasBooster ? "   Shift: BOOST" : "") +
                          (NearGarage() ? "   G: garage   R: repair" : "");
@@ -1567,6 +1574,7 @@ public partial class WorldScene : Node2D
     /// <summary>The body slammed into the ground. After a real jump that is a botched landing with a name.</summary>
     private void OnCarCrash(CrashEvent e)
     {
+        if (_driving) _birds?.Startle(e.Point, 600f, "crash");
         if (!e.BodyHit || !_driving) return;
         _judge.NoteBodyHit();
         _bodyHitTick = true;
@@ -1853,6 +1861,7 @@ public partial class WorldScene : Node2D
         if (GameSession.FlipTest) RunFlipBot();
         UpdateWatch();
         LogStall();
+        RunHornBot();
 
         if (!_driving && !GameSession.CrashTest && !GameSession.TripTest && !GameSession.IceTest && !GameSession.DeepTest && !GameSession.LaunchTest && !GameSession.RockTest && !GameSession.FlipTest)
         {
@@ -1903,7 +1912,7 @@ public partial class WorldScene : Node2D
                  $"top={_topSpeed / PixelsPerMeter * 3.6f:0}km/h longestAir={_longestAir:0.0}s landings={_perfectLandings}/{_cleanLandings}/{_roughLandings}/{_flops} kickers={_kickerJumps}/{_kickerLaunches} longJumps={_longJumps}/{_jumpRecords}/{_longestJump:0.0}m " +
                  $"crashes={_crashFx.Hits} hardest={_crashFx.HardestHit / PixelsPerMeter * 3.6f:0}km/h sparks={_crashFx.SparkBursts} " +
                  $"cans={_cansTaken} heaps={_heapsTaken} smashed={_heapsSmashed} bestStreak={_bestStreak} " +
-                 $"dash={(_dash.Visible ? $"{_dash.ShownKmh:0}km/h" : "hidden")} lines={_lines.Intensity:0.00} peakLines={_peakLines:0.00} wind={_sfx.WindLevel:0.00} gear={_car.Gearbox.Gear}/{_car.Gearbox.Gears} revs={_car.Gearbox.Rpm:0.00} enginePitch={_sfx.LastEnginePitch:0.00} shifts={_car.Gearbox.Upshifts}/{_car.Gearbox.Downshifts} topGear={_car.Gearbox.TopGear} limiter={_car.Gearbox.Limiter} pops={_car.Backfires} turbo={(_car.HasTurbo ? $"peak {_car.TurboPeak:0.00} full {_car.TurboFullSeconds:0.0}s blowoffs {_car.TurboBlowOffs} now {_car.TurboBoost:0.00}" : "none")} starts={_perfectStarts}/{_goodStarts}/{_boggedStarts} sprints={_sprintsRun} sprintBest={GameSession.SprintBest:0.00} stuck={_stuckCount} rocks={_car.RockPulses} rockedFree={_rockFrees} longestStuck={_longestStuck:0.0}s flips={_backflips}/{_frontflips}/{_flipsCrashed} maxAirRot={_maxAirRot:0} rollOvers={_rollOvers} ice={_spray.IceSeconds:0.0}s slip={_spray.SlipSeconds:0.0}s bite={_spray.BiteSeconds:0.0}s trip={tripNow} reports={_tripsReported} deepest={_deepestThisRun:0.0}m crystalsMined={_crystalsMined} card={(_card.Showing ? _card.ShownScore.ToString() : "hidden")} {NightSummary()} | " +
+                 $"dash={(_dash.Visible ? $"{_dash.ShownKmh:0}km/h" : "hidden")} lines={_lines.Intensity:0.00} peakLines={_peakLines:0.00} wind={_sfx.WindLevel:0.00} gear={_car.Gearbox.Gear}/{_car.Gearbox.Gears} revs={_car.Gearbox.Rpm:0.00} enginePitch={_sfx.LastEnginePitch:0.00} shifts={_car.Gearbox.Upshifts}/{_car.Gearbox.Downshifts} topGear={_car.Gearbox.TopGear} limiter={_car.Gearbox.Limiter} pops={_car.Backfires} turbo={(_car.HasTurbo ? $"peak {_car.TurboPeak:0.00} full {_car.TurboFullSeconds:0.0}s blowoffs {_car.TurboBlowOffs} now {_car.TurboBoost:0.00}" : "none")} starts={_perfectStarts}/{_goodStarts}/{_boggedStarts} sprints={_sprintsRun} sprintBest={GameSession.SprintBest:0.00} stuck={_stuckCount} rocks={_car.RockPulses} rockedFree={_rockFrees} longestStuck={_longestStuck:0.0}s flips={_backflips}/{_frontflips}/{_flipsCrashed} maxAirRot={_maxAirRot:0} rollOvers={_rollOvers} ice={_spray.IceSeconds:0.0}s slip={_spray.SlipSeconds:0.0}s bite={_spray.BiteSeconds:0.0}s trip={tripNow} reports={_tripsReported} deepest={_deepestThisRun:0.0}m crystalsMined={_crystalsMined} card={(_card.Showing ? _card.ShownScore.ToString() : "hidden")} {NightSummary()} {BirdSummary()} | " +
                  string.Join(" ", System.Array.ConvertAll(GameSession.Items, i => $"{i}={GameSession.Count(i)}")));
     }
 }

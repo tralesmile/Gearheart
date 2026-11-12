@@ -794,7 +794,59 @@ def make_pickups():
     sheet.save(os.path.join(OUT, "pickups.png"))
 
 
+# ---------------------------------------------------------------------------- birds
+
+BW, BH = 16, 16   # bird cell; a perched bird stands on the bottom edge, facing right
+
+BIRDS = {
+    # body, belly, wing, head, beak, eye
+    "sparrow": ((150, 104, 64), (224, 198, 152), (104, 70, 42), (118, 78, 48), (232, 180, 64), (20, 16, 14)),
+    "crow":    ((46, 46, 56), (66, 66, 78), (30, 30, 38), (40, 40, 50), (96, 96, 104), (236, 222, 120)),
+    "bunting": ((236, 240, 246), (252, 252, 252), (42, 46, 56), (226, 206, 170), (62, 62, 72), (20, 16, 14)),
+}
+
+
+def bird_frame(kind, pose):
+    """pose: sit, peck, up (wings raised in flight), down (wings beating down)."""
+    body, belly, wing, head, beak, eye = BIRDS[kind]
+    img = Image.new("RGBA", (BW, BH), (0, 0, 0, 0)); d = ImageDraw.Draw(img)
+    if pose in ("sit", "peck"):
+        d.polygon([(1, 7), (5, 9), (5, 11), (2, 10)], fill=wing)                       # tail, tipped up
+        d.ellipse([3, 7, 11, 13], fill=body)                                           # body
+        d.ellipse([5, 10, 10, 13], fill=belly)                                         # belly
+        d.polygon([(4, 9), (9, 8), (8, 11), (5, 11)], fill=wing)                       # folded wing
+        d.line([(7, 13), (7, 15)], fill=(70, 50, 36)); d.line([(9, 13), (9, 15)], fill=(70, 50, 36))   # legs
+        if pose == "sit":
+            d.ellipse([9, 4, 13, 8], fill=head); d.point((12, 5), fill=eye)
+            d.polygon([(13, 6), (15, 6), (13, 7)], fill=beak)
+        else:   # head down to the ground
+            d.ellipse([10, 8, 14, 12], fill=head); d.point((13, 9), fill=eye)
+            d.polygon([(13, 11), (15, 13), (13, 12)], fill=beak)
+    else:
+        d.polygon([(0, 7), (4, 8), (4, 10), (0, 10)], fill=wing)                       # tail, spread
+        d.ellipse([3, 7, 11, 11], fill=body)
+        d.ellipse([5, 9, 10, 11], fill=belly)
+        d.ellipse([9, 5, 13, 9], fill=head); d.point((12, 6), fill=eye)
+        d.polygon([(13, 7), (15, 7), (13, 8)], fill=beak)
+        if pose == "up":
+            d.polygon([(5, 8), (9, 8), (8, 1), (3, 2)], fill=wing)
+            d.line([(4, 2), (8, 1)], fill=belly if kind == "bunting" else wing)
+        else:
+            d.polygon([(5, 9), (9, 9), (7, 15), (3, 14)], fill=wing)
+    return outline(img)
+
+
+def make_birds():
+    poses = ("sit", "peck", "up", "down")
+    kinds = ("sparrow", "crow", "bunting")
+    sheet = Image.new("RGBA", (BW * len(poses), BH * len(kinds)), (0, 0, 0, 0))
+    for r, k in enumerate(kinds):
+        for c, pose in enumerate(poses):
+            sheet.paste(bird_frame(k, pose), (c * BW, r * BH))
+    sheet.save(os.path.join(OUT, "birds.png"))
+
+
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
-    make_tiles(); make_player(); make_parts(); make_garage(); make_decor(); make_pickups()
+    make_tiles(); make_player(); make_parts(); make_garage(); make_decor(); make_pickups(); make_birds()
     print("art written to", os.path.abspath(OUT))

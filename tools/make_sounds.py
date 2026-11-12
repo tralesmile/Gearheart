@@ -382,6 +382,70 @@ def crickets():
     return s
 
 
+bird_rng = np.random.default_rng(521)   # own stream for the birds and the horn
+
+
+def flutter():
+    """A flock taking off: a burst of wing beats (soft clicks of filtered noise at about 16 a second,
+    several birds out of step) that thins out over 0.7 s."""
+    n = int(SR * 0.75); t = np.arange(n) / SR
+    s = np.zeros(n)
+    for bird in range(4):
+        rate = 14 + 5 * bird_rng.random()
+        start = 0.03 * bird + 0.04 * bird_rng.random()
+        k = 0
+        while True:
+            t0 = start + k / rate
+            if t0 > 0.7: break
+            beat = np.where((t >= t0) & (t < t0 + 0.035), 1.0, 0.0)
+            env = beat * np.exp(-(t - t0) * 70) * np.exp(-t * 2.2)
+            s += env * lowpass(bird_rng.standard_normal(n), 5) * (0.7 + 0.3 * bird_rng.random())
+            k += 1
+    return s
+
+
+def chirp():
+    """Two quick sparrow chirps: short whistles sweeping down from about 5.5 to 3.5 kHz."""
+    n = int(SR * 0.32); t = np.arange(n) / SR
+    s = np.zeros(n)
+    for t0, f0, f1, ln in ((0.0, 5600, 3600, 0.07), (0.13, 6000, 4000, 0.09)):
+        local = t - t0
+        on = (local >= 0) & (local < ln)
+        f = f0 + (f1 - f0) * np.clip(local / ln, 0, 1)
+        phase = 2 * np.pi * np.cumsum(f) / SR
+        s += np.where(on, np.sin(np.pi * np.clip(local / ln, 0, 1)) ** 1.5, 0.0) * np.sin(phase)
+    return s
+
+
+def caw():
+    """A crow's caw, twice: a hoarse buzz around 600 Hz that sags in pitch, with breath noise."""
+    n = int(SR * 0.62); t = np.arange(n) / SR
+    s = np.zeros(n)
+    for t0, ln in ((0.0, 0.24), (0.33, 0.26)):
+        local = t - t0
+        on = (local >= 0) & (local < ln)
+        x = np.clip(local / ln, 0, 1)
+        f = 640 - 140 * x
+        phase = 2 * np.pi * np.cumsum(f) / SR
+        saw = 2 * (phase / (2 * np.pi) % 1.0) - 1
+        env = np.where(on, np.minimum(1, x * 12) * (1 - x) ** 0.6, 0.0)
+        s += env * (lowpass(saw, 4) + 0.35 * lowpass(bird_rng.standard_normal(n), 3))
+    return s
+
+
+def horn():
+    """A car horn: two reedy tones a third apart (about 410 and 515 Hz), square-ish and a bit nasal, 0.5 s."""
+    n = int(SR * 0.5); t = np.arange(n) / SR
+    s = np.zeros(n)
+    for f, g in ((410, 1.0), (515, 0.85)):
+        wob = 1 + 0.004 * np.sin(2 * np.pi * 6 * t)
+        phase = 2 * np.pi * f * np.cumsum(wob) / SR
+        s += g * np.tanh(3.0 * np.sin(phase))
+    s = lowpass(s, 3)
+    env = np.minimum(1, t / 0.015) * np.minimum(1, (0.5 - t) / 0.06)
+    return s * env
+
+
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
     save("engine", engine(), 0.7)
@@ -409,4 +473,8 @@ if __name__ == "__main__":
     save("turbo", turbo(), 0.5)
     save("blowoff", tail_fade(blowoff(), 60), 0.6)
     save("crickets", crickets(), 0.35)
+    save("flutter", tail_fade(flutter(), 60), 0.6)
+    save("chirp", tail_fade(chirp(), 20), 0.45)
+    save("caw", tail_fade(caw(), 40), 0.55)
+    save("horn", tail_fade(horn(), 20), 0.6)
     print("sounds written to", os.path.abspath(OUT))
