@@ -522,6 +522,19 @@ def clank():
     return s
 
 
+def vein():
+    """One ore of a vein run: a bright glassy 'tink' (a struck bar: fundamental plus the inharmonic
+    partials of a xylophone bar), short so the climbing notes of a run stay crisp. Deterministic:
+    uses no random stream, so every older sound stays byte-identical."""
+    n = int(SR * 0.32); t = np.arange(n) / SR
+    f = 1318.5   # E6; the game pitches it up a major scale as the run grows
+    s = np.sin(2 * np.pi * f * t) * np.exp(-t * 14)
+    s += 0.45 * np.sin(2 * np.pi * f * 2.76 * t) * np.exp(-t * 32)
+    s += 0.2 * np.sin(2 * np.pi * f * 5.40 * t) * np.exp(-t * 60)
+    s += 0.35 * np.sin(2 * np.pi * f * 0.5 * t) * np.exp(-t * 22)     # a little body under it
+    return s * (1 - np.exp(-t * 2500))
+
+
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
     save("engine", engine(), 0.7)
@@ -557,4 +570,5 @@ if __name__ == "__main__":
     save("gust", tail_fade(gust(), 60), 0.6)
     save("hook", tail_fade(hook(), 30), 0.55)
     save("clank", tail_fade(clank(), 40), 0.6)
+    save("vein", tail_fade(vein(), 30), 0.5)
     print("sounds written to", os.path.abspath(OUT))

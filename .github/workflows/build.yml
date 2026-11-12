@@ -60,6 +60,7 @@ jobs:
             grep "\[birds\]" smoke.log | head -14
             grep "\[devil\]" smoke.log | head -30
             grep "\[hook\]" smoke.log | head -40
+            grep "\[vein\]" smoke.log | head -40
             # "resources still in use at exit" is a shutdown notice about cached textures and sounds, not a fault.
             if grep -E "ERROR|Unhandled exception|SCRIPT ERROR|System\.[A-Za-z]*Exception" smoke.log | grep -v "still in use at exit" | grep .; then
               echo "::error::Smoke test failed: $name"
@@ -71,6 +72,7 @@ jobs:
           run "world: drill car tunnelling"            res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --design=driller
           run "world: Crystal Drill car tunnelling (same route as the drill car)" res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --design=crystal
           run "world: grappling hook (climb out of a 12 m shaft with the hook alone, then a throw into the sky)" res://scenes/world.tscn --quit-after 2400 -- --fresh --autoplay --hooktest --design=starter
+          run "world: vein run (a buried 7-tile iron vein mined as one run, then a lone scrap tile after it goes cold)" res://scenes/world.tscn --quit-after 2400 -- --fresh --autoplay --veintest --design=starter
           run "world: the Deep (on foot in a crystal cavern, dig out crystals)" res://scenes/world.tscn --quit-after 3600 -- --fresh --autoplay --deeptest --design=starter
           run "world: drive left to the Frozen North"  res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --left --design=starter
           run "world: drive left to the Frozen North on Spiked Tyres" res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --left --design=spiked
@@ -284,6 +286,13 @@ jobs:
             f=$(printf "shots/hook/f%08d.png" $i); [ -f "$f" ] && cp "$f" keep/hookrun_$i.png
           done
           grep "\[hook\]" shots/hook.log | head -30
+          # Vein run: frames just after each ore of the buried vein breaks (pops, VEIN xN, the bonus, sparkles).
+          mkdir -p shots/vein
+          xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/vein/f.png --quit-after 180 res://scenes/world.tscn -- --fresh --autoplay --veintest --design=starter > shots/vein.log 2>&1 || true
+          grep "\[vein\] Iron at" shots/vein.log | head -8 | sed -E 's/.*frame=([0-9]+).*/\1/' | while read n; do
+            f=$(printf "shots/vein/f%08d.png" $((n + 2))); [ -f "$f" ] && cp "$f" keep/vein_$((n + 2)).png
+          done
+          grep "\[vein\]" shots/vein.log | head -30
           # Crash frames: the frame of each of the first hits (from "[crash] ... frame=N") and the next two.
           for run in crash rocket; do
             grep "\[crash\] hit" shots/$run.log | head -4 | sed -E 's/.*frame=([0-9]+).*/\1/' | while read n; do
