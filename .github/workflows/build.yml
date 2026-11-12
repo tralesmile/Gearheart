@@ -72,6 +72,9 @@ jobs:
           sudo apt-get update -qq > /dev/null 2>&1 || true
           sudo apt-get install -y -qq xvfb libgl1-mesa-dri > /dev/null 2>&1 || true
           mkdir -p shots/world shots/left shots/drill shots/rocket shots/crash shots/stash shots/garage keep
+          # Keep Godot from importing (and exporting) the thousands of movie frames: they slowed every
+          # later run, bloated the game builds and flooded the job log past the playtest lines.
+          touch shots/.gdignore keep/.gdignore
           xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/world/f.png --quit-after 400 res://scenes/world.tscn -- --fresh --autoplay --design=starter > shots/world.log 2>&1 || true
           xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/left/f.png --quit-after 400 res://scenes/world.tscn -- --fresh --autoplay --left --design=starter > shots/left.log 2>&1 || true
           xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/drill/f.png --quit-after 400 res://scenes/world.tscn -- --fresh --autoplay --design=driller > shots/drill.log 2>&1 || true

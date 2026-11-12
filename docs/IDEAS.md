@@ -11,19 +11,34 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 1 | Rocket Booster part (Shift for thrust) | S | **Built 2026-11-11** (PR #7) |
 | 2 | Stunt callouts: "BIG AIR 1.4 s" toasts for long jumps | S | **Built 2026-11-11** with the booster |
 | 3 | Crash juice: screen shake, sparks, dust and a metal crunch on hard hits | S | **Built 2026-11-12** (PR #8) |
-| 4 | Landing grades: "CLEAN LANDING" bonus vs "BELLY FLOP" when you land on the roof, feeding a trip score | S | Open |
-| 5 | Buried treasure: rare chests / wrecked cars deep underground with a bundle of ore or a rare part | S–M | Open |
-| 6 | Fuel cans and scrap piles lying on the surface between biomes, so the drive is not empty | S | Open |
-| 7 | Damage that bites: hard landings dent the car for real (yield limits are so high the bot never takes damage), with visible bent panels and smoke from a hurt engine | S–M | Open |
-| 8 | Part unlocks per biome: off-road tracks/spiked tyres for snow and ice, need iron from the Frozen North | M | Open |
-| 9 | Ramps and natural jumps (cliff lips, dune crests) placed by world generation | S | Open |
-| 10 | Day and night cycle with the headlight mattering at night | M | Open |
-| 11 | Delivery jobs at the garage ("bring 10 copper back": pays a part) for a reason to make a trip | M | Open |
-| 12 | Trip summary card when you get back to the garage: distance, top speed, best air, ore, crashes | S | Open |
-| 13 | Ghost of your best hill-climb run to race against | S–M | Open |
-| 14 | Raiders in The Wastes: a bot car that rams you | L | Open (split: dumb rammer → shooting → loot) |
-| 15 | Main menu with Continue / New world / Settings (volume, controls) | M | Open |
-| 16 | Lava layer deep underground that damages the car | M | Open |
+| 4 | Buried treasure: glinting stashes underground that pay a bundle of ore | S–M | **Built 2026-11-12** (PR #9) |
+| 5 | Ore radar / "metal detector" beep that speeds up as you near a stash (car part or player tool) | S | Open (builds on stashes) |
+| 6 | Landing grades: "CLEAN LANDING" bonus vs "BELLY FLOP" when you land on the roof, feeding a trip score | S | Open |
+| 7 | Fuel cans and scrap piles lying on the surface between biomes, so the drive is not empty | S | Open |
+| 8 | Trip summary card when you get back to the garage: distance, top speed, best air, ore, stashes, crashes | S | Open |
+| 9 | Damage that bites: hard landings dent the car for real, with visible bent panels and smoke from a hurt engine | S–M | Open |
+| 10 | Part unlocks per biome: off-road tracks/spiked tyres for snow and ice, need iron from the Frozen North | M | Open |
+| 11 | Rare part blueprints inside strongboxes (a part you can only build after finding it) | S–M | Open (needs D19 direction; small version possible now) |
+| 12 | Ramps and natural jumps (cliff lips, dune crests) placed by world generation | S | Open |
+| 13 | Cave critters: a slow glowing beetle that nibbles the car's wheels in deep caves | M | Open |
+| 14 | Day and night cycle with the headlight mattering at night | M | Open |
+| 15 | Delivery jobs at the garage ("bring 10 copper back": pays a part) for a reason to make a trip | M | Open |
+| 16 | Ghost of your best hill-climb run to race against | S–M | Open |
+| 17 | Raiders in The Wastes: a bot car that rams you | L | Open (split: dumb rammer → shooting → loot) |
+| 18 | Main menu with Continue / New world / Settings (volume, controls) | M | Open |
+| 19 | Lava layer deep underground that damages the car | M | Open |
+| 20 | Speed lines and wind sound above 60 km/h | S | Open (fold into a polish session) |
+
+## 2026-11-12 (second session)
+
+Looked at the drill screenshots: underground is one flat grey, and every few seconds "+2 Scrap" pops up. Digging is steady income but never a *moment*. The most boring minute is now tunnelling: hold D, watch numbers tick. Nothing says "dig over there".
+
+- **Buried stashes** (S–M): toolboxes, supply crates and strongboxes hidden in the rock, with a twinkle you can see through the dark. Why fun: a visible goal underground and a jackpot moment (fanfare, gold fountain, a fat bundle of ore) — the "one more tunnel" hook. *Built.*
+- **Metal detector beep** (S): a ticking that speeds up as you approach a stash, like a Geiger counter. Why fun: tension and a hot/cold game while digging; pure audio, cheap.
+- **Strongbox blueprints** (S–M): a few parts only come from strongboxes (e.g. a twin-turbo engine). Why fun: the find changes how the car drives, the best kind of reward.
+- **Cave critters** (M): a slow, glowing beetle in deep caves that chews tyres if you sit still. Why fun: first danger underground, small and readable; a stepping stone to enemies.
+- **Collapse rumble** (S–M): digging under a big overhang shakes the screen and drops a few loose blocks. Why fun: digging gets a bit of risk and drama without a full physics system.
+- **Depth record** (S): "NEW DEPTH RECORD 18 m" call-out and a best depth on the status line. Why fun: a number to beat on every dig, like Hill Climb Racing's distance record.
 
 ## 2026-11-12
 
