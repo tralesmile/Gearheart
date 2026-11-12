@@ -29,6 +29,7 @@ public partial class WorldScene
     // --fliptest bot: which way it tries to flip off the current kicker.
     private int _flipBotLaunch = -1;
     private float _flipBotTarget;
+    private float _flipBotAir, _flipBotPeak, _flipBotPush, _flipBotBrake, _flipBotNextLog;
 
     /// <summary>Full turns in a rotation, allowing a landing a little short of level (onto a slope).</summary>
     public static int FlipTurns(float rotDegrees) => Mathf.FloorToInt((Mathf.Abs(rotDegrees) + FlipSlack) / 360f);
@@ -157,6 +158,9 @@ public partial class WorldScene
         _car.AutoBoost = _car.HasBooster && _flipBotTarget == 0f;   // no thrust while spinning
         if (!air)
         {
+            if (_flipBotTarget != 0f)
+                GD.Print($"[flip] bot: touchdown, turned {_flipRot:0} of {_flipBotTarget:0} after {_flipBotAir:0.00}s, peak spin {_flipBotPeak:0} deg/s, tilt held {_flipBotPush:0.00}s push / {_flipBotBrake:0.00}s brake, " +
+                         $"wheels {_car.WheelsGrounded}/{_car.WheelsAttached} pitch {_car.PitchDegrees():0} bodyDown={_bodyDown} frame={Engine.GetFramesDrawn()}");
             _car.AutoTilt = 0f;
             _flipBotTarget = 0f;
             return;
@@ -168,6 +172,8 @@ public partial class WorldScene
             bool back = (_kickerLaunches & 1) == 1;
             // Backflip: rotation against the travel direction (see IsBackflip). Aim from where the jump has turned so far.
             _flipBotTarget = (back ? -360f : 360f) * _carDir;
+            _flipBotAir = _flipBotPeak = _flipBotPush = _flipBotBrake = 0f;
+            _flipBotNextLog = 0f;
             GD.Print($"[flip] bot: going for a {(back ? "backflip" : "frontflip")} off kicker {_kickerLaunches} at {_car.Speed / PixelsPerMeter * 3.6f:0} km/h, " +
                      $"pitch {_car.PitchDegrees():0}, turned {_airRot:0} so far frame={Engine.GetFramesDrawn()}");
         }
@@ -187,5 +193,15 @@ public partial class WorldScene
         else if (Mathf.Sign(w) == Mathf.Sign(e) && Mathf.Abs(e) <= stop) tilt = -Mathf.Sign(w);
         else tilt = Mathf.Sign(e);
         _car.AutoTilt = tilt;
+
+        const float dt = 1f / 120f;
+        _flipBotAir += dt;
+        _flipBotPeak = Mathf.Max(_flipBotPeak, Mathf.Abs(w));
+        if (Mathf.Abs(tilt) > 0.5f) { if (Mathf.Sign(tilt) == Mathf.Sign(e)) _flipBotPush += dt; else _flipBotBrake += dt; }
+        if (_flipBotAir >= _flipBotNextLog)
+        {
+            _flipBotNextLog += 0.1f;
+            GD.Print($"[flip] bot: t+{_flipBotAir:0.00}s turned {_airRot:0} spin {w:0} deg/s tilt {tilt:0.0} airTime {_airTime:0.00} pitch {_car.PitchDegrees():0}");
+        }
     }
 }
