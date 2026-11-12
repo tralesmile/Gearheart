@@ -21,7 +21,7 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 10b | Dashboard: speedometer dial, fuel gauge, damage meter instead of a text line | S | **Built 2026-11-12** (PR #11) |
 | 11 | Damage that bites: hard landings dent the car for real, with visible bent panels and smoke from a hurt engine | S–M | Open |
 | 12 | Part unlocks per biome: off-road tracks/spiked tyres for snow and ice, need iron from the Frozen North | M | **Built 2026-11-12** (PR #14: Spiked Tyres, 2 Scrap + 4 Iron, ice spray, ice now runs over the hills; tracks still open) |
-| 13 | Ramps and natural jumps (cliff lips, dune crests) placed by world generation | S | Open |
+| 13 | Ramps and natural jumps (cliff lips, dune crests) placed by world generation | S | **Built 2026-11-12** as #47 (PR #16) |
 | 14 | Jerry-can part: a fuel can block on the car that you can fill at the garage, a lighter alternative to the fuel tank | S | Open |
 | 15 | Rare part blueprints inside strongboxes (a part you can only build after finding it) | S–M | Open (needs D19 direction; small version possible now) |
 | 16 | Wrecked cars on the surface that you can strip for one random part (a bigger roadside find) | M | Open |
@@ -44,7 +44,7 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 38 | Reroll the trip goal at the garage for 2 Scrap | S | Open (new 2026-11-12, tiny; wait to see if goals feel forced) |
 | 39 | Weather patches per biome: a sandstorm in The Wastes and a blizzard in the north that cut sight and push the car | M | Open (new 2026-11-12) |
 | 31 | Tow home: out of fuel far away? Pay Scrap for a tow, and the trip report stamps it TOWED (score kept, haul taxed) | S | Open (new 2026-11-12) |
-| 32 | Launch ramp at the garage gate, so every trip starts with a jump | S | Open (new 2026-11-12) |
+| 32 | Launch ramp at the garage gate, so every trip starts with a jump | S | **Built 2026-11-12** as #47: the first kicker on each side is about 23–25 m out, just past the gate |
 | 33 | Best-moment snapshot on the trip card (frame of the biggest air or crash) | M | Open (new 2026-11-12) |
 | 34 | Engine sound follows the engine part (small engine buzzes, big V8 rumbles) | S | Open (new 2026-11-12) |
 | 40 | Frozen lake: one long flat sheet of ice in the Frozen North with a jump at the end; plain tyres pirouette, spikes fly | S | Open (new 2026-11-12, seventh session) |
@@ -54,12 +54,30 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 44 | Avalanche/snow slide: digging under a snow overhang drops a slide of snow on the car | M | Open (new 2026-11-12) |
 | 45 | Goal kinds tied to parts: "Cross the ice without sliding" or "Climb the north ridge" | S | Open (new 2026-11-12) |
 | 46 | Landing chain: perfect landings in a row stack the kick and a "PERFECT x3" call-out, like the smash streak | S | Open (new 2026-11-12, eighth session; cheapest follow-up to grades) |
-| 47 | Jump kickers by world generation: a dirt kicker every 60–90 m on the meadow road, dune lips in The Wastes, snow cornices in the north | S | Open (new 2026-11-12; replaces #13 and #32 as one item — jumps on purpose, not by luck) |
+| 47 | Jump kickers by world generation: a dirt kicker every 60–90 m on the meadow road, dune lips in The Wastes, snow cornices in the north | S | **Built 2026-11-12** (PR #16: one every 26–42 m, 1–1.75 m tall, yellow warning sign, first one just past the gate) |
 | 48 | Flip tricks: a full backflip or frontflip in the air (Q/E) scores "BACKFLIP!" — only if you land it | S | Open (new 2026-11-12; Hill Climb's best trick, pairs with grades) |
 | 49 | Goal kind "Land 2 perfect landings" | S | Open (new 2026-11-12; tiny, but changes the trip-goal pool so bot goals shift) |
 | 50 | Wheelie meter: back wheel only for 2+ s scores "WHEELIE 2.3 s" | S | Open (new 2026-11-12) |
 | 51 | Suspension squash: wheels visibly compress and the body bobs on landing, with a creak | S | Open (new 2026-11-12; feel polish, cheap if the soft body already squashes) |
+| 52 | Kicker gap: some kickers get a ditch or a scrap-heap pile after the crest, so a slow run-up lands in it | S | Open (new 2026-11-12, ninth session; risk on purpose) |
+| 53 | Landing-zone target: a painted landing mark past each kicker; land beyond it for "LONG JUMP 9.4 m" and a per-kicker record | S | Open (new 2026-11-12; Hill Climb's distance hook, per jump) |
+| 54 | Engine sounds per engine part + gear-change whine (the drive's soundscape is one loop) | S | Open (new 2026-11-12; same as #34, re-ranked up: sound is the roughest sense right now) |
+| 55 | Night falls on long trips: the sky darkens after a few minutes away, headlights matter, glowing ore and stash glints shine | M | Open (new 2026-11-12; roadmap day/night, first step = visual only) |
+| 56 | Lava seam deep underground (below ~30 m): glowing orange rock that heats and damages the car, with a rich ore reward behind it | M | Open (new 2026-11-12; roadmap deep underground, first danger) |
+| 57 | Garage "next part" card: when you come back, the report ends with "2 Iron short of Spiked Tyres" | S | Open (new 2026-11-12; folds #42 into the trip report, the one-more-trip nudge) |
 | 29 | Speedometer redline overdrive: holding the needle in the red for 3 s with the booster unlocks a "SONIC" call-out and a sonic-boom puff | S | Open (new 2026-11-12, cheap thrill) |
+
+## 2026-11-12 (ninth session)
+
+Looked at `world_280.png` and `drill_330.png`, and the landing log. Last session made landings a skill (PERFECT LANDING kick, roof landings named), but the jumps themselves still come from whatever bump the noise happens to throw up: the bot's perfect landings were luck, and a player who wants to practise the new skill has nothing to aim at. The meadow road near the garage is the flattest, most boring stretch of every trip — and it is the one every trip drives twice. Hill Climb Racing and Trials build their tracks *around* jumps; Need for Speed puts a ramp where you can see it coming. The most boring minute is the first 30 m out of the gate.
+
+- **Jump kickers by world generation** (S): a steep dirt ramp with a sharp crest every 26–42 m, a dune lip in The Wastes, a snow cornice in the north, a yellow sign on the run-up, the first one just past the gate. Why fun: a jump you can see coming, line up and land — the landing skill finally has a place to practise in the first minute. *Built.*
+- **Kicker gap** (S): a ditch or junk pile behind some kickers. Why fun: speed becomes a choice with a consequence.
+- **Landing-zone mark / long jump record** (S): a painted line past each kicker and a per-kicker distance record. Why fun: every jump becomes a little competition with yourself.
+- **Engine sound per part + gear whine** (S): the drive sounds the same with every engine. Why fun: a new engine you can hear is a new car.
+- **Night on long trips** (M): the sky darkens after a few minutes away, headlights and glowing ore matter. Why fun: a long trip becomes a different place and a reason to head home.
+- **Lava seam deep down** (M): glowing hot rock that cooks the car, with rich ore behind it. Why fun: digging finally has a danger and a prize, and underground stops being one grey.
+- **"Next part" line on the trip report** (S): "2 Iron short of Spiked Tyres". Why fun: the trip ends by pointing at the next one.
 
 ## 2026-11-12 (eighth session — polish)
 

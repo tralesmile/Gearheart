@@ -67,6 +67,12 @@ public partial class WorldScene : Node2D
     private bool _bodyHitTick;             // the body hit the ground since the last stunt update
     private int _perfectLandings, _cleanLandings, _roughLandings, _flops;
 
+    // Jump kickers on the road: count take-offs from a crest, and tie the next landing to it.
+    private int _lastCarCol = int.MinValue;
+    private float _kickerAt = -10f, _kickerKmh;
+    private int _kickerRise, _kickerLaunches, _kickerJumps, _kickerPerfects;
+    private static bool _kickerHinted;    // "KICKER AHEAD" is shown once per game session
+
     // Trips: leave the garage grounds, come back, get a report card with a score and a best to beat.
     private const float TripLeave = 18f, TripHome = 8f;   // metres from the middle of the garage pad
     private Trip _trip;
@@ -547,6 +553,10 @@ public partial class WorldScene : Node2D
             nearest = Mathf.Min(nearest, Mathf.Abs(p.X - garageX));
         }
         GD.Print($"[pickup] road has {cans} fuel cans and {heaps} scrap heaps; nearest {nearest * 0.25f:0} m from the garage");
+        var kickers = new List<Kicker>(_world.Kickers);
+        kickers.Sort((a, b) => a.Crest.CompareTo(b.Crest));
+        GD.Print($"[kicker] world has {kickers.Count} kickers: " + string.Join(" ", kickers.ConvertAll(k =>
+            $"{(k.Dir > 0 ? "E" : "W")}{Mathf.Abs(k.Crest - garageX) * 0.25f:0}m/{k.Meters:0.00}m/{TileWorld.BiomeAt(k.Crest)}")));
     }
 
     /// <summary>Bot log: how many stashes the world has and how deep they lie.</summary>
@@ -941,6 +951,7 @@ public partial class WorldScene : Node2D
                 GD.Print($"[stunt] {(_wasRighting ? "upside down: car starts rocking itself over" : "back on its wheels")} at x={_car.CenterPosition.X / Ts:0} pitch={_car.PitchDegrees():0}");
         }
         _topSpeed = Mathf.Max(_topSpeed, _car.Speed);
+        TrackKickers();
 
         // Lying on the roof also has no wheels on the ground: that is not air time worth a cheer.
         if (_car.SelfRighting)
@@ -975,6 +986,57 @@ public partial class WorldScene : Node2D
             if (_bodyHitTick) _judge.NoteBodyHit();
         }
         _airTime = 0f;
+    }
+
+    /// <summary>
+    /// Notices the car crossing a kicker's crest in the jump direction (a take-off), and shows a
+    /// one-time hint on the approach to the first kicker so the player knows what the sign means.
+    /// </summary>
+    private void TrackKickers()
+    {
+        int col = Mathf.FloorToInt(_car.CenterPosition.X / Ts);
+        int last = _lastCarCol;
+        _lastCarCol = col;
+
+        if (!_kickerHinted && _toastTime <= 0f && _world.KickerNear(col, 44) is Kicker ahead &&
+            (ahead.Start - col) * ahead.Dir > 16 && _carDir == ahead.Dir && _car.Speed > 3f * PixelsPerMeter)
+        {
+            _kickerHinted = true;
+            Toast("KICKER AHEAD!\nhit it fast · Q/E in the air · land flat");
+            if (GameSession.AutoPlay) GD.Print($"[kicker] hint shown {Mathf.Abs(ahead.Start - col) * 0.25f:0} m before the kicker at x={ahead.Start} frame={Engine.GetFramesDrawn()}");
+        }
+
+        if (last == int.MinValue || last == col || Mathf.Abs(col - last) > 8) return;
+        foreach (Kicker k in _world.Kickers)
+        {
+            bool before = (k.Crest - last) * k.Dir >= 0, after = (k.Crest - col) * k.Dir < 0;
+            bool backBefore = (last - k.Crest) * k.Dir > 0, backAfter = (col - k.Crest) * k.Dir <= 0;
+            if (before && after)
+            {
+                _kickerLaunches++;
+                _kickerAt = _elapsed;
+                _kickerRise = k.Rise;
+                _kickerKmh = _car.Speed / PixelsPerMeter * 3.6f;
+                if (GameSession.AutoPlay)
+                    GD.Print($"[kicker] take-off: {k.Meters:0.00} m kicker in {TileWorld.BiomeAt(k.Crest)} at x={k.Crest} ({Mathf.Abs(MetersFromGarage(k.Crest * Ts)):0} m out) " +
+                             $"speed={_kickerKmh:0}km/h pitch={_car.PitchDegrees():0} wheelsDown={_car.WheelsGrounded}/{_car.WheelsAttached} frame={Engine.GetFramesDrawn()} | launches={_kickerLaunches}");
+            }
+            else if (backBefore && backAfter && GameSession.AutoPlay)
+                GD.Print($"[kicker] crossed the kicker at x={k.Crest} the other way (homeward) at {_car.Speed / PixelsPerMeter * 3.6f:0}km/h");
+        }
+    }
+
+    /// <summary>True if the jump that just ended started at a kicker's crest.</summary>
+    private bool FromKicker(float air) => _elapsed - air - _kickerAt < 1.2f && _elapsed - _kickerAt < 6f;
+
+    private void NoteKickerJump(string grade, float air)
+    {
+        if (!FromKicker(air)) return;
+        _kickerAt = -10f;
+        _kickerJumps++;
+        if (grade == "perfect") _kickerPerfects++;
+        if (GameSession.AutoPlay)
+            GD.Print($"[kicker] jump: {grade} after air={air:0.00}s from a {_kickerRise * 0.25f:0.00} m kicker at {_kickerKmh:0}km/h | jumps={_kickerJumps}/{_kickerLaunches} perfect={_kickerPerfects}");
     }
 
     private static string AirPraise(float air) => air > 2.5f ? "MONSTER AIR" : air > 1.6f ? "HUGE AIR" : "BIG AIR";
@@ -1014,6 +1076,7 @@ public partial class WorldScene : Node2D
                 }
                 break;
         }
+        NoteKickerJump(l.Grade.ToString().ToLowerInvariant(), l.Air);
         if (GameSession.AutoPlay)
         {
             if (bigAir)
@@ -1045,6 +1108,7 @@ public partial class WorldScene : Node2D
         _airTime = 0f;
         _bodyDown = true;
         if (!_goalToast || _toastTime < 1.2f) Toast($"{what}!\n{air:0.0} s of air");
+        NoteKickerJump(what.ToLowerInvariant(), air);
         if (GameSession.AutoPlay)
             GD.Print($"[landing] flop: {what.ToLowerInvariant()} after air={air:0.00}s pitch={pitch:0} hit={e.Strength / PixelsPerMeter * 3.6f:0}km/h " +
                      $"at x={_car.CenterPosition.X / Ts:0} frame={Engine.GetFramesDrawn()} | perfect={_perfectLandings} clean={_cleanLandings} rough={_roughLandings} flops={_flops}");
@@ -1112,6 +1176,7 @@ public partial class WorldScene : Node2D
             _icePlanted = true;
             _iceFrom = TileWorld.PadTo + 4;
             _iceTo = _iceFrom + (int)(StripMeters * 4f);
+            _world.RemoveKickers(_iceFrom - 8, _iceTo + 8);   // a flat strip, comparable with older runs
             for (int x = _iceFrom; x < _iceTo; x++)
             {
                 int top = _world.SurfaceRow(x);
@@ -1214,7 +1279,7 @@ public partial class WorldScene : Node2D
         GD.Print($"[autoplay] t={_elapsed:0}s {(_driving ? "driving" : "on foot")} biome={TileWorld.BiomeAt(Mathf.FloorToInt(c.X / Ts))} grip={_world.GripAt(c + new Vector2(0f, 60f)):0.00} player=({p.X / Ts:0.0},{p.Y / Ts:0.0}) grounded={_player.Grounded} " +
                  $"car=({c.X / Ts:0.0},{c.Y / Ts:0.0}) surfaceRow={surface} depth={(c.Y / Ts - surface) * 0.25f:0.0}m speed={_car.Speed / PixelsPerMeter * 3.6f:0}km/h pitch={_car.PitchDegrees():0} " +
                  $"fuel={_car.Fuel:0} damage={_car.Damage:0} drilling={_car.IsDrilling} boosting={_car.Boosting} boostTotal={_boostSeconds:0.0}s " +
-                 $"top={_topSpeed / PixelsPerMeter * 3.6f:0}km/h longestAir={_longestAir:0.0}s landings={_perfectLandings}/{_cleanLandings}/{_roughLandings}/{_flops} " +
+                 $"top={_topSpeed / PixelsPerMeter * 3.6f:0}km/h longestAir={_longestAir:0.0}s landings={_perfectLandings}/{_cleanLandings}/{_roughLandings}/{_flops} kickers={_kickerJumps}/{_kickerLaunches} " +
                  $"crashes={_crashFx.Hits} hardest={_crashFx.HardestHit / PixelsPerMeter * 3.6f:0}km/h sparks={_crashFx.SparkBursts} " +
                  $"cans={_cansTaken} heaps={_heapsTaken} smashed={_heapsSmashed} bestStreak={_bestStreak} " +
                  $"dash={(_dash.Visible ? $"{_dash.ShownKmh:0}km/h" : "hidden")} lines={_lines.Intensity:0.00} peakLines={_peakLines:0.00} wind={_sfx.WindLevel:0.00} rollOvers={_rollOvers} ice={_spray.IceSeconds:0.0}s slip={_spray.SlipSeconds:0.0}s bite={_spray.BiteSeconds:0.0}s trip={tripNow} reports={_tripsReported} card={(_card.Showing ? _card.ShownScore.ToString() : "hidden")} | " +

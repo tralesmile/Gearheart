@@ -73,7 +73,12 @@ public partial class RoadsidePickups : Node2D
         foreach (int dir in new[] { 1, -1 })
         {
             for (int x = center + dir * rng.RandiRange(68, 80); x > 24 && x < TileWorld.Width - 24; x += dir * rng.RandiRange(40, 76))
+            {
+                // Not on a kicker's ramp or its landing: just past the back slope instead.
+                if (world.KickerNear(x, 6) is Kicker k) x = (dir > 0 ? k.Max : k.Min) + dir * 8;
+                if (x <= 24 || x >= TileWorld.Width - 24) break;
                 list.Add(new Pickup { X = x, Kind = rng.Randf() < 0.3f ? PickupKind.FuelCan : PickupKind.ScrapHeap });
+            }
         }
         return list;
     }

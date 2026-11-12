@@ -44,12 +44,25 @@ public sealed class TileWorld : ITerrainCollider, IMineable, ISurfaceInfo
     public const int Height = 192;
     public const int BaseSurface = 64;       // surface row at the spawn pad
     public const int PadFrom = 1258, PadTo = 1302;   // flat ground for the garage (tile columns)
-    private const uint SaveMagic = 0x37574847;   // "GHW7": bump when generation changes
+    private const uint SaveMagic = 0x38574847;   // "GHW8": bump when generation changes
 
     private readonly byte[] _tiles = new byte[Width * Height];
     private readonly int[] _surface = new int[Width];
     private readonly Dictionary<int, float> _damage = new();
     private readonly List<Vector2I> _stashes = new();
+    private readonly List<Kicker> _kickers = new();
+    private readonly Dictionary<int, int> _natural = new();   // column -> surface row before its kicker was built
+
+    /// <summary>The jump kickers on the road (dirt ramps, dune lips, snow cornices), in no particular order.</summary>
+    public IReadOnlyList<Kicker> Kickers => _kickers;
+
+    /// <summary>The kicker whose span covers this column (or the few columns in front of it), if any.</summary>
+    public Kicker? KickerNear(int x, int margin = 0)
+    {
+        foreach (Kicker k in _kickers)
+            if (x >= k.Min - margin && x <= k.Max + margin) return k;
+        return null;
+    }
 
     /// <summary>Where buried stashes were placed (some may have been dug up since; check the tile).</summary>
     public IReadOnlyList<Vector2I> Stashes => _stashes;
@@ -445,26 +458,32 @@ public sealed class TileWorld : ITerrainCollider, IMineable, ISurfaceInfo
             }
         }
 
+        PlaceKickers(world, seed);
+
         for (int x = 0; x < Width; x++)
         {
             Biome biome = BiomeAt(x);
             int surface = world._surface[x];
             int topDepth = 5 + (int)(rng.Randi() % 4);
             bool nearPad = x > PadFrom - 6 && x < PadTo + 6;
+            // A kicker lifts the surface; everything below it is laid out as if it were not there,
+            // so the kicker is a solid mound of top soil (grass and dirt, sand, snow) on unchanged ground.
+            int lift = world._natural.TryGetValue(x, out int natural) ? natural - surface : 0;
             // Frozen patches run over the hills too (not only flat spots), so ice is a real obstacle
-            // for plain tyres and a reason to fit Spiked Tyres.
-            bool icePatch = biome == Biome.Frozen && patches.GetNoise1D(x) > 0.25f;
+            // for plain tyres and a reason to fit Spiked Tyres. Never on a kicker: it is packed snow.
+            bool icePatch = biome == Biome.Frozen && lift == 0 && patches.GetNoise1D(x) > 0.25f;
 
             for (int y = surface; y < Height; y++)
             {
-                int depth = y - surface;
+                int top = y - surface;      // rows below the (possibly lifted) surface: grass and snow caps
+                int depth = top - lift;     // rows below the natural ground: everything else
                 Tile tile = biome switch
                 {
                     Biome.Desert => depth < topDepth + 2 ? Tile.Sand : depth < topDepth + 18 ? Tile.Sandstone : Tile.Stone,
-                    Biome.Frozen => depth == 0 ? (icePatch ? Tile.Ice : Tile.Snow)
-                        : depth == 1 ? (icePatch ? Tile.Ice : Tile.Snow)
+                    Biome.Frozen => top == 0 ? (icePatch ? Tile.Ice : Tile.Snow)
+                        : top == 1 ? (icePatch ? Tile.Ice : Tile.Snow)
                         : depth < topDepth ? Tile.Dirt : Tile.Stone,
-                    _ => depth == 0 ? Tile.Grass : depth < topDepth ? Tile.Dirt : Tile.Stone,
+                    _ => top == 0 ? Tile.Grass : depth < topDepth ? Tile.Dirt : Tile.Stone,
                 };
 
                 // Caves, away from the surface and the garage. The frozen land has more of them.
@@ -501,6 +520,103 @@ public sealed class TileWorld : ITerrainCollider, IMineable, ISurfaceInfo
 
         world.IndexStashes();
         return world;
+    }
+
+    /// <summary>
+    /// Jump kickers: a steep ramp (easing in, then one tile up every two columns, about 27 degrees,
+    /// steeper than any natural hill) facing away from the garage, a sharp crest, and a gentler back slope (one tile
+    /// every three columns) that the car flies over and that the drive home climbs. The first is
+    /// just past the garage gate on each side, then one every 26-42 m; they get taller further out.
+    /// Only the surface line is changed here; the fill below follows it.
+    /// </summary>
+    private static void PlaceKickers(TileWorld world, int seed)
+    {
+        var rng = new RandomNumberGenerator { Seed = (ulong)seed + 91 };
+        int middle = (PadFrom + PadTo) / 2;
+        foreach (int dir in new[] { 1, -1 })
+        {
+            int distance = 92 + (int)(rng.Randi() % 10);
+            while (true)
+            {
+                int x0 = middle + dir * distance;
+                Biome biome = BiomeAt(x0);
+                int rise = biome == Biome.Meadow ? (distance < 200 ? 4 : 5) + (int)(rng.Randi() % 2) : 5 + (int)(rng.Randi() % 3);
+                if (x0 - 2 * rise - 130 < 8 || x0 + 2 * rise + 130 >= Width - 8) break;
+
+                // Needs a level run-up (the sign stands there and the face starts cleanly) and ground that is
+                // flat or falling under the face and just past the crest: on a rising hill the crest would not
+                // stand out, and the car would just climb a steep wall.
+                int start = int.MinValue;
+                int face = Kicker.FaceLength(rise);
+                for (int shift = 0; shift <= 60 && start == int.MinValue; shift++)
+                {
+                    int s = x0 + dir * shift;
+                    int runUp = world._surface[s - dir];
+                    bool ok = true;
+                    for (int k = -6; k < -1 && ok; k++) ok = world._surface[s + dir * k] == runUp;
+                    for (int k = 0; k < face + 4 && ok; k++) ok = world._surface[s + dir * k] >= runUp;
+                    if (ok) start = s;
+                }
+                if (start == int.MinValue)
+                {
+                    distance += 60;
+                    continue;
+                }
+
+                Kicker built = world.BuildKicker(start, dir, rise);
+                distance = Mathf.Abs(built.End - middle) + 104 + (int)(rng.Randi() % 64);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Raises the surface line into a kicker's shape (no tiles are written here). The face eases in
+    /// (one tile over three columns, like a hill) and then climbs one tile every two columns; the
+    /// back slope comes down one tile every three columns until it meets the ground, however far
+    /// below that is, so the drive home never meets a wall.
+    /// </summary>
+    private Kicker BuildKicker(int start, int dir, int rise)
+    {
+        int baseRow = _surface[start - dir];
+        int crestRow = baseRow - rise;
+        int face = Kicker.FaceLength(rise);
+        int length = 0;
+        for (int i = 0; i < face + 90; i++)
+        {
+            int x = start + dir * i;
+            if (x < 2 || x >= Width - 2) break;
+            int line = i < face ? baseRow - Kicker.FaceHeight(i) : crestRow + 1 + (i - face) / 3;
+            if (i >= face && line >= _surface[x]) break;   // back on the ground
+            length = i + 1;
+            if (line >= _surface[x]) continue;
+            _natural[x] = _surface[x];
+            _surface[x] = line;
+        }
+        var kicker = new Kicker(start, dir, rise, length);
+        _kickers.Add(kicker);
+        return kicker;
+    }
+
+    /// <summary>
+    /// Test hook: flattens the kickers whose span overlaps [from, to] back to the natural ground
+    /// (only on a freshly generated world, which still knows the natural rows).
+    /// </summary>
+    public void RemoveKickers(int from, int to)
+    {
+        for (int i = _kickers.Count - 1; i >= 0; i--)
+        {
+            Kicker k = _kickers[i];
+            if (k.Max < from || k.Min > to) continue;
+            for (int x = k.Min; x <= k.Max; x++)
+            {
+                if (!_natural.TryGetValue(x, out int natural)) continue;
+                for (int y = _surface[x]; y < natural; y++) Set(x, y, Tile.Air);
+                _surface[x] = natural;
+                if (Get(x, natural) == Tile.Dirt && BiomeAt(x) == Biome.Meadow) Set(x, natural, Tile.Grass);
+                _natural.Remove(x);
+            }
+            _kickers.RemoveAt(i);
+        }
     }
 
     /// <summary>
@@ -560,6 +676,14 @@ public sealed class TileWorld : ITerrainCollider, IMineable, ISurfaceInfo
         file.Store32(Height);
         file.StoreBuffer(_tiles);
         foreach (int s in _surface) file.Store32((uint)s);
+        file.Store32((uint)_kickers.Count);
+        foreach (Kicker k in _kickers)
+        {
+            file.Store32((uint)k.Start);
+            file.Store32((uint)(k.Dir + 1));
+            file.Store32((uint)k.Rise);
+            file.Store32((uint)k.Length);
+        }
         return true;
     }
 
@@ -574,7 +698,52 @@ public sealed class TileWorld : ITerrainCollider, IMineable, ISurfaceInfo
         if (tiles.Length != Width * Height) return null;
         Array.Copy(tiles, world._tiles, tiles.Length);
         for (int x = 0; x < Width; x++) world._surface[x] = (int)file.Get32();
+        int kickers = (int)file.Get32();
+        for (int i = 0; i < kickers && i < 256; i++)
+        {
+            int start = (int)file.Get32(), dir = (int)file.Get32() - 1, rise = (int)file.Get32(), length = (int)file.Get32();
+            world._kickers.Add(new Kicker(start, dir, rise, length));
+        }
         world.IndexStashes();
         return world;
     }
+}
+
+/// <summary>
+/// A jump kicker built into the surface. Columns are counted from Start in the direction Dir
+/// (away from the garage): a face of 2*Rise+1 columns up to the crest, then a back slope of
+/// one tile every three columns down to the ground (Length columns in all).
+/// </summary>
+public readonly struct Kicker
+{
+    public readonly int Start, Dir, Rise, Length;
+
+    public Kicker(int start, int dir, int rise, int length)
+    {
+        Start = start;
+        Dir = dir;
+        Rise = rise;
+        Length = length;
+    }
+
+    /// <summary>Columns of the face: three for the first tile (the ease-in), then two per tile.</summary>
+    public static int FaceLength(int rise) => 2 * rise + 1;
+
+    /// <summary>Tiles above the run-up at face column i (0-based).</summary>
+    public static int FaceHeight(int i) => i < 3 ? 1 : 2 + (i - 3) / 2;
+
+    /// <summary>The crest column: the last one of the steep face, where the car takes off.</summary>
+    public int Crest => Start + Dir * (FaceLength(Rise) - 1);
+
+    /// <summary>The far end of the back slope.</summary>
+    public int End => Start + Dir * (Length - 1);
+
+    public int Min => Mathf.Min(Start, End);
+    public int Max => Mathf.Max(Start, End);
+
+    /// <summary>The column the warning sign stands on, a few tiles before the face.</summary>
+    public int SignColumn => Start - Dir * 4;
+
+    /// <summary>Height of the face above the run-up, in metres.</summary>
+    public float Meters => Rise * 0.25f;
 }

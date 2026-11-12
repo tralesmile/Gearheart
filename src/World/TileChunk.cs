@@ -129,6 +129,14 @@ public partial class TileChunk : Node2D
             Tile ground = World.Get(tx, sy);
             if (World.Solid(tx, sy - 1) || World.TopCut(tx, sy, -1) || World.TopCut(tx, sy, 1)) continue;
 
+            // Kickers: a warning sign on the run-up (arrow in the direction of the jump), nothing on the ramp itself.
+            int sign = -1;
+            if (World.KickerNear(tx, 6) is Kicker k)
+            {
+                if (tx != k.SignColumn) continue;
+                sign = k.Dir > 0 ? Art.DecorKickerRight : Art.DecorKickerLeft;
+            }
+
             int roll = Hash(tx, 7777) % 100;
             bool treeSpot = tx % 4 == 0;
             int cell = ground switch
@@ -138,6 +146,7 @@ public partial class TileChunk : Node2D
                 Tile.Snow => treeSpot && roll < 24 ? 1 : roll < 6 ? 7 : -1,
                 _ => -1,
             };
+            if (sign >= 0) cell = sign;
             if (cell < 0) continue;
 
             var at = new Vector2(i * ts + ts / 2f - Art.DecorWidth / 2f, (sy - ChunkY * Size) * ts - Art.DecorHeight + 1f);

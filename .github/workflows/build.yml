@@ -47,6 +47,7 @@ jobs:
             timeout 300 godot --headless --path . --fixed-fps 120 "$@" > smoke.log 2>&1
             grep -E "\[(world|autoplay|drive|race|mining|autodrive|stunt|crash|stash|pickup|speed|trip|ice)\]" smoke.log | tail -60
             grep "\[landing\]" smoke.log | head -30
+            grep "\[kicker\]" smoke.log | head -24
             # "resources still in use at exit" is a shutdown notice about cached textures and sounds, not a fault.
             if grep -E "ERROR|Unhandled exception|SCRIPT ERROR|System\.[A-Za-z]*Exception" smoke.log | grep -v "still in use at exit" | grep .; then
               echo "::error::Smoke test failed: $name"
@@ -136,6 +137,15 @@ jobs:
                 f=$(printf "shots/$run/f%08d.png" $((n + d))); [ -f "$f" ] && cp "$f" keep/goal_done_${run}_$((n + d)).png
               done
             done
+          done
+          # Kickers: the first two take-offs from a kicker crest, in the air and coming down.
+          for run in world left rocket trip; do
+            grep "\[kicker\] take-off" shots/$run.log | head -2 | sed -E 's/.*frame=([0-9]+).*/\1/' | while read n; do
+              for d in -4 2 6; do
+                f=$(printf "shots/$run/f%08d.png" $((n + d))); [ -f "$f" ] && cp "$f" keep/kicker_${run}_$((n + d)).png
+              done
+            done
+            grep "\[kicker\]" shots/$run.log | head -8
           done
           # Landing grades: the call-out just after the first perfect landing and the first botched one.
           for run in world left rocket trip; do
