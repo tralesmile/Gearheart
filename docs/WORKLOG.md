@@ -2,6 +2,47 @@
 
 Newest entry first. Each session: what was built and why, how it was verified, what is not verified, and what comes next.
 
+## 2026-11-12, about 15:20–16:25 UTC — Merged rock it free (PR #23), then flip tricks (PR #24)
+
+**Started by** checking for unfinished work: PR #23 (rock it free) was open with its last run (43244969181) still going; it finished green at 15:24 with a playtest log matching the PR (2-tile trench out in 4.7 s with 12 rocks, Crystal Drill car's wedge free in 1.2 s, 40 s positions unchanged, no errors), so I squash-merged it (d231b47).
+
+**Built — flip tricks** (`src/Game/WorldScene.Flips.cs`, air handling in `SoftVehicle`)
+
+- **Rotation counted in the air**: every physics frame with no wheel down, the change in pitch is added up. Each full turn plays a rising tick and says "FULL TURN! now land it".
+- **Landed flips**: when the landing judge rules on a jump that turned at least 300° (a full turn less 60°, for slopes), it is a **BACKFLIP** (the end you drive towards went up and over) or **FRONTFLIP**, DOUBLE / TRIPLE / 4x …, with the `record` fanfare, +8 km/h per turn (up to three) on top of any perfect-landing kick, and the call-out "BACKFLIP!  +8 km/h" over the landing or long-jump line. Flips score 60 points per turn on the trip report's Jumps row ("1.4 s, 1 flip + 2 perfect").
+- **Crashed flips don't count**: a roof / nose / tail landing, or wheels first with the body slamming down more than 35° off the slope, adds "BACKFLIP, but it doesn't count" to the crash call-out.
+- **Air handling**: with every wheel off the ground, Q/E rotate 1.5x as hard, ramping to 2.3x after holding the same key 0.15–0.45 s, and spin in the direction you hold is not bled by the in-air spin damping until 690°/s. Released spin is damped as before. See `docs/DECISIONS.md`.
+- **CI**: `--fliptest` (straight into the car, east, backflip off kicker 1, frontflip off kicker 2, …; no boost during a flip; a 0.1 s trace of every attempt), runs for the rocket car (40 s) and the starter (30 s), `[flip]` lines now printed by the smoke test, `flips=back/front/crashed maxAirRot=` on `[autoplay]`, `flip_mid_*`, `flip_turn_*`, `flip_landed_*` screenshots.
+
+**Why this** — Brainstorm in `docs/IDEAS.md` (sixteenth session). Kickers are everywhere and the car looks great in the air, but Q/E only ever levelled it: there was nothing bold to do mid-jump. Flips are the heart of Hill Climb Racing's and Trials' best moments, they make every kicker a risk-or-play-safe choice ("one more try"), and #48 was #1 on the last Next list. The previous session was feel, so this one is a feature you feel in the first minute.
+
+**How it got there (CI runs 43248750220, 43251266808, 43253236223, 43255068732, all green)**
+
+1. Run 1: no full turns at all; the flip bot took kickers at only 38–40 km/h (I cut the booster on every bump) and `[flip]` lines were not printed by the smoke test.
+2. Run 2: kickers at 54–68 km/h and 1.4–1.65 s of air, but still no flips. The screenshots showed the car rotating, so I added a 0.1 s trace.
+3. Run 3 (trace): spin topped out at 350–400°/s however long Q/E was held — the in-air spin damping (`AirSpinDamping`, 2.9/s) caps it — and two near-flips (−316°, 334°) were lost because a wheel touching and bouncing off re-set the stored rotation before the landing was judged.
+4. Run 4: held spin no longer damped (up to 690°/s), a bounce adds to the jump's rotation.
+
+**Verified (run 43255068732)**
+
+- **Rocket car, `--fliptest`: 3 flips landed in 40 s** — BACKFLIP −333° in 0.89 s (rough landing), FRONTFLIP 335° in 1.50 s (**perfect landing**, 13 + 8 km/h kick), FRONTFLIP 371° in 1.82 s (rough); one attempt cut short by an early touchdown, one ended on the roof at −196° (no flip, correct). Peak spin 513–556°/s.
+- **Starter car**: no flips — its kicker jumps last 0.36–0.65 s; the frontflip attempts ended on the roof. Flips are a big-jump trick (rocket, or a fast run-up); the starter can only half-flip.
+- **Screenshots**: `flip_mid_47.png` (upside down mid-backflip), `flip_landed_59.png` ("BACKFLIP! +8 km/h / LONG JUMP 5.2 m · flag planted"), `flip_landed_104.png` ("FRONTFLIP! +24 km/h / LONG JUMP 18.7 m"), `flip_turn_149.png` ("FULL TURN! now land it").
+- **Other playtests**: no errors; rock it free identical to main (2-tile trench out in 4.7 s, 12 rocks; controls still stuck); Hill Climb 19.18 s / 14.08 s (main 19.19 / 14.11); sprints unchanged (2.99 s plain). The bots' own anti-flip tilt in the air is stronger now, so 40 s positions moved a little: starter 2209.3 (main 2179.0), left 465.7 (512.7), spiked 424.9 (375.1), Crystal Drill 1480.1, rocket 2552.7; trip reports 387 / 395 (main 414 / 379). Both drill cars now rock themselves free of their wedges (plain drill: free after 1.0 s, 2 rocks).
+
+**Not verified / known issues**
+
+- Fun and feel are my judgement. Whether holding a key to spin and tapping to line up feels natural, and whether ordinary landings got twitchy, needs you to play (D1).
+- The flips row on the trip report is not in a screenshot (the trip test bot does not flip). The "FULL TURN!" tick only fires when one stretch of air passes 360°; a flip completed across a bounce counts but gets no tick.
+- The starter car cannot flip off the current kickers; a player with a fast run-up might half-flip and land on the roof more often than before (the stronger air rotation makes over-rotating easier).
+- Frontflips and backflips are scored the same.
+
+**Next**
+
+1. Air cam (S, IDEAS #97): ease the camera out on long jumps so you see where you land — matters more now that flips spin you round.
+2. Trick goals (S, #96) and the trick combo (S, #98) to give flips a reason on the trip report; or the Gyro part (S, #94).
+3. Start-light gantry (S, #82), Crystal Lamp (S, #64), surface lift (S–M, #68), then the first underground danger (#65 / #56, M).
+
 ## 2026-11-12, about 14:20–15:40 UTC — Rock it free (PR #23, feel session)
 
 **Started by** checking for unfinished work: no open pull requests, main green (run 43234068638 after PR #22). The branch `polish/engine-gearbox` is PR #19's, merged long ago (left alone).
