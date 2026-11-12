@@ -20,6 +20,9 @@ public static class Art
 
     public const int PickupCell = 32;
     public const int DecorWidth = 48, DecorHeight = 64;
+
+    /// <summary>Decor cells of the kicker warning sign, arrow pointing right (east) or left (west).</summary>
+    public const int DecorKickerRight = 8, DecorKickerLeft = 9;
     public const int PartSize = 22;
     public const int WheelCell = 56;
 

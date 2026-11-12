@@ -600,9 +600,31 @@ def decor_snow_rock(rng):
     return outline(img)
 
 
+def decor_kicker_sign(rng):
+    """A jump warning sign on a post: yellow board, black border, a ramp with an arrow leaping off it
+    (pointing right; mirrored for the west side). Big enough to read at driving zoom."""
+    img = Image.new("RGBA", (DW, DH), (0, 0, 0, 0)); d = ImageDraw.Draw(img)
+    wood, wood_dark = (122, 84, 50), (88, 58, 34)
+    d.rectangle([22, 36, 25, DH - 1], fill=wood); d.rectangle([22, 36, 22, DH - 1], fill=wood_dark)
+    yellow, yellow_light, black = (250, 204, 40), (255, 232, 120), (30, 28, 30)
+    d.rectangle([8, 14, 39, 37], fill=black)                       # border
+    d.rectangle([10, 16, 37, 35], fill=yellow)
+    d.line([(10, 16), (37, 16)], fill=yellow_light)
+    d.polygon([(12, 33), (24, 33), (24, 26)], fill=black)          # the ramp
+    for x, y in ((25, 24), (27, 22), (29, 20), (31, 19)):           # the leap, as dashes over the gap
+        d.rectangle([x, y, x + 1, y + 1], fill=black)
+    d.polygon([(32, 16), (37, 19), (32, 22)], fill=black)          # arrow head
+    for x in range(12, 37, 6):                                     # hazard stripes under the board
+        d.polygon([(x, 38), (x + 3, 38), (x + 1, 41), (x - 2, 41)], fill=black)
+        d.polygon([(x + 3, 38), (x + 6, 38), (x + 4, 41), (x + 1, 41)], fill=yellow)
+    return outline(img)
+
+
 def make_decor():
     rng = random.Random(99)
-    cells = [decor_oak(rng), decor_pine(rng), decor_cactus(rng), decor_bush(rng), decor_flowers(rng), decor_grass(rng), decor_desert_rock(rng), decor_snow_rock(rng)]
+    sign = decor_kicker_sign(rng)
+    cells = [decor_oak(rng), decor_pine(rng), decor_cactus(rng), decor_bush(rng), decor_flowers(rng), decor_grass(rng), decor_desert_rock(rng), decor_snow_rock(rng),
+             sign, sign.transpose(Image.FLIP_LEFT_RIGHT)]
     sheet = Image.new("RGBA", (DW * len(cells), DH), (0, 0, 0, 0))
     for i, c in enumerate(cells):
         sheet.paste(c, (i * DW, 0))
