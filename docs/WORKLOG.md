@@ -16,17 +16,16 @@ Newest entry first. Each session: what was built and why, how it was verified, w
 
 **Why this** — Brainstorm in `docs/IDEAS.md`: in `left_330.png` the north is "the same road painted white"; the ice was single tiles between ramp steps and the car drove the same everywhere, so no part was ever a reason to go somewhere. A biome-tied part that changes how the car drives was "Next" item 1 last session and overdue on the roadmap, and the trip goals now send players north.
 
-**Verified (CI runs 43168529697, 43168607017, 43169925613, all green)**
+**Verified (CI runs 43168529697, 43168607017, 43169925613, 43170758076, all green)**
 
 - Ice strip, 40 m, same start: **plain tyres 7.0 s (avg 20 km/h, top 31 km/h, 2.7 s sliding, 357 ice chips)**; **Spiked Tyres 4.7 s (avg 30 km/h, top 46 km/h, 0.0 s sliding, 1.2 s biting, 80 chips)**. On the plain car the speed falls from 28 to 14–16 km/h on the ice; on spikes it holds 26–29 km/h. No damage in either.
-- "SPIKES BITE!" shows 0.3 s after the spiked car reaches the ice (`[ice] hint shown` at frame 18). In run 2 the cheers/hints were swallowed by the TRIP GOAL call-out (seen in the screenshots), which is why they now wait.
+- "SPIKES BITE!" shows 0.3 s after the spiked car reaches the ice (`[ice] hint shown` at frame 18). In run 2 the cheers/hints were swallowed by the TRIP GOAL call-out (seen in the screenshots), which is why they now wait. The plain-tyre "ICE! Your tyres can't grip / Spiked Tyres bite here (garage)" hint did not fire in run 3 (its slip counter forgot too fast on bumpy ice); after the fix it shows 0.8 s onto the ice (frame 23, visible in `iceplain_27.png`).
 - Left run into the Frozen North, starter car: x=876 at 30 s → 560 at 40 s, 0.5 s on ice, 0.9 s sliding; it does not get stuck (the run before this change reached 583). Same run on Spiked Tyres: 649 → 368 in the same 10 s, 0 s sliding, 3.1 s biting (it also got further overall because it did not flip in the meadow this time).
 - Screenshots `iceplain_18/27.png` (thick spray at both wheels) and `icespiked_18/27.png` (studded wheels, white chips flying back) look right; `left_390.png` shows the north with snow and no single-tile ice specks.
 - Everything else unchanged: trip reports 436 and 377, Hill Climb as before, all other bot runs green.
 
 **Not verified / known issues**
 
-- The "ICE!" hint for plain tyres did not fire in run 3 (the slip counter decayed too fast on bumpy ice); the threshold was changed in the last commit and run 4 is meant to show it. See the PR for the result.
 - Ice in the real Frozen North is still sparse near its border (0.5 s on ice in the bot's 10 s there); a set-piece frozen lake would make the part shine more (IDEAS #40).
 - Fun is my judgement: whether ice is a fun obstacle or a chore without spikes needs you to play (D1). Spike numbers are a first guess.
 - No sound for studs or sliding (I cannot listen to check it).
