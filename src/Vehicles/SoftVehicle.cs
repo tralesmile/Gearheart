@@ -64,6 +64,51 @@ public partial class SoftVehicle : Node2D, IVehicle
         }
     }
 
+    /// <summary>Wheels still bolted on (lost wheels do not count).</summary>
+    public int WheelsAttached
+    {
+        get
+        {
+            int n = 0;
+            foreach (var w in _wheels)
+                if (w.Attached) n++;
+            return n;
+        }
+    }
+
+    /// <summary>Attached wheels touching the ground right now.</summary>
+    public int WheelsGrounded
+    {
+        get
+        {
+            int n = 0;
+            foreach (var w in _wheels)
+                if (w.Attached && w.Grounded) n++;
+            return n;
+        }
+    }
+
+    /// <summary>
+    /// Degrees between the car's "up" and the ground under its grounded wheels: 0 when the car sits
+    /// flat on the slope it touched, large when it lands nose-first or tail-first. -1 with no wheel down.
+    /// </summary>
+    public float GroundMismatchDegrees()
+    {
+        Vector2 n = Vector2.Zero;
+        foreach (var w in _wheels)
+            if (w.Attached && w.Grounded) n += w.GroundNormal;
+        if (n == Vector2.Zero) return -1f;
+        Vector2 d = Forward();
+        Vector2 up = new Vector2(d.Y, -d.X);
+        return Mathf.Abs(Mathf.RadToDeg(up.AngleTo(n.Normalized())));
+    }
+
+    /// <summary>
+    /// A short shove along the way the car is already rolling (a perfect landing), in px/s.
+    /// Applied on the next physics substep; the tyres spin up with it so they do not brake it away.
+    /// </summary>
+    public void Kick(float speed) => _kickPending += speed;
+
     /// <summary>Shows the driver in the cab window.</summary>
     public bool Occupied { get; set; }
     public SoftPhysicsWorld World { get; set; }
@@ -145,6 +190,7 @@ public partial class SoftVehicle : Node2D, IVehicle
     private bool _selfRighting;
     private float _rightingTime;
     private bool _hopPending;
+    private float _kickPending;
     private const float AirSpinDamping = 0.003f;   // share of spin removed per substep while airborne
     private float _autoStuckTime, _autoReverseTime;
     private int _rearHub = -1, _frontHub = -1;
@@ -489,6 +535,11 @@ public partial class SoftVehicle : Node2D, IVehicle
 
         StabiliseInAir();
         if (Boosting) ApplyBoost(dt);
+        if (_kickPending != 0f)
+        {
+            ApplyKick(_kickPending, dt);
+            _kickPending = 0f;
+        }
         if (_hopPending)
         {
             _hopPending = false;
@@ -590,6 +641,19 @@ public partial class SoftVehicle : Node2D, IVehicle
         if (_rearHub >= 0 && _frontHub >= 0 && _rearHub != _frontHub)
             return (Pos[_frontHub] - Pos[_rearHub]).Normalized();
         return new Vector2(1f, 0f);
+    }
+
+    private void ApplyKick(float speed, float dt)
+    {
+        Vector2 forward = Forward();
+        Vector2 velocity = Vector2.Zero;
+        for (int i = 0; i < BodyNodeCount; i++) velocity += Pos[i] - Prev[i];
+        float along = velocity.Dot(forward) / Mathf.Max(1, BodyNodeCount) / dt;
+        if (Mathf.Abs(along) < 40f) return;   // nearly stopped: no direction to push in
+        Vector2 dir = forward * Mathf.Sign(along);
+        for (int i = 0; i < Pos.Length; i++) Prev[i] -= dir * speed * dt;
+        float ratio = (Mathf.Abs(along) + speed) / Mathf.Abs(along);
+        foreach (var wheel in _wheels) wheel.Spin *= ratio;
     }
 
     private bool BoosterIntact(Cell cell)

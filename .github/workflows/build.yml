@@ -46,6 +46,7 @@ jobs:
             echo "=== $name"
             timeout 300 godot --headless --path . --fixed-fps 120 "$@" > smoke.log 2>&1
             grep -E "\[(world|autoplay|drive|race|mining|autodrive|stunt|crash|stash|pickup|speed|trip|ice)\]" smoke.log | tail -60
+            grep "\[landing\]" smoke.log | head -30
             # "resources still in use at exit" is a shutdown notice about cached textures and sounds, not a fault.
             if grep -E "ERROR|Unhandled exception|SCRIPT ERROR|System\.[A-Za-z]*Exception" smoke.log | grep -v "still in use at exit" | grep .; then
               echo "::error::Smoke test failed: $name"
@@ -135,6 +136,18 @@ jobs:
                 f=$(printf "shots/$run/f%08d.png" $((n + d))); [ -f "$f" ] && cp "$f" keep/goal_done_${run}_$((n + d)).png
               done
             done
+          done
+          # Landing grades: the call-out just after the first perfect landing and the first botched one.
+          for run in world left rocket trip; do
+            grep "\[landing\] perfect" shots/$run.log | head -2 | sed -E 's/.*frame=([0-9]+).*/\1/' | while read n; do
+              for d in 1 5; do
+                f=$(printf "shots/$run/f%08d.png" $((n + d))); [ -f "$f" ] && cp "$f" keep/land_perfect_${run}_$((n + d)).png
+              done
+            done
+            grep "\[landing\] flop" shots/$run.log | head -1 | sed -E 's/.*frame=([0-9]+).*/\1/' | while read n; do
+              f=$(printf "shots/$run/f%08d.png" $((n + 3))); [ -f "$f" ] && cp "$f" keep/land_flop_${run}_$((n + 3)).png
+            done
+            grep "\[landing\]" shots/$run.log | head -12
           done
           # Ice strip: plain vs spiked tyres, from the moment the car rolls onto the ice.
           for run in iceplain icespiked; do
