@@ -24,7 +24,8 @@ public sealed class Gearbox
     private const float MinShiftGap = 0.6f;   // seconds after a shift before the next one
 
     private readonly float[] _top;            // top of each gear as a fraction of the top spin
-    private float _rpm = Idle, _shiftTimer, _road, _roadFast, _sinceShift = 10f;
+    private float _rpm = Idle, _shiftTimer, _road, _roadFast, _sinceShift = 10f, _airTime;
+    private const float JumpTime = 0.25f;     // wheels off the ground this long counts as a jump (shorter: a bump)
 
     public int Gears => _top.Length;
     /// <summary>Current gear, 1-based.</summary>
@@ -60,6 +61,9 @@ public sealed class Gearbox
     {
         spin = Mathf.Max(0f, spin);
         throttle = Mathf.Clamp(throttle, 0f, 1f);
+        // The wheels skip off the ground for a few frames on every bump; only a real jump frees the revs.
+        _airTime = airborne ? _airTime + dt : 0f;
+        airborne = _airTime >= JumpTime;
         _shiftTimer = Mathf.Max(0f, _shiftTimer - dt);
         _sinceShift += dt;
         road = Mathf.Clamp(road, 0f, 1.3f);
