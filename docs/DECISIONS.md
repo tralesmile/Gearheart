@@ -2,6 +2,13 @@
 
 Newest first. One entry per big decision: what, why, and what would make us revisit it.
 
+## 2026-11-12 — Roadside pickups: not saved, restock out of sight
+
+- **What:** Fuel cans and scrap heaps are placed on the surface outward from the garage on both sides, one every 40–76 tiles (10–19 m) starting about 17 m out; about 30% are fuel cans. The current world has about 42 of them. A can gives +18 fuel and is only taken if at least 6 fuel fits in the tank (so it is never wasted). A heap gives 1–3 Scrap plus a chance of one ore by biome (Iron 20% in the meadow, Copper 35% in The Wastes, Iron 35% in the Frozen North), fixed per spot. Hitting a heap faster than 15 km/h is a "SMASH" (junk spray, crunch, small shake); slower, or on foot, it is just picked up. Pickups are positioned from the world's surface but are not part of the world file: the list lives in memory for the game session (so a garage visit does not restock them) and a taken pickup comes back after 150 s, only when the player is more than about 22 m away.
+- **Why:** The drive between biomes was the most boring minute in two brainstorms running, and fuel never mattered. Something every few seconds to aim for, and a way to earn fuel back, makes the drive a small game and gives the booster's thirst a counterweight. Not saving them keeps the save format unchanged and makes every trip stocked.
+- **Known trade-off:** restarting the game restocks the road immediately. That is a tiny exploit; fine for the prototype.
+- **Revisit when:** scrap from driving outpaces mining by too much (tune `HeapLoot`), fuel is still never tight (fewer cans, or a smaller starter tank), or a crafting economy (D19) arrives.
+
 ## 2026-11-12 — Buried stashes: placement, loot and glints
 
 - **What:** 53 stashes in the current world (one every 34–63 tiles, 9–16 m, plus one shallow toolbox 15–18 m to each side of the garage so a new player sees a glint in the first minute) are buried 2–28 m deep, never floating in a cave. The current seed gives 20 toolboxes, 14 supply crates and 19 strongboxes. Three kinds by depth: Old Toolbox (under 6.5 m: 5–8 Scrap, 1–2 Iron), Lost Supply Crate (6.5–15 m: 3–5 Scrap, 3–5 Iron, 1–2 Copper), Ancient Strongbox (deeper: 4–6 of each). Outside the meadow a stash is one kind richer 35% of the time, which rewards the drive out. Loot is fixed per stash (seeded by its position). They are tiles, so both the pickaxe and the drill dig them up. A twinkle over each stash within about 12 m of you is drawn on its own canvas layer, so the underground darkness never hides it.

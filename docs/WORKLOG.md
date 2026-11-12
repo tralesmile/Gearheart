@@ -2,6 +2,42 @@
 
 Newest entry first. Each session: what was built and why, how it was verified, what is not verified, and what comes next.
 
+## 2026-11-12, about 02:30–03:00 UTC — Roadside pickups (PR #10)
+
+**Built**
+
+- **Fuel cans and scrap heaps on the surface** (`src/World/RoadsidePickups.cs`): one every 10–19 m outwards from the garage on both sides, starting about 17 m out (current world: 16 cans, 26 heaps). Fuel can: drive through it for +18 fuel, glug-and-ding sound (`fuel.wav`), gold spray, "+N Fuel"; it is left lying if fewer than 6 fuel fit in the tank. On foot, the first can you touch explains "drive through it". Scrap heap: hit it faster than 15 km/h for a **SMASH** (junk sprays forward, high-pitched crunch, small screen kick, "SMASH! +3 Scrap"); slower, or walking into it, just picks it up. Loot is 1–3 Scrap, plus a chance of one Iron (meadow 20%, Frozen North 35%) or Copper (The Wastes 35%), fixed per spot. Fuel cans pulse with a soft halo and twinkle so they can be spotted at speed.
+- **Restocking:** taken pickups come back after 150 s, only when you are more than about 22 m away. The list lives for the game session, not in the save, so a garage visit does not restock them (world save format unchanged, no version bump needed).
+- **LOW FUEL** warning: under 20% the fuel readout says LOW FUEL and blinks red.
+- **Art:** `pickups.png` (fuel can, three heap variants: meadow grey, rusty for The Wastes, snow-capped for the Frozen North) from `tools/make_art.py`; all other PNGs byte-identical. **Sound:** `fuel.wav` from `tools/make_sounds.py`; old sounds byte-identical.
+- **CI:** `[pickup]` lines in the smoke logs and pickup counts in every `[autoplay]` line; the screenshot step copies frames around the first three pickups of the world, left and rocket runs (`pickup_*.png`).
+
+**Why this** — Brainstorm in `docs/IDEAS.md`: the screenshots of the drive show a pretty landscape and nothing to do but hold D. "The most boring minute is the drive between biomes" was written in two brainstorms in a row and never addressed, while digging and crashing both got their moments. Fuel never mattered either (75 → 58, no way to earn it back, no warning). Hill Climb Racing keeps every second of driving busy with cans and coins; that is the cheapest big fix and a player feels it within the first minute of driving. The last session was a feature (stashes); this is a feature that is mostly feel, and the next should be a polish session.
+
+**Verified (CI runs 43142244906 and 43142868331, both green)**
+
+- Starter car, 30 s to The Wastes: took 3 fuel cans (e.g. 60 → 75) and smashed 11 heaps at 17–51 km/h: Scrap 0 → 27 and Copper 0 → 3. Frozen North run: 4 cans, 7 heaps smashed, Scrap 15, Iron 3. Rocket car: 4 cans (one took it from 50 to 68 in the first run), 6 smashed, 1 picked up at 10 km/h; it ends with 61 fuel instead of 4 before. Drill car tunnels underground and takes none (expected).
+- The first run (40% cans, +fuel whenever there was any room) showed cans topping up 2–3 fuel at a time, so fuel never dropped: now 30% cans and a can waits until 6 fuel fit.
+- Screenshots on the `screenshots` branch: `pickup_world_*.png` show the fuel can with its halo lying on a hill, the "SMASH! +4 Scrap" call-out with flying junk, and the "+3 Fuel" gold spray; `pickup_left_121.png` shows a heap on the meadow surface.
+- Nothing else changed: starter drive still ends at tile x=2240.4 at 40 s, drill car 8.8 m deep with Scrap 22 / Iron 3 / Copper 1, Hill Climb 18.97 s and 15.25 s.
+
+**Not verified / known issues**
+
+- Not listened to (no audio in CI); the fuel glug and the pitched-up crunch are tuned by reading the code only.
+- Scrap heaps are small on screen at driving zoom (about 18 px tall); cans stand out, heaps less. Consider bigger heap art in the polish session.
+- Economy: one 30 s drive to The Wastes now pays about 27 Scrap and 3 Copper, enough for a Rocket Booster with a bit of iron. That makes early progress fast; good for the prototype, but tune `HeapLoot` after you play.
+- Smashing a heap does not slow the car (it is not a physics object). It may feel weightless; a small speed loss could be added.
+- Restarting the game restocks every pickup at once.
+- `frame=` in `[pickup]` lines is 0 in headless runs (only the screenshot runs count frames), same as `[crash]`.
+
+**Next**
+
+1. Polish session: speed lines and wind above 60 km/h, bigger and more readable scrap heaps, a little speed loss and wobble when smashing a heap, check the HUD at 1280×720.
+2. Trip summary card at the garage (distance, best air, heaps smashed, cans, stashes, crashes) with a best trip to beat (small).
+3. Smash streak: heaps within a few seconds chain into "SMASH x3" (small).
+4. Landing grades ("CLEAN LANDING" / "BELLY FLOP") (small).
+5. Snow/ice part (tracks or spiked tyres) from Frozen North iron.
+
 ## 2026-11-12, about 01:15–02:10 UTC — Buried stashes (PR #9)
 
 **Built**
