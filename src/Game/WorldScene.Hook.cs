@@ -35,7 +35,7 @@ public partial class WorldScene
         {
             _hooksBit++;
             _hookLongest = Mathf.Max(_hookLongest, dist);
-            _sfx.Play("clank", -7f, 0.05f, tile is Tile.Stone or Tile.Slate or Tile.Iron ? 1.1f : 0.9f);
+            _sfx.Play("clank", -7f, 0.05f, tile is Tile.Stone or Tile.Slate or Tile.Bedrock or Tile.IronOre ? 1.1f : 0.9f);
             ChipAt(at, tile);
             _birds?.Startle(at, 90f, "hook");
             if (!_hookHinted && _toastTime < 1.2f && !_card.Showing)
