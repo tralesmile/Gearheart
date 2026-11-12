@@ -354,6 +354,34 @@ def blowoff():
     return s
 
 
+night_rng = np.random.default_rng(389)   # own stream for the night sounds
+
+
+def crickets():
+    """Night ambience, a 3 s loop: two crickets chirping out of step (a few 30 Hz pulses of a
+    4–5 kHz tone per chirp) over a faint far-off chorus. Chirps wrap round the loop end, so it is seamless."""
+    n = SR * 3; t = np.arange(n) / SR
+    s = np.zeros(n)
+    for freq, period, offset, gain in ((4400, 0.62, 0.05, 1.0), (4950, 0.81, 0.33, 0.6)):
+        start = offset
+        while start < 3.0:
+            pulses = 3 + int(night_rng.integers(0, 2))
+            for k in range(pulses):
+                t0 = start + k / 31.0
+                local = np.mod(t - t0, 3.0)                      # wraps round the loop end
+                env = np.where(local < 0.022, np.sin(np.pi * local / 0.022) ** 2, 0.0)
+                s += gain * env * np.sin(2 * np.pi * freq * local)
+            start += period * (0.93 + 0.14 * night_rng.random())
+    # A far-off chorus: a soft band of noise around 4.5 kHz that swells slowly (whole cycles in 3 s).
+    spectrum = np.fft.rfft(night_rng.standard_normal(n))
+    f = np.fft.rfftfreq(n, 1 / SR)
+    spectrum[(f < 3800) | (f > 5300)] = 0
+    chorus = np.fft.irfft(spectrum, n)
+    chorus /= np.std(chorus) + 1e-9
+    s += 0.06 * chorus * (0.7 + 0.3 * np.sin(2 * np.pi * t / 3.0))
+    return s
+
+
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
     save("engine", engine(), 0.7)
@@ -380,4 +408,5 @@ if __name__ == "__main__":
     save("creak", tail_fade(creak(), 40), 0.6)
     save("turbo", turbo(), 0.5)
     save("blowoff", tail_fade(blowoff(), 60), 0.6)
+    save("crickets", crickets(), 0.35)
     print("sounds written to", os.path.abspath(OUT))

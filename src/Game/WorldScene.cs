@@ -218,6 +218,7 @@ public partial class WorldScene : Node2D
         AddChild(_spray);
 
         BuildHud();
+        StartClock();
         LogStashes();
         LogPickups();
         GD.Print($"[world] ready: design=\"{GameSession.CurrentDesign.Name}\" autoplay={GameSession.AutoPlay} " +
@@ -547,6 +548,7 @@ public partial class WorldScene : Node2D
         float dt = (float)delta;
         _elapsed += dt;
         if (GameSession.AutoPlay) RunBot();
+        AdvanceClock(dt);
         if (_driving) TrackStunts(dt);
         else _judge.Cancel();
         _bodyHitTick = false;
@@ -583,10 +585,7 @@ public partial class WorldScene : Node2D
         // Darkness grows with depth below the surface.
         float depth = focus.Y / Ts - _world.SurfaceRow(Mathf.FloorToInt(focus.X / Ts));
         float under = Mathf.Clamp((depth - 3f) / 12f, 0f, 1f);
-        _darkness.Color = Colors.White.Lerp(new Color(0.16f, 0.17f, 0.24f), under);
-        _lamp.Position = focus;
-        _lamp.Energy = under * 1.15f;
-        _lamp.TextureScale = _driving ? 1.6f : 1.1f;
+        ApplyDaylight(focus, under);
         _glints.Focus = focus;
         _crystals.Focus = focus;
         _crystals.Darkness = under;
@@ -1016,7 +1015,7 @@ public partial class WorldScene : Node2D
             float kmh = _car.Speed / PixelsPerMeter * 3.6f;
             string sprintNow = _sprint.Running ? $"SPRINT {_sprint.Time:0.00} s   " : "";
             string sprintBest = _sprint.Armed && GameSession.SprintBest > 0f ? $"   {GateSprint.Distance:0} m sprint best {GameSession.SprintBest:0.00} s" : "";
-            _status.Text = $"{(_car.Boosting ? "BOOST!   " : "")}{sprintNow}{BiomeName(_car.CenterPosition.X)}{TripStatus()}{DepthStatus(_car.CenterPosition)}{sprintBest}";
+            _status.Text = $"{(_car.Boosting ? "BOOST!   " : "")}{sprintNow}{ClockStatus()}{BiomeName(_car.CenterPosition.X)}{TripStatus()}{DepthStatus(_car.CenterPosition)}{sprintBest}";
             _status.Modulate = _car.Boosting ? new Color(1f, 0.8f, 0.4f) : Colors.White;
             _dash.Visible = true;
             _dash.Set(kmh, _car.Fuel, _car.FuelCapacity, _car.Damage, _car.Boosting);
@@ -1040,7 +1039,7 @@ public partial class WorldScene : Node2D
             _dash.Visible = false;
             _lines.Set(0f, _carDir, false);
             _status.Modulate = Colors.White;
-            _status.Text = $"{BiomeName(_player.Position.X)}{TripStatus()}{DepthStatus(_player.Position)}" +
+            _status.Text = $"{ClockStatus()}{BiomeName(_player.Position.X)}{TripStatus()}{DepthStatus(_player.Position)}" +
                            (GameSession.StashesFound > 0 ? $"   Stashes found {GameSession.StashesFound}" : "");
         }
 
@@ -1901,7 +1900,7 @@ public partial class WorldScene : Node2D
                  $"top={_topSpeed / PixelsPerMeter * 3.6f:0}km/h longestAir={_longestAir:0.0}s landings={_perfectLandings}/{_cleanLandings}/{_roughLandings}/{_flops} kickers={_kickerJumps}/{_kickerLaunches} longJumps={_longJumps}/{_jumpRecords}/{_longestJump:0.0}m " +
                  $"crashes={_crashFx.Hits} hardest={_crashFx.HardestHit / PixelsPerMeter * 3.6f:0}km/h sparks={_crashFx.SparkBursts} " +
                  $"cans={_cansTaken} heaps={_heapsTaken} smashed={_heapsSmashed} bestStreak={_bestStreak} " +
-                 $"dash={(_dash.Visible ? $"{_dash.ShownKmh:0}km/h" : "hidden")} lines={_lines.Intensity:0.00} peakLines={_peakLines:0.00} wind={_sfx.WindLevel:0.00} gear={_car.Gearbox.Gear}/{_car.Gearbox.Gears} revs={_car.Gearbox.Rpm:0.00} enginePitch={_sfx.LastEnginePitch:0.00} shifts={_car.Gearbox.Upshifts}/{_car.Gearbox.Downshifts} topGear={_car.Gearbox.TopGear} limiter={_car.Gearbox.Limiter} pops={_car.Backfires} turbo={(_car.HasTurbo ? $"peak {_car.TurboPeak:0.00} full {_car.TurboFullSeconds:0.0}s blowoffs {_car.TurboBlowOffs} now {_car.TurboBoost:0.00}" : "none")} starts={_perfectStarts}/{_goodStarts}/{_boggedStarts} sprints={_sprintsRun} sprintBest={GameSession.SprintBest:0.00} stuck={_stuckCount} rocks={_car.RockPulses} rockedFree={_rockFrees} longestStuck={_longestStuck:0.0}s flips={_backflips}/{_frontflips}/{_flipsCrashed} maxAirRot={_maxAirRot:0} rollOvers={_rollOvers} ice={_spray.IceSeconds:0.0}s slip={_spray.SlipSeconds:0.0}s bite={_spray.BiteSeconds:0.0}s trip={tripNow} reports={_tripsReported} deepest={_deepestThisRun:0.0}m crystalsMined={_crystalsMined} card={(_card.Showing ? _card.ShownScore.ToString() : "hidden")} | " +
+                 $"dash={(_dash.Visible ? $"{_dash.ShownKmh:0}km/h" : "hidden")} lines={_lines.Intensity:0.00} peakLines={_peakLines:0.00} wind={_sfx.WindLevel:0.00} gear={_car.Gearbox.Gear}/{_car.Gearbox.Gears} revs={_car.Gearbox.Rpm:0.00} enginePitch={_sfx.LastEnginePitch:0.00} shifts={_car.Gearbox.Upshifts}/{_car.Gearbox.Downshifts} topGear={_car.Gearbox.TopGear} limiter={_car.Gearbox.Limiter} pops={_car.Backfires} turbo={(_car.HasTurbo ? $"peak {_car.TurboPeak:0.00} full {_car.TurboFullSeconds:0.0}s blowoffs {_car.TurboBlowOffs} now {_car.TurboBoost:0.00}" : "none")} starts={_perfectStarts}/{_goodStarts}/{_boggedStarts} sprints={_sprintsRun} sprintBest={GameSession.SprintBest:0.00} stuck={_stuckCount} rocks={_car.RockPulses} rockedFree={_rockFrees} longestStuck={_longestStuck:0.0}s flips={_backflips}/{_frontflips}/{_flipsCrashed} maxAirRot={_maxAirRot:0} rollOvers={_rollOvers} ice={_spray.IceSeconds:0.0}s slip={_spray.SlipSeconds:0.0}s bite={_spray.BiteSeconds:0.0}s trip={tripNow} reports={_tripsReported} deepest={_deepestThisRun:0.0}m crystalsMined={_crystalsMined} card={(_card.Showing ? _card.ShownScore.ToString() : "hidden")} {NightSummary()} | " +
                  string.Join(" ", System.Array.ConvertAll(GameSession.Items, i => $"{i}={GameSession.Count(i)}")));
     }
 }

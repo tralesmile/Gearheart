@@ -56,6 +56,7 @@ jobs:
             grep "\[flip\]" smoke.log | head -90
             grep "\[aircam\]" smoke.log | head -30
             grep "\[turbo\]" smoke.log | head -14
+            grep "\[night\]" smoke.log | head -24
             # "resources still in use at exit" is a shutdown notice about cached textures and sounds, not a fault.
             if grep -E "ERROR|Unhandled exception|SCRIPT ERROR|System\.[A-Za-z]*Exception" smoke.log | grep -v "still in use at exit" | grep .; then
               echo "::error::Smoke test failed: $name"
@@ -80,6 +81,8 @@ jobs:
           run "world: rock it free, CONTROL (3-tile trench, no rocking)" res://scenes/world.tscn --quit-after 2700 -- --fresh --autoplay --rocktest --norock --design=starter
           run "world: Turbo pickup (starter + Turbocharger on the V6), same route as the starter" res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --design=turbo
           run "world: launch control, Turbo pickup (the launch charge spools the turbo), then a second sprint" res://scenes/world.tscn --quit-after 2700 -- --fresh --autoplay --launchtest --design=turbo
+          run "world: dusk into night (clock from 19:00 at 3x), starter car east" res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --time=19 --clockrate=3 --design=starter
+          run "world: night drive west (reversing lamp), from 22:00" res://scenes/world.tscn --quit-after 3600 -- --fresh --autoplay --left --time=22 --design=starter
           run "world: rocket booster car"             res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --design=rocket
           run "world: flip tricks, rocket car (tries a backflip, then a frontflip, ... off every kicker)" res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --fliptest --design=rocket
           run "world: flip tricks, starter car (no booster: are its jumps long enough?)" res://scenes/world.tscn --quit-after 3600 -- --fresh --autoplay --fliptest --design=starter
@@ -105,7 +108,7 @@ jobs:
         run: |
           sudo apt-get update -qq > /dev/null 2>&1 || true
           sudo apt-get install -y -qq xvfb libgl1-mesa-dri > /dev/null 2>&1 || true
-          mkdir -p shots/turbo shots/flip shots/rock shots/launch shots/world shots/left shots/drill shots/rocket shots/crash shots/stash shots/trip shots/garage shots/iceplain shots/icespiked shots/jump shots/deep shots/crystal keep
+          mkdir -p shots/night shots/nightleft shots/dawn shots/turbo shots/flip shots/rock shots/launch shots/world shots/left shots/drill shots/rocket shots/crash shots/stash shots/trip shots/garage shots/iceplain shots/icespiked shots/jump shots/deep shots/crystal keep
           # Keep Godot from importing (and exporting) the thousands of movie frames: they slowed every
           # later run, bloated the game builds and flooded the job log past the playtest lines.
           touch shots/.gdignore keep/.gdignore
@@ -154,6 +157,20 @@ jobs:
             done
             grep "\[aircam\]" shots/$run.log | head -8
           done
+          # Day and night: dusk into night on the meadow road (clock at 3x), a night drive west, and a dawn.
+          xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/night/f.png --quit-after 400 res://scenes/world.tscn -- --fresh --autoplay --time=19 --clockrate=3 --design=starter > shots/night.log 2>&1 || true
+          xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/nightleft/f.png --quit-after 300 res://scenes/world.tscn -- --fresh --autoplay --left --time=22 --design=starter > shots/nightleft.log 2>&1 || true
+          xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/dawn/f.png --quit-after 160 res://scenes/world.tscn -- --fresh --autoplay --time=4.2 --clockrate=3 --design=starter > shots/dawn.log 2>&1 || true
+          for i in 10 40 70 100 140 180 230 280 330 390; do
+            f=$(printf "shots/night/f%08d.png" $i); [ -f "$f" ] && cp "$f" keep/night_$i.png
+          done
+          for i in 30 140 200 260; do
+            f=$(printf "shots/nightleft/f%08d.png" $i); [ -f "$f" ] && cp "$f" keep/nightleft_$i.png
+          done
+          for i in 20 60 100 150; do
+            f=$(printf "shots/dawn/f%08d.png" $i); [ -f "$f" ] && cp "$f" keep/dawn_$i.png
+          done
+          grep -E "\[night\]" shots/night.log shots/nightleft.log shots/dawn.log | head -40
           # Turbo: the car with its turbo on the bonnet at full boost (dashboard BOOST arc), and a blow-off puff.
           xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/turbo/f.png --quit-after 300 res://scenes/world.tscn -- --fresh --autoplay --launchtest --design=turbo > shots/turbo.log 2>&1 || true
           grep "\[turbo\] full boost" shots/turbo.log | head -2 | sed -E 's/.*frame=([0-9]+).*/\1/' | while read n; do

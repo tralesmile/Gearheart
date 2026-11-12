@@ -17,6 +17,9 @@ public partial class StashGlints : Node2D
     /// <summary>Full brightness within this distance, fading out by <see cref="FadeTo"/>.</summary>
     public const float FullUntil = 300f, FadeTo = 760f;
 
+    /// <summary>Range multiplier: at night the glints shine from further away (1 by day, up to 1.8 at night).</summary>
+    public float Reach = 1f;
+
     private const float Ts = TileWorld.TileSize;
     private static readonly Color Gold = new(1f, 0.85f, 0.35f);
     private static readonly Color Pale = new(1f, 0.97f, 0.85f);
@@ -24,6 +27,9 @@ public partial class StashGlints : Node2D
 
     /// <summary>Distance from the focus to the closest stash still in the ground, or infinity.</summary>
     public float Nearest { get; private set; } = float.PositiveInfinity;
+
+    /// <summary>Stashes glinting in the last frame (for the bot log).</summary>
+    public int Shown { get; private set; }
 
     public override void _Process(double delta)
     {
@@ -34,6 +40,7 @@ public partial class StashGlints : Node2D
     public override void _Draw()
     {
         Nearest = float.PositiveInfinity;
+        Shown = 0;
         if (World == null) return;
 
         foreach (Vector2I s in World.Stashes)
@@ -43,9 +50,11 @@ public partial class StashGlints : Node2D
             var center = new Vector2((s.X + 0.5f) * Ts, (s.Y + 0.5f) * Ts);
             float d = center.DistanceTo(Focus);
             Nearest = Mathf.Min(Nearest, d);
-            if (d > FadeTo) continue;
+            float full = FullUntil * Reach, fade = FadeTo * Reach;
+            if (d > fade) continue;
+            Shown++;
 
-            float near = 1f - Mathf.Clamp((d - FullUntil) / (FadeTo - FullUntil), 0f, 1f);
+            float near = 1f - Mathf.Clamp((d - full) / (fade - full), 0f, 1f);
             uint h = (uint)(s.X * 92821 ^ s.Y * 68917);
             float phase = _time * 2.3f + (h % 628) / 100f;
             float flash = Mathf.Pow(Mathf.Max(0f, Mathf.Sin(phase)), 8f);          // a short flash every ~2.7 s
