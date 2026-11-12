@@ -114,6 +114,8 @@ public static class GameSession
         public int StashesFound { get; set; }
         public TripBest BestTrip { get; set; }
         public float DeepestDig { get; set; }
+        public float SprintBest { get; set; }   // gate sprint, seconds (0 = none yet)
+        public int Sprints { get; set; }
     }
 
     private static Progress Data => _progress ??= LoadProgress();
@@ -140,6 +142,22 @@ public static class GameSession
             Data.DeepestDig = value;
             _dirty = true;
         }
+    }
+
+    /// <summary>The best gate sprint in seconds (0 before the first one).</summary>
+    public static float SprintBest => Data.SprintBest;
+
+    /// <summary>Gate sprints finished (all worlds).</summary>
+    public static int Sprints => Data.Sprints;
+
+    /// <summary>Records a finished gate sprint; returns the best time before it (0 if none).</summary>
+    public static float SubmitSprint(float seconds)
+    {
+        float before = Data.SprintBest;
+        if (before <= 0f || seconds < before) Data.SprintBest = seconds;
+        Data.Sprints++;
+        SaveProgress();
+        return before;
     }
 
     /// <summary>The best trip so far, or null before the first trip report.</summary>

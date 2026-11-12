@@ -345,6 +345,8 @@ public partial class WorldScene : Node2D
     private void OnLaunch(LaunchGrade grade, float kick)
     {
         if (!_driving) return;
+        _lastLaunch = grade.ToString().ToLowerInvariant();
+        _lastLaunchAt = _elapsed;
         float kmh = kick / PixelsPerMeter * 3.6f;
         switch (grade)
         {
@@ -402,9 +404,24 @@ public partial class WorldScene : Node2D
     /// in the green (or, with --launchearly, at a third of the way up). The first try deliberately rides
     /// the limiter once, so the bounce is tested too.
     /// </summary>
+    private int _launchLeg;   // 0 first start, 1 reversing back onto the pad, 2 second start
+
     private void RunLaunchBot()
     {
-        if (!_driving && _elapsed > 0.5f) EnterCar();
+        if (!_driving && _elapsed > 0.5f && _launchLeg == 0) EnterCar();
+        if (_driving && _launchLeg == 1)
+        {
+            // Back up onto the pad, then hold the handbrake + throttle for a second launch.
+            if (MetersFromGarage(_car.CenterPosition.X) > 1.5f) _car.AutoThrottle = -1f;
+            else
+            {
+                _car.AutoThrottle = 1f;
+                _car.AutoHandbrake = true;
+                _launchLeg = 2;
+                GD.Print($"[sprint] test: on the pad again at t={_elapsed:0.0}s, second launch");
+            }
+            return;
+        }
         if (!_driving || !_car.AutoHandbrake) return;
         float letGoAt = GameSession.LaunchEarly ? 0.3f : 0.86f;
         bool ready = GameSession.LaunchEarly || _car.LaunchBounces >= 1;
@@ -482,6 +499,7 @@ public partial class WorldScene : Node2D
         _bodyHitTick = false;
         _spray.Track(_car, dt, _driving);
         CheckPickups();
+        UpdateSprint();
         UpdateTrip();
 
         _saveTimer += dt;
@@ -935,7 +953,9 @@ public partial class WorldScene : Node2D
                          (NearGarage() ? "   G: garage   R: repair" : "");
             // Speed, fuel and damage live on the dashboard now; the status line keeps where you are.
             float kmh = _car.Speed / PixelsPerMeter * 3.6f;
-            _status.Text = $"{(_car.Boosting ? "BOOST!   " : "")}{BiomeName(_car.CenterPosition.X)}{TripStatus()}{DepthStatus(_car.CenterPosition)}";
+            string sprintNow = _sprint.Running ? $"SPRINT {_sprint.Time:0.00} s   " : "";
+            string sprintBest = _sprint.Armed && GameSession.SprintBest > 0f ? $"   {GateSprint.Distance:0} m sprint best {GameSession.SprintBest:0.00} s" : "";
+            _status.Text = $"{(_car.Boosting ? "BOOST!   " : "")}{sprintNow}{BiomeName(_car.CenterPosition.X)}{TripStatus()}{DepthStatus(_car.CenterPosition)}{sprintBest}";
             _status.Modulate = _car.Boosting ? new Color(1f, 0.8f, 0.4f) : Colors.White;
             _dash.Visible = true;
             _dash.Set(kmh, _car.Fuel, _car.FuelCapacity, _car.Damage, _car.Boosting);
@@ -1050,13 +1070,90 @@ public partial class WorldScene : Node2D
         _nextGoal = null;
         foreach (string item in Trip.HaulItems) _trip.MaterialsAtStart[item] = GameSession.Count(item);
         _farthestCheered = false;
-        // Out of the gate: the goal for this trip, big and centred.
-        Toast($"TRIP GOAL\n{_trip.Goal.Text}");
-        _toastTime = 2.6f;
-        _goalToast = true;
+        // Out of the gate: the goal for this trip, big and centred (with the sprint time if one is on).
+        if (_sprint.Running) _goalToastDeferred = true;
+        else ShowGoalToast();
         _sfx.Play("tally", -6f, 0.05f, 0.9f);
         if (GameSession.AutoPlay)
             GD.Print($"[trip] start: left the garage grounds {(_driving ? "driving" : "on foot")} at t={_elapsed:0.0}s goal=\"{_trip.Goal.Text}\" kind={_trip.Goal.Kind} target={_trip.Goal.Target:0.##} bonus={_trip.Goal.Bonus} frame={Engine.GetFramesDrawn()}");
+    }
+
+    private void ShowGoalToast()
+    {
+        _goalToastDeferred = false;
+        if (_trip?.Goal == null) return;
+        Toast($"TRIP GOAL\n{_trip.Goal.Text}");
+        _toastTime = 2.6f;
+        _goalToast = true;
+    }
+
+    // ---- Gate sprint (see GateSprint) -----------------------------------------------------------
+
+    private readonly GateSprint _sprint = new();
+    private string _lastLaunch = "plain";
+    private float _lastLaunchAt = -99f;
+    private bool _goalToastDeferred;
+    private int _sprintsRun;
+    private const float PadHalfMeters = (TileWorld.PadTo - TileWorld.PadFrom) / 2f * 0.25f;
+
+    /// <summary>Times a 20 m dash from a standing start on the garage pad; the result shows as a call-out.</summary>
+    private void UpdateSprint()
+    {
+        if (_car == null) return;
+        float x = _car.CenterPosition.X;
+        bool onPad = Mathf.Abs(MetersFromGarage(x)) <= PadHalfMeters;
+        float kmh = _car.Speed / PixelsPerMeter * 3.6f;
+        switch (_sprint.Update(_elapsed, x / PixelsPerMeter, kmh, onPad, _driving))
+        {
+            case GateSprint.Result.Started:
+                if (GameSession.AutoPlay)
+                    GD.Print($"[sprint] start at {MetersFromGarage(x):0.0} m from the pad's middle, t={_sprint.StartedAt:0.00}s frame={Engine.GetFramesDrawn()}");
+                break;
+            case GateSprint.Result.Finished:
+                FinishSprint();
+                break;
+            case GateSprint.Result.GaveUp:
+                if (GameSession.AutoPlay) GD.Print($"[sprint] no time: {_sprint.Covered:0.0} m in {_sprint.Time:0.00} s (stopped, got out or too slow)");
+                if (_goalToastDeferred) ShowGoalToast();
+                break;
+        }
+    }
+
+    private void FinishSprint()
+    {
+        float t = _sprint.Time;
+        string launch = _lastLaunchAt >= _sprint.StartedAt - 0.05f ? _lastLaunch : "plain";
+        float before = GameSession.SubmitSprint(t);
+        bool first = before <= 0f, newBest = !first && t < before;
+        _sprintsRun++;
+        string head = $"{GateSprint.Distance:0} m SPRINT  {t:0.00} s";
+        string verdict = first ? "a time to beat" : newBest ? $"NEW BEST!  {before - t:0.00} s faster" : $"best {before:0.00} s  (+{t - before:0.00})";
+        if (_goalToastDeferred && _trip?.Goal != null)
+        {
+            Toast($"{head} · {verdict}\nTRIP GOAL: {_trip.Goal.Text}");
+            _toastTime = 3f;
+            _goalToast = true;
+        }
+        else
+        {
+            Toast($"{head}\n{verdict}");
+            _toastTime = 2.4f;
+        }
+        _goalToastDeferred = false;
+        if (newBest)
+        {
+            _sfx.Play("record", -7f, 0.1f, 1.15f);
+            _kickGlow = Mathf.Max(_kickGlow, 0.5f);
+        }
+        else _sfx.Play("tally", -4f, 0.05f, 1.1f);
+        if (GameSession.AutoPlay)
+            GD.Print($"[sprint] finish: {GateSprint.Distance:0} m in {t:0.00} s launch={launch} top={_car.Speed / PixelsPerMeter * 3.6f:0}km/h " +
+                     $"best_before={(first ? "none" : before.ToString("0.00"))} newBest={newBest} goalShown={_trip?.Goal != null && _goalToast} frame={Engine.GetFramesDrawn()}");
+        if (GameSession.LaunchTest && !GameSession.LaunchEarly && _launchLeg == 0)
+        {
+            _launchLeg = 1;   // the bot drives back onto the pad for a second go
+            GD.Print("[sprint] test: back to the pad for a second sprint");
+        }
     }
 
     /// <summary>The trip's running counts (heaps, cans, stashes, haul) from the counters at its start.</summary>
@@ -1663,7 +1760,7 @@ public partial class WorldScene : Node2D
                  $"top={_topSpeed / PixelsPerMeter * 3.6f:0}km/h longestAir={_longestAir:0.0}s landings={_perfectLandings}/{_cleanLandings}/{_roughLandings}/{_flops} kickers={_kickerJumps}/{_kickerLaunches} longJumps={_longJumps}/{_jumpRecords}/{_longestJump:0.0}m " +
                  $"crashes={_crashFx.Hits} hardest={_crashFx.HardestHit / PixelsPerMeter * 3.6f:0}km/h sparks={_crashFx.SparkBursts} " +
                  $"cans={_cansTaken} heaps={_heapsTaken} smashed={_heapsSmashed} bestStreak={_bestStreak} " +
-                 $"dash={(_dash.Visible ? $"{_dash.ShownKmh:0}km/h" : "hidden")} lines={_lines.Intensity:0.00} peakLines={_peakLines:0.00} wind={_sfx.WindLevel:0.00} gear={_car.Gearbox.Gear}/{_car.Gearbox.Gears} revs={_car.Gearbox.Rpm:0.00} enginePitch={_sfx.LastEnginePitch:0.00} shifts={_car.Gearbox.Upshifts}/{_car.Gearbox.Downshifts} topGear={_car.Gearbox.TopGear} limiter={_car.Gearbox.Limiter} pops={_car.Backfires} starts={_perfectStarts}/{_goodStarts}/{_boggedStarts} rollOvers={_rollOvers} ice={_spray.IceSeconds:0.0}s slip={_spray.SlipSeconds:0.0}s bite={_spray.BiteSeconds:0.0}s trip={tripNow} reports={_tripsReported} deepest={_deepestThisRun:0.0}m crystalsMined={_crystalsMined} card={(_card.Showing ? _card.ShownScore.ToString() : "hidden")} | " +
+                 $"dash={(_dash.Visible ? $"{_dash.ShownKmh:0}km/h" : "hidden")} lines={_lines.Intensity:0.00} peakLines={_peakLines:0.00} wind={_sfx.WindLevel:0.00} gear={_car.Gearbox.Gear}/{_car.Gearbox.Gears} revs={_car.Gearbox.Rpm:0.00} enginePitch={_sfx.LastEnginePitch:0.00} shifts={_car.Gearbox.Upshifts}/{_car.Gearbox.Downshifts} topGear={_car.Gearbox.TopGear} limiter={_car.Gearbox.Limiter} pops={_car.Backfires} starts={_perfectStarts}/{_goodStarts}/{_boggedStarts} sprints={_sprintsRun} sprintBest={GameSession.SprintBest:0.00} rollOvers={_rollOvers} ice={_spray.IceSeconds:0.0}s slip={_spray.SlipSeconds:0.0}s bite={_spray.BiteSeconds:0.0}s trip={tripNow} reports={_tripsReported} deepest={_deepestThisRun:0.0}m crystalsMined={_crystalsMined} card={(_card.Showing ? _card.ShownScore.ToString() : "hidden")} | " +
                  string.Join(" ", System.Array.ConvertAll(GameSession.Items, i => $"{i}={GameSession.Count(i)}")));
     }
 }

@@ -51,6 +51,7 @@ jobs:
             grep "\[kicker\]" smoke.log | head -24
             grep "\[engine\]" smoke.log | head -24
             grep -E "\[(launch|stall)\]" smoke.log | head -16
+            grep "\[sprint\]" smoke.log | head -12
             # "resources still in use at exit" is a shutdown notice about cached textures and sounds, not a fault.
             if grep -E "ERROR|Unhandled exception|SCRIPT ERROR|System\.[A-Za-z]*Exception" smoke.log | grep -v "still in use at exit" | grep .; then
               echo "::error::Smoke test failed: $name"
@@ -66,7 +67,7 @@ jobs:
           run "world: drive left to the Frozen North on Spiked Tyres" res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --left --design=spiked
           run "world: V8 swap (engine sound and gearbox, 6 gears)" res://scenes/world.tscn --quit-after 2400 -- --fresh --autoplay --design=v8
           run "world: Scrap 4-Cylinder swap (4 gears)" res://scenes/world.tscn --quit-after 2400 -- --fresh --autoplay --design=scrap4
-          run "world: launch control, perfect start (rides the limiter once, then lets go in the green)" res://scenes/world.tscn --quit-after 900 -- --fresh --autoplay --launchtest --design=starter
+          run "world: launch control, perfect start (rides the limiter once, then lets go in the green), then a second 20 m sprint" res://scenes/world.tscn --quit-after 2700 -- --fresh --autoplay --launchtest --design=starter
           run "world: launch control, let go too early (bogged)" res://scenes/world.tscn --quit-after 900 -- --fresh --autoplay --launchearly --design=starter
           run "world: launch control, Scrap 4-Cylinder" res://scenes/world.tscn --quit-after 900 -- --fresh --autoplay --launchtest --design=scrap4
           run "world: rocket booster car"             res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --design=rocket
@@ -115,6 +116,13 @@ jobs:
             done
           done
           grep -E "\[(launch|engine)\]" shots/launch.log | head -10
+          # Gate sprint: the call-out with the time a moment after crossing 20 m.
+          grep "\[sprint\] finish" shots/launch.log | head -1 | sed -E 's/.*frame=([0-9]+).*/\1/' | while read n; do
+            for d in 1 6; do
+              f=$(printf "shots/launch/f%08d.png" $((n + d))); [ -f "$f" ] && cp "$f" keep/sprint_$((n + d)).png
+            done
+          done
+          grep "\[sprint\]" shots/launch.log | head -4
           xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/garage/f.png --quit-after 12 res://scenes/garage.tscn > shots/garage.log 2>&1 || true
           # Engine: the frame just after each of the first upshifts (gear box flash on the dashboard) and the first exhaust pop.
           grep "\[engine\] upshift" shots/world.log | head -3 | sed -E 's/.*frame=([0-9]+).*/\1/' | while read n; do
