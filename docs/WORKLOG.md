@@ -19,15 +19,16 @@ Newest entry first. Each session: what was built and why, how it was verified, w
 
 **Why this** — Brainstorm in `docs/IDEAS.md` (twenty-third session). The last two sessions were features (devils, hook), so this one is polish and feel, and it was the top of last session's "Next". Mining is the most repeated action in the game and gave the least back: a tile vanishes, "+1 Iron" takes over the centre of the screen. Ore already lies in blobs; a combo with a climbing sound turns "hold the mouse" into following a vein (Minecraft's vein joy, Hill Climb's coin ding), and the sparkle trail shows there is more. Felt in the first minute: the walk bot hits ore within seconds of spawning.
 
-**CI runs**: 43322687840 (green), then one for the fixes below, one for these docs.
+**CI runs**: 43322687840, 43325159287 (both green), one more for the toast fix and these docs.
 
-1. Run 1: everything worked, but the test vein ran 4 tiles down-right and the last two were out of the pickaxe's reach from the surface (the bot mined 5, x5, one bonus); "+1 Iron" in the iron tile's own brown was hard to read on dirt (`vein_13.png`). Run 2: a compact 7-tile blob, brighter pop colours, and the toast centring.
+1. Run 1: everything worked, but the test vein ran 4 tiles down-right and the last two were out of the pickaxe's reach from the surface (the bot mined 5, x5, one bonus); "+1 Iron" in the iron tile's own brown was hard to read on dirt (`vein_13.png`).
+2. Run 2: a compact 7-tile blob and brighter pop colours (fine), but my first toast fix made long call-outs grow both ways around the box's left edge, so they sat 200 px left of centre (`vein_22.png`). Run 3 sets the box's offsets to -200..200 so it grows around the centre.
 
-**Verified (run 43322687840)**
+**Verified (run 43325159287)**
 
-- **Vein test**: Iron 0 → chain 1, 2, 3, **4 BONUS +1** (Iron=5 after the 4th tile), 5 → Iron=6 for 5 tiles; "run over: x5 (best 5, bonuses 1)" 3 s after the last ore; then the lone scrap tile started a new run at **chain=1**. 5 ripples, 20 sparkles, 11 pops.
+- **Vein test**: Iron 0 → chain 1, 2, 3, **4 BONUS +1** (Iron=5 after the 4th tile), 5, 6, **7** → **Iron=8 for 7 tiles**, dug out in 6.4 s; "run over: x7 (best 7, bonuses 1)" 3 s after the last ore; then the lone scrap tile started a new run at **chain=1** (Scrap=2). 6 ripples, 21 sparkles, 15 pops.
 - **Natural ore** (drill runs): runs up to **x6** happened by themselves (Scrap x4 BONUS at (1434,84), then two Iron = x6), and single tiles stayed x1. Crystal in the Deep chained x2 at most (the bot walks between clusters).
-- **Screenshots**: `vein_13.png` (+1 Iron over the first broken tile, sparkles on all six left), `vein_22.png` (VEIN x2 and the VEIN RUN! call-out), `vein_40.png` ("+1 BONUS Iron", "VEIN x4", "+1 Iron" stacked over the hole, sparkles on the last three; Iron 5 on the bar).
+- **Screenshots**: `vein_13.png` (+1 Iron over the first broken tile, sparkles on the six left), `vein_22.png` (VEIN x2, sparkles rippling over the rest), `vein_40.png` ("+1 BONUS Iron" in gold, "VEIN x4", "+1 Iron" in pale rust, stacked over the hole, sparkles on the last three; Iron 5 on the bar), `vein_66.png` (the last tile).
 - **Nothing else changed**: every 40 s position identical to main (starter 2209.3, drill 1414.8, Crystal Drill 1480.1, left 465.7, spiked 424.9, turbo 2302.1, devils 2173.2 / 2533.3, rocket 2552.7, flip 2543.3, trip 1629.2). No errors.
 
 **Not verified / known issues**
@@ -35,7 +36,7 @@ Newest entry first. Each session: what was built and why, how it was verified, w
 - Fun is my judgement (D1): whether the pops and the tink make mining feel good or busy, and whether 3 s / 3 tiles is too strict or too loose.
 - The sound is tuned by numbers only; I cannot hear it.
 - The bonus also pays while drilling (a drill run past a big vein gets about +25%). Deliberate for now; see DECISIONS.
-- Run 2's numbers (the compact vein: expected x7, one bonus, Iron 8) are filled in below once it finishes.
+- The toast centring fix (run 3) changes where every long centre call-out sits; I check it in run 3's screenshots, but the docs in this commit were written before that run finished (see the PR comment / next session's entry if it was wrong).
 
 **Next**
 
