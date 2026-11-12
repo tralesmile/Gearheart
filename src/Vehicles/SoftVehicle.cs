@@ -343,6 +343,7 @@ public partial class SoftVehicle : Node2D, IVehicle
     private bool _hopPending;
     private float _kickPending, _kickRate, _overdrive, _kickDir;
     private const float AirSpinDamping = 0.003f;   // share of spin removed per substep while airborne
+    private const float MaxHeldSpin = 12f;         // rad/s (about 690 deg/s): spin held with Q/E is not bled below this
     private float _autoStuckTime, _autoReverseTime;
     private int _rearHub = -1, _frontHub = -1;
     private Vector2 _centerAtTickStart;
@@ -751,10 +752,10 @@ public partial class SoftVehicle : Node2D, IVehicle
 
         // Upside down and stopped: the car rocks itself back onto its wheels.
         float tilt = _input.Tilt;
-        if (Stuck && !_selfRighting) tilt *= RockTiltBoost;
         // Flying (no wheel down): rotation is stronger, so a full flip fits in a big jump.
-        else if (!_selfRighting && Airborne) tilt *= AirSpinBoost(tilt, dt);
+        if (!Stuck && !_selfRighting && Airborne) tilt *= AirSpinBoost(tilt, dt);
         else _airHoldSign = 0;
+        if (Stuck && !_selfRighting) tilt *= RockTiltBoost;
         // If it stays stuck (wedged on its roof in a dip), the push grows until it rolls over.
         if (_selfRighting && !Parked) tilt = -Mathf.Sign(PitchDegrees()) * Mathf.Min(8f, 2.5f + 2.2f * _rightingTime);
 
@@ -939,6 +940,8 @@ public partial class SoftVehicle : Node2D, IVehicle
             inertia += r.LengthSquared();
         }
         if (inertia < 1f) return;
+        // Spin the driver is holding Q/E for is theirs: no bleed until it gets really fast (a flip in progress).
+        if (_airHoldSign != 0 && Mathf.Sign(angular) == _airHoldSign && Mathf.Abs(angular / inertia) / _subDt < MaxHeldSpin) return;
 
         float remove = angular / inertia * AirSpinDamping;
         for (int i = 0; i < Pos.Length; i++)

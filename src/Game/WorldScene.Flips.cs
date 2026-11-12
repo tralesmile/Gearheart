@@ -76,10 +76,11 @@ public partial class WorldScene
             GD.Print($"[flip] turn {turns} ({(IsBackflip(_airRot) ? "backwards" : "forwards")}) after {_airTime:0.00}s of air, spinning {_airRotRate:0} deg/s at x={_car.CenterPosition.X / Ts:0} frame={Engine.GetFramesDrawn()}");
     }
 
-    /// <summary>The wheels touched down: keep this jump's rotation for the landing verdict.</summary>
+    /// <summary>The wheels touched down: keep this jump's rotation for the landing verdict. A bounce while the
+    /// last touchdown is still being judged adds to it (one wheel touching and hopping off must not lose the flip).</summary>
     private void TouchdownRotation()
     {
-        _flipRot = _airRot;
+        _flipRot = _judge.Judging ? _flipRot + _airRot : _airRot;
         _airRot = 0f;
         _airTurnsTicked = 0;
     }
@@ -159,7 +160,7 @@ public partial class WorldScene
         if (!air)
         {
             if (_flipBotTarget != 0f)
-                GD.Print($"[flip] bot: touchdown, turned {_flipRot:0} of {_flipBotTarget:0} after {_flipBotAir:0.00}s, peak spin {_flipBotPeak:0} deg/s, tilt held {_flipBotPush:0.00}s push / {_flipBotBrake:0.00}s brake, " +
+                GD.Print($"[flip] bot: touchdown, turned {(Mathf.Abs(_airRot) > Mathf.Abs(_flipRot) ? _airRot : _flipRot):0} of {_flipBotTarget:0} after {_flipBotAir:0.00}s, peak spin {_flipBotPeak:0} deg/s, tilt held {_flipBotPush:0.00}s push / {_flipBotBrake:0.00}s brake, " +
                          $"wheels {_car.WheelsGrounded}/{_car.WheelsAttached} pitch {_car.PitchDegrees():0} bodyDown={_bodyDown} frame={Engine.GetFramesDrawn()}");
             _car.AutoTilt = 0f;
             _flipBotTarget = 0f;
