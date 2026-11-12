@@ -446,6 +446,44 @@ def horn():
     return s * env
 
 
+devil_rng = np.random.default_rng(1907)   # own stream for the dust devil sounds
+
+
+def devil():
+    """A dust devil: a swirling roar, two seconds that loop. Sand hiss whose band sweeps up and down
+    as the column turns, over a low rumble; built in the frequency domain so it wraps without a click."""
+    n = 2 * SR; t = np.arange(n) / SR
+    f = np.fft.rfftfreq(n, 1 / SR)
+
+    def band(lo_hz, hi_hz):
+        spectrum = np.fft.rfft(devil_rng.standard_normal(n))
+        spectrum *= np.exp(-((f - (lo_hz + hi_hz) / 2) / ((hi_hz - lo_hz) / 2)) ** 2)
+        x = np.fft.irfft(spectrum, n)
+        return x / (np.std(x) + 1e-9)
+
+    low, mid, high = band(60, 260), band(500, 1400), band(1800, 4200)
+    swirl = 0.5 + 0.5 * np.sin(2 * np.pi * 1.5 * t)          # whole cycles in 2 s: the column turning
+    s = 0.55 * low * (0.8 + 0.2 * np.sin(2 * np.pi * 0.5 * t))
+    s += 0.6 * mid * (0.45 + 0.55 * swirl)
+    s += 0.35 * high * (0.3 + 0.7 * (1 - swirl))
+    s *= 0.85 + 0.15 * np.sin(2 * np.pi * 3 * t + 0.7)         # gusts
+    return s
+
+
+def gust():
+    """A whoosh: the devil grabbing the car, or blowing itself out. Noise that swells and fades with
+    its band rising, then falling."""
+    n = int(SR * 0.9); t = np.arange(n) / SR
+    s = np.zeros(n)
+    noise = devil_rng.standard_normal(n)
+    env = np.sin(np.pi * np.minimum(t / 0.9, 1)) ** 1.5
+    # A crude sweep: blend lowpassed copies, sharper in the middle of the whoosh.
+    soft, sharp = lowpass(noise, 24), lowpass(noise, 5) - lowpass(noise, 40)
+    mix = np.sin(np.pi * t / 0.9)
+    s = env * ((1 - mix) * soft * 2.2 + mix * sharp)
+    return s
+
+
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
     save("engine", engine(), 0.7)
@@ -477,4 +515,6 @@ if __name__ == "__main__":
     save("chirp", tail_fade(chirp(), 20), 0.45)
     save("caw", tail_fade(caw(), 40), 0.55)
     save("horn", tail_fade(horn(), 20), 0.6)
+    save("devil", devil(), 0.5)
+    save("gust", tail_fade(gust(), 60), 0.6)
     print("sounds written to", os.path.abspath(OUT))

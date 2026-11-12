@@ -14,7 +14,7 @@ public partial class Sfx : Node
     private readonly Dictionary<string, AudioStream> _streams = new();
     private readonly List<AudioStreamPlayer> _voices = new();
     private readonly Dictionary<string, double> _lastPlayed = new();
-    private AudioStreamPlayer _engine, _drill, _boost, _wind, _turbo, _crickets;
+    private AudioStreamPlayer _engine, _drill, _boost, _wind, _turbo, _crickets, _devil;
     private readonly Dictionary<string, AudioStreamPlayer> _engines = new();
     private double _crankUntil;          // the starter is cranking: engine loop silent until then
     private int _nextVoice;
@@ -22,7 +22,7 @@ public partial class Sfx : Node
 
     public override void _Ready()
     {
-        foreach (string name in new[] { "pick", "break", "place", "pickup", "thud", "crunch", "snap", "treasure", "fuel", "tally", "record", "land", "shift", "pop", "start", "creak", "blowoff", "flutter", "chirp", "caw", "horn" })
+        foreach (string name in new[] { "pick", "break", "place", "pickup", "thud", "crunch", "snap", "treasure", "fuel", "tally", "record", "land", "shift", "pop", "start", "creak", "blowoff", "flutter", "chirp", "caw", "horn", "gust" })
             _streams[name] = GD.Load<AudioStream>($"res://assets/audio/{name}.wav");
 
         for (int i = 0; i < 6; i++)
@@ -39,7 +39,21 @@ public partial class Sfx : Node
         _wind = Loop("wind");
         _turbo = Loop("turbo");
         _crickets = Loop("crickets", 0);
+        _devil = Loop("devil", 0);
     }
+
+    /// <summary>
+    /// A dust devil's roar: a swirling hiss and rumble, louder the closer the nearest devil is and
+    /// loudest inside it. <paramref name="level"/> is 0..1.
+    /// </summary>
+    public void UpdateDevil(float level)
+    {
+        DevilLevel = level;
+        SetLoop(_devil, level > 0.02f, Mathf.LinearToDb(Mathf.Max(0.001f, level)) - 10f, 0.85f + 0.3f * level);
+    }
+
+    /// <summary>How loud the dust devil roar is, 0..1 (for the bot log).</summary>
+    public float DevilLevel { get; private set; }
 
     /// <summary>
     /// Night on the surface: crickets chirp, fading in at dusk (quieter in the car, under the engine).
