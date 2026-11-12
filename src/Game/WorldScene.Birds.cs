@@ -12,7 +12,7 @@ namespace Gearheart.Game;
 /// </summary>
 public partial class WorldScene
 {
-    private const float HornReach = 900f;          // px (about 14 m)
+    private const float HornReach = 750f;          // px (about 12 m, a bit past the screen edge ahead)
     private const float EngineStartReach = 800f;
     private Birds _birds;
     private int _honks;
@@ -28,7 +28,6 @@ public partial class WorldScene
             garageAt + new Vector2(16f, 18f),
             garageAt + new Vector2(42f, 18f),
             garageAt + new Vector2(118f, 0f),
-            garageAt + new Vector2(198f, 18f),
         };
         _birds = new Birds { Name = "Birds", World = _world, Sfx = _sfx, Focus = _player.Position, RoofPerches = roof };
         _birds.Scattered += OnBirdsScattered;
@@ -56,8 +55,10 @@ public partial class WorldScene
     {
         _birds.Focus = focus;
         _birds.Night = DayCycle.Night(GameSession.ClockHours);
-        if (_driving) _birds.Startle(_car.CenterPosition, 230f + 0.55f * _car.Speed, "car");
-        else _birds.Startle(_player.Position, 110f, "foot");
+        // About half a second of warning, so a flock is seen sitting on the road before it goes up
+        // (36 km/h: 6 m; 90 km/h: 12 m).
+        if (_driving) _birds.Startle(_car.CenterPosition, 140f + 0.38f * _car.Speed, "car");
+        else _birds.Startle(_player.Position, 100f, "foot");
 
         // Gamepad horn: Y.
         bool pad = Input.IsJoyButtonPressed(0, JoyButton.Y);
@@ -85,13 +86,13 @@ public partial class WorldScene
                  $"night={DayCycle.Night(GameSession.ClockHours):0.00} frame={Engine.GetFramesDrawn()}");
     }
 
-    /// <summary>Bots: honk once at the first flock seen 9–12 m ahead, so the horn is tested.</summary>
+    /// <summary>Bots: honk once at the first flock seen 7–10 m ahead, so the horn is tested.</summary>
     private void RunHornBot()
     {
         if (_botHonked || !_driving || _elapsed - _enteredAt < 1f) return;
         int dir = GameSession.DriveLeft ? -1 : 1;
-        Flock f = _birds.PerchedAhead(_car.CenterPosition, dir, 12f * PixelsPerMeter);
-        if (f == null || Mathf.Abs(f.CenterX - _car.CenterPosition.X) < 9f * PixelsPerMeter) return;
+        Flock f = _birds.PerchedAhead(_car.CenterPosition, dir, 10f * PixelsPerMeter);
+        if (f == null || Mathf.Abs(f.CenterX - _car.CenterPosition.X) < 7f * PixelsPerMeter) return;
         _botHonked = true;
         Honk();
     }

@@ -137,7 +137,7 @@ public partial class Birds : Node2D
         f.Birds.Clear();
         f.Scattered = false;
         int count = f.Roof ? f.Perches.Length : f.Kind == BirdKind.Crow ? rng.RandiRange(2, 3) : rng.RandiRange(3, 6);
-        float spread = f.Kind == BirdKind.Crow ? 30f : 22f;
+        float spread = f.Kind == BirdKind.Crow ? 30f : 26f;
         for (int i = 0; i < count; i++)
         {
             var b = new Bird
@@ -321,7 +321,7 @@ public partial class Birds : Node2D
         foreach (var f in _all)
         {
             if (!f.Scattered && Mathf.Abs(f.CenterX - Focus.X) > DrawDistance) continue;
-            float scale = f.Kind == BirdKind.Crow ? 2f : 1f;
+            float scale = f.Kind == BirdKind.Crow ? 2f : 1.5f;   // a little larger than life, to read at driving zoom
             int row = (int)f.Kind;
             foreach (var b in f.Birds)
             {

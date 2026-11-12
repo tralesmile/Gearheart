@@ -35,6 +35,7 @@ A 2D side-view sandbox where you mine, craft and build vehicles part by part, th
 | --- | --- |
 | A / D | Drive |
 | Q / E | Tilt (air control, or to point the drill down) |
+| H | Horn (Y on a gamepad): scares birds off the road |
 | Space | Handbrake (hold it with D/A at a standstill for launch control) |
 | Shift | Rocket boost (needs a Rocket Booster part; burns fuel fast) |
 | X | Drill on / off |
@@ -54,6 +55,8 @@ A 2D side-view sandbox where you mine, craft and build vehicles part by part, th
 **Rocket Booster:** 2 Scrap, 2 Iron and 3 Copper buy a booster for the back of the car. Hold Shift (or RB / X on a gamepad) for thrust: long jumps, steep hills and spectacular crashes. Long jumps get a "BIG AIR" call-out with the airtime, and hard landings and crashes shake the screen and throw sparks.
 
 **Turbocharger:** 2 Iron and 3 Copper buy a turbo; bolt it on top of the engine. Floor it and the boost builds (slowly at low revs, fast near the redline): you hear a whistle that climbs with it, the compressor wheel on the bonnet spins up and a BOOST arc fills on the speedometer. At full boost the engine has up to 40% more torque and a higher top speed (and drinks a little more fuel). Lift off and it blows off with a "pssh" and a puff of air; every upshift costs a little boost. Holding launch control on the line spools it up before you go.
+
+**Birds:** sparrows sit on the garage roof and peck along the Home Meadow road, big crows wait in The Wastes and snow buntings in the Frozen North. Start the engine and the roof sparrows flutter off; drive at a flock and it takes off ahead of your bonnet (from further away the faster you go), with a chirp or a caw. Honk (H) to clear them from about 12 m. They come back after a while, and at night they sleep.
 
 **Buried stashes:** something glints in the rock? Dig towards it. Old Toolboxes lie shallow, Lost Supply Crates deeper, and Ancient Strongboxes (a pile of Iron and Copper) deep down or out in the far biomes. The pickaxe and the drill both open them. There is one a short walk from the garage on each side.
 

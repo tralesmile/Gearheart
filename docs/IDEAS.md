@@ -129,7 +129,28 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 119 | Floodlight part (Iron + Crystal): a wide, long beam bolted on the roof; replaces #64 Crystal Lamp | S | Open (new 2026-11-12; a part that matters at night and underground) |
 | 120 | Sleep in the garage: press Z at the garage at night to skip to dawn (with a fade and a rooster) | S | Open (new 2026-11-12; nobody is forced to drive in the dark) |
 | 121 | Glow-in-the-dark pickups: fuel cans get a reflective strip that flashes in the headlights | S | Open (new 2026-11-12; small, helps at night) |
+| 122 | Birds on the road and a horn: flocks (sparrows, Wastes crows, snow buntings) that scatter in a flutter as the car comes, sparrows on the garage roof flushed by the engine start, H to honk | S | **Built 2026-11-12** (PR #28; twentieth session, polish and life) |
+| 123 | Vultures circling over buried Ancient Strongboxes in The Wastes: a ring of crows in the sky marks a big find, if you look up | S | Open (new 2026-11-12, twentieth session; ties the birds to the treasure loop, a reason to scan the sky) |
+| 124 | Flock flush: a flock scattered at 50+ km/h counts into the smash streak ("FLUSHED! SMASH x3") | S | Open (new 2026-11-12; makes birds part of the speed game; needs a check that it is not cruel-looking: they always get away) |
+| 125 | Surface ambience: a soft wind bed and birdsong by day (quiet on the road, louder on foot), fading into the crickets at dusk | S | Open (new 2026-11-12; splits #86; the surface is silent on foot by day) |
+| 126 | Air Horn part (Copper + Scrap): a truck horn on the roof, scares birds from 30 m and plays a deep two-note blast; the starter keeps its beep | S | Open (new 2026-11-12; a joke part you show off, NFS-style personalisation) |
+| 127 | Night owls: an owl on some trees hoots at night, its eyes shine in the headlights, and it glides off when you honk | S | Open (new 2026-11-12; folds #118 glowing eyes into the birds system) |
+| 128 | Scrap gulls: a few crows drop onto a smashed scrap heap a few seconds later and pick at the bits | S | Open (new 2026-11-12; the world reacts to what you did; reuses the birds) |
 | 29 | Speedometer redline overdrive: holding the needle in the red for 3 s with the booster unlocks a "SONIC" call-out and a sonic-boom puff | S | Open (new 2026-11-12, cheap thrill) |
+
+## 2026-11-12 (twentieth session — polish and life)
+
+No open PR; main's build after day and night was still running. Looked at `world_130.png` and `night_180.png` as a player. Driving looks rich now (dashboard, kickers, sky, night), but the world itself is dead: nothing moves except you. Every pixel that moves on screen is the car, its particles or the clouds. The most boring minute is the first one — walk out of the garage, mine a bit, get in, drive: nothing in the world notices you. Terraria's bunnies and birds, Minecraft's animals, The Sims' neighbours walking past: cheap life that makes a world feel like a place. The last two sessions were features (turbo, day and night), so this one is polish and feel, aimed at the first minute.
+
+- **Birds and a horn** (S, #122): flocks along the road that take off in a flutter ahead of the bonnet, sparrows flushed off the garage roof when you start the engine, a horn per engine. Why fun: the world reacts to you within ten seconds of starting, and the faster you drive the more dramatic the take-off. *Built.*
+- **Vultures over strongboxes** (S, #123). Why fun: looking up becomes a treasure hint, a Wastes signature.
+- **Flock flush in the smash streak** (S, #124). Why fun: the speed game gets a living target (they always escape).
+- **Surface ambience** (S, #125). Why fun: walking around by day stops being silent.
+- **Air Horn part** (S, #126). Why fun: a silly part to show off, personality for your car.
+- **Night owls** (S, #127). Why fun: the night gets eyes in the dark, a little shiver.
+- **Scrap gulls** (S, #128). Why fun: the world answers what you smashed.
+
+Best open picks for fun per effort now: #123 vultures over strongboxes (S), #117 biome nights (S), #107 overboost (S), #82 start lights (S), #119 Floodlight (S), #94 Gyro (S), #124 flock flush (S), #110 cave bats (S, reuse the bird code), #68 surface lift (S–M), then the first real danger (#65 deep critters / night raiders, M).
 
 ## 2026-11-12 (nineteenth session)
 
