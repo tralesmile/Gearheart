@@ -15,12 +15,14 @@ public partial class Sfx : Node
     private readonly List<AudioStreamPlayer> _voices = new();
     private readonly Dictionary<string, double> _lastPlayed = new();
     private AudioStreamPlayer _engine, _drill, _boost, _wind;
+    private readonly Dictionary<string, AudioStreamPlayer> _engines = new();
+    private double _crankUntil;          // the starter is cranking: engine loop silent until then
     private int _nextVoice;
     private double _time;
 
     public override void _Ready()
     {
-        foreach (string name in new[] { "pick", "break", "place", "pickup", "thud", "crunch", "snap", "treasure", "fuel", "tally", "record", "land" })
+        foreach (string name in new[] { "pick", "break", "place", "pickup", "thud", "crunch", "snap", "treasure", "fuel", "tally", "record", "land", "shift", "pop", "start" })
             _streams[name] = GD.Load<AudioStream>($"res://assets/audio/{name}.wav");
 
         for (int i = 0; i < 6; i++)
@@ -31,6 +33,7 @@ public partial class Sfx : Node
         }
 
         _engine = Loop("engine");
+        _engines["engine"] = _engine;
         _drill = Loop("drill");
         _boost = Loop("boost");
         _wind = Loop("wind");
@@ -70,17 +73,67 @@ public partial class Sfx : Node
         voice.Play();
     }
 
-    /// <summary>Call every frame: engine pitch follows speed and throttle; the drill whirs while cutting.</summary>
-    public void UpdateCar(bool driving, float speed, float throttle, bool drilling, bool boosting = false)
+    /// <summary>How much higher (or lower) an engine's one-shots are pitched: the little four buzzes, the V8 growls.</summary>
+    public static float EnginePitch(string engineSound) => engineSound switch
+    {
+        "engine_e4" => 1.2f,
+        "engine_v8" => 0.8f,
+        _ => 1f,
+    };
+
+    /// <summary>Getting in: the starter cranks and the engine catches; the engine loop fades in after the catch.</summary>
+    public void StartEngine(string engineSound)
+    {
+        Play("start", -7f, 0.5f, EnginePitch(engineSound));
+        _crankUntil = _time + 0.5;
+    }
+
+    /// <summary>Engine revs (0..1 of the redline) to loop pitch: idle burble at the bottom, a scream at the top.</summary>
+    public static float RevPitch(float rpm) => 0.62f + 1.25f * rpm;
+
+    /// <summary>
+    /// Call every frame. The engine loop of the car's engine part follows the gearbox revs (it climbs,
+    /// drops at a shift and climbs again) and bounces off the limiter; the drill whirs while cutting.
+    /// </summary>
+    public void UpdateCar(bool driving, float speed, float throttle, bool drilling, bool boosting,
+                          string engineSound, float rpm, bool limiter)
     {
         SetLoop(_boost, driving && boosting, -9f, 0.9f + Mathf.Min(0.4f, speed / 2500f));
-        SetLoop(_engine, driving, -17f + 7f * Mathf.Abs(throttle), 0.75f + Mathf.Min(1.5f, speed / 380f) + 0.3f * Mathf.Abs(throttle));
+
+        var engine = EngineLoop(engineSound);
+        foreach (var other in _engines.Values)
+            if (other != engine && other.Playing) other.Stop();
+        float pitch = RevPitch(rpm), volume = -19f + 6f * Mathf.Abs(throttle) + 5f * rpm;
+        if (limiter)
+        {
+            // Bouncing off the rev limiter: a fast stutter in pitch and volume.
+            bool cut = Mathf.PosMod((float)_time, 0.07f) < 0.03f;
+            pitch *= cut ? 0.95f : 1f;
+            volume -= cut ? 4f : 0f;
+        }
+        double sinceCatch = _time - _crankUntil;
+        if (sinceCatch < 0) volume = -80f;
+        else if (sinceCatch < 0.35) volume += Mathf.LinearToDb(Mathf.Max(0.001f, (float)(sinceCatch / 0.35)));
+        SetLoop(engine, driving, volume, pitch);
+        LastEnginePitch = driving ? pitch : 0f;
         SetLoop(_drill, driving && drilling, -14f, 1f);
 
         // Wind rushing past: silent below about 30 km/h, a loud whoosh near top speed.
         float wind = Mathf.Clamp((speed / 64f * 3.6f - 30f) / 45f, 0f, 1f);
         WindLevel = wind;
         SetLoop(_wind, driving && wind > 0f, Mathf.LinearToDb(Mathf.Max(0.001f, wind)) - 9f, 0.8f + 0.5f * wind);
+    }
+
+    /// <summary>Pitch the engine loop played at this frame (0 when not driving), for the bot log.</summary>
+    public float LastEnginePitch { get; private set; }
+
+    private AudioStreamPlayer EngineLoop(string name)
+    {
+        if (string.IsNullOrEmpty(name) || name == "engine") return _engine;
+        if (_engines.TryGetValue(name, out var player)) return player;
+        player = ResourceLoader.Exists($"res://assets/audio/{name}.wav") ? Loop(name) : _engine;
+        _engines[name] = player;
+        return player;
     }
 
     /// <summary>How loud the wind is, 0..1 (for the bot log).</summary>

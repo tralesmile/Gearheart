@@ -73,7 +73,7 @@
       "breakLimit": 0.22,
       "torque": 26000,
       "maxSpin": 50,
-      "fuelUse": 0.7,
+      "fuelUse": 0.7, "gears": 4, "sound": "engine_e4",
       "sprite": 3,
       "cost": {
         "Scrap": 4
@@ -91,7 +91,7 @@
       "breakLimit": 0.22,
       "torque": 48000,
       "maxSpin": 60,
-      "fuelUse": 1.0,
+      "fuelUse": 1.0, "gears": 5, "sound": "engine",
       "sprite": 4,
       "cost": {
         "Scrap": 4,
@@ -110,7 +110,7 @@
       "breakLimit": 0.22,
       "torque": 62000,
       "maxSpin": 72,
-      "fuelUse": 1.6,
+      "fuelUse": 1.6, "gears": 6, "sound": "engine_v8",
       "sprite": 5,
       "cost": {
         "Iron": 6,

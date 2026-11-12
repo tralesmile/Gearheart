@@ -249,6 +249,8 @@ public partial class WorldScene : Node2D
         AddChild(_car);
         _crashFx.Watch(_car);
         _car.Crashed += OnCarCrash;
+        _car.Gearbox.Shifted += OnShift;
+        _car.Backfired += OnBackfire;
         _judge.Cancel();
         _airTime = 0f;
         _bodyDown = false;
@@ -319,6 +321,34 @@ public partial class WorldScene : Node2D
         _car.AutoThrottle = GameSession.AutoPlay ? (GameSession.DriveLeft ? -1f : 1f) : 0f;
         if (GameSession.AutoPlay) _car.DrillEnabled = true;
         _car.AutoBoost = GameSession.AutoPlay && _car.HasBooster;
+        _sfx.StartEngine(_car.EngineSound);
+        if (GameSession.AutoPlay)
+            GD.Print($"[engine] start: {_car.EngineName}, {_car.Gearbox.Gears} gears, loop {_car.EngineSound} frame={Engine.GetFramesDrawn()}");
+    }
+
+    // ---- Engine: gear shifts and exhaust pops (sound and smoke only, see Gearbox) --------------
+
+    private int _shiftsLogged;
+
+    private void OnShift(int gear, bool up)
+    {
+        if (!_driving) return;
+        float pitch = Sfx.EnginePitch(_car.EngineSound);
+        _sfx.Play("shift", up ? -13f : -18f, 0.08f, pitch * (up ? 1f : 1.15f));
+        if (GameSession.AutoPlay && _shiftsLogged < 14)
+        {
+            _shiftsLogged++;
+            GD.Print($"[engine] {(up ? "upshift" : "downshift")} to {gear} at {_car.Speed / PixelsPerMeter * 3.6f:0} km/h, revs {_car.Gearbox.Rpm:0.00}, " +
+                     $"pitch {_sfx.LastEnginePitch:0.00}, throttle {_car.Throttle:0.0} frame={Engine.GetFramesDrawn()}");
+        }
+    }
+
+    private void OnBackfire(bool liftOff)
+    {
+        if (!_driving) return;
+        _sfx.Play("pop", liftOff ? -9f : -12f, 0.15f, Sfx.EnginePitch(_car.EngineSound));
+        if (GameSession.AutoPlay && _car.Backfires <= 6)
+            GD.Print($"[engine] backfire #{_car.Backfires} ({(liftOff ? "lift-off" : "upshift")}) revs {_car.Gearbox.Rpm:0.00} frame={Engine.GetFramesDrawn()}");
     }
 
     private void ExitCar()
@@ -404,7 +434,8 @@ public partial class WorldScene : Node2D
         _dirCarX = _car.CenterPosition.X;
 
         _crashFx.Enabled = _driving;
-        _sfx.UpdateCar(_driving, _car.Speed, _car.Throttle, _car.IsDrilling && _car.DrillEnabled, _car.Boosting);
+        _sfx.UpdateCar(_driving, _car.Speed, _car.Throttle, _car.IsDrilling && _car.DrillEnabled, _car.Boosting,
+                       _car.EngineSound, _car.Gearbox.Rpm, _car.Gearbox.Limiter);
         _pickTimer -= dt;
         if (!_driving && _player.IsMining && _pickTimer <= 0f)
         {
@@ -810,6 +841,7 @@ public partial class WorldScene : Node2D
             _status.Modulate = _car.Boosting ? new Color(1f, 0.8f, 0.4f) : Colors.White;
             _dash.Visible = true;
             _dash.Set(kmh, _car.Fuel, _car.FuelCapacity, _car.Damage, _car.Boosting);
+            _dash.SetEngine(_car.Gearbox.Gear, _car.Gearbox.Rpm, _car.Gearbox.Limiter);
             _lines.Set(_carVx / PixelsPerMeter * 3.6f, _carDir, _car.Boosting || _kickGlow > 0f);
             _peakLines = Mathf.Max(_peakLines, _lines.Intensity);
             if (GameSession.AutoPlay && !_linesLogged && _lines.Intensity > 0.6f)
@@ -1525,7 +1557,7 @@ public partial class WorldScene : Node2D
                  $"top={_topSpeed / PixelsPerMeter * 3.6f:0}km/h longestAir={_longestAir:0.0}s landings={_perfectLandings}/{_cleanLandings}/{_roughLandings}/{_flops} kickers={_kickerJumps}/{_kickerLaunches} longJumps={_longJumps}/{_jumpRecords}/{_longestJump:0.0}m " +
                  $"crashes={_crashFx.Hits} hardest={_crashFx.HardestHit / PixelsPerMeter * 3.6f:0}km/h sparks={_crashFx.SparkBursts} " +
                  $"cans={_cansTaken} heaps={_heapsTaken} smashed={_heapsSmashed} bestStreak={_bestStreak} " +
-                 $"dash={(_dash.Visible ? $"{_dash.ShownKmh:0}km/h" : "hidden")} lines={_lines.Intensity:0.00} peakLines={_peakLines:0.00} wind={_sfx.WindLevel:0.00} rollOvers={_rollOvers} ice={_spray.IceSeconds:0.0}s slip={_spray.SlipSeconds:0.0}s bite={_spray.BiteSeconds:0.0}s trip={tripNow} reports={_tripsReported} deepest={_deepestThisRun:0.0}m crystalsMined={_crystalsMined} card={(_card.Showing ? _card.ShownScore.ToString() : "hidden")} | " +
+                 $"dash={(_dash.Visible ? $"{_dash.ShownKmh:0}km/h" : "hidden")} lines={_lines.Intensity:0.00} peakLines={_peakLines:0.00} wind={_sfx.WindLevel:0.00} gear={_car.Gearbox.Gear}/{_car.Gearbox.Gears} revs={_car.Gearbox.Rpm:0.00} enginePitch={_sfx.LastEnginePitch:0.00} shifts={_car.Gearbox.Upshifts}/{_car.Gearbox.Downshifts} topGear={_car.Gearbox.TopGear} limiter={_car.Gearbox.Limiter} pops={_car.Backfires} rollOvers={_rollOvers} ice={_spray.IceSeconds:0.0}s slip={_spray.SlipSeconds:0.0}s bite={_spray.BiteSeconds:0.0}s trip={tripNow} reports={_tripsReported} deepest={_deepestThisRun:0.0}m crystalsMined={_crystalsMined} card={(_card.Showing ? _card.ShownScore.ToString() : "hidden")} | " +
                  string.Join(" ", System.Array.ConvertAll(GameSession.Items, i => $"{i}={GameSession.Count(i)}")));
     }
 }

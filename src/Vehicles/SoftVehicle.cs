@@ -199,7 +199,8 @@ public partial class SoftVehicle : Node2D, IVehicle
     private VehicleInput _input;
     private float _drillContactTime;
     private Cell _frontCell, _rearCell;
-    private CpuParticles2D _dust, _exhaust, _boostSmoke;
+    private CpuParticles2D _dust, _exhaust, _boostSmoke, _backfire;
+    private float _lastThrottle, _popCooldown;
     private float _upsideDownTime;
     private bool _selfRighting;
     private float _rightingTime;
@@ -308,6 +309,23 @@ public partial class SoftVehicle : Node2D, IVehicle
             ScaleAmountMin = 2f, ScaleAmountMax = 4f, Color = new Color(0.3f, 0.3f, 0.34f, 0.55f),
         };
         AddChild(_exhaust);
+        // Exhaust pop: a quick orange flash and a puff of dark smoke out of the tailpipe.
+        _backfire = new CpuParticles2D
+        {
+            Emitting = false, OneShot = true, Explosiveness = 0.9f, Amount = 14, Lifetime = 0.45f, Spread = 30f,
+            Direction = new Vector2(-1f, -0.2f), InitialVelocityMin = 60f, InitialVelocityMax = 150f, Gravity = new Vector2(0f, -50f),
+            ScaleAmountMin = 3f, ScaleAmountMax = 7f, LocalCoords = false,
+            ColorRamp = new Gradient
+            {
+                Offsets = new[] { 0f, 0.25f, 1f },
+                Colors = new[] { new Color(1f, 0.9f, 0.4f, 1f), new Color(1f, 0.45f, 0.1f, 0.85f), new Color(0.2f, 0.2f, 0.22f, 0f) },
+            },
+        };
+        AddChild(_backfire);
+        Gearbox.Shifted += (gear, up) =>
+        {
+            if (up && Mathf.Abs(Throttle) > 0.5f) Backfire(false);
+        };
         // Booster plume: hot sparks that cool into smoke, blown out of the nozzle (local +X = backwards).
         _boostSmoke = new CpuParticles2D
         {
@@ -324,6 +342,17 @@ public partial class SoftVehicle : Node2D, IVehicle
 
         World?.Register(this);
     }
+
+    /// <summary>The pretend gearbox: gear and revs for the engine sound and the dashboard (no effect on physics).</summary>
+    public Gearbox Gearbox { get; private set; } = new(5);
+    /// <summary>Engine loop to play (from the strongest engine part), e.g. "engine_v8".</summary>
+    public string EngineSound { get; private set; } = "engine";
+    /// <summary>Name of the strongest engine on the car, for the log.</summary>
+    public string EngineName { get; private set; } = "none";
+    /// <summary>Exhaust pops so far (flame puffs on upshifts and when lifting off at high revs).</summary>
+    public int Backfires { get; private set; }
+    /// <summary>Raised on each exhaust pop, with true for a pop on lifting off the throttle (false: on an upshift).</summary>
+    public event System.Action<bool> Backfired;
 
     /// <summary>Current throttle input, -1..1 (for engine sound and effects).</summary>
     public float Throttle => Parked || Fuel <= 0f ? 0f : _input.Throttle;
@@ -358,6 +387,7 @@ public partial class SoftVehicle : Node2D, IVehicle
         }
 
         // Blocks: four corners each, mass shared out to the corners.
+        float strongest = 0f;
         foreach (var block in design.Blocks)
         {
             var part = PartCatalog.Get(block.Part);
@@ -373,6 +403,13 @@ public partial class SoftVehicle : Node2D, IVehicle
             foreach (int c in corners) masses[c] += part.Mass / 4f;
             _cells.Add(new Cell { Corners = corners, Part = part, GridX = block.X, GridY = block.Y });
 
+            if (part.Category == PartCategory.Engine && part.Torque > strongest)
+            {
+                strongest = part.Torque;
+                EngineSound = string.IsNullOrEmpty(part.Sound) ? "engine" : part.Sound;
+                EngineName = part.Name;
+                Gearbox = new Gearbox(part.Gears);
+            }
             _engineTorque += part.Torque;
             _engineMaxSpin = Mathf.Max(_engineMaxSpin, part.MaxSpin);
             _fuelUse += part.FuelUse;
@@ -780,7 +817,39 @@ public partial class SoftVehicle : Node2D, IVehicle
             break;
         }
         if (_rearCell != null) _exhaust.Position = ToLocal((Pos[_rearCell.Corners[0]] + Pos[_rearCell.Corners[3]]) / 2f);
+        UpdateGearbox(delta);
         QueueRedraw();
+    }
+
+    /// <summary>
+    /// Feeds the pretend gearbox: the fastest attached wheel's spin against the engine's top spin.
+    /// Lifting off the throttle at high revs pops the exhaust (at most every 0.6 s).
+    /// </summary>
+    private void UpdateGearbox(float delta)
+    {
+        float spin = 0f;
+        foreach (var w in _wheels)
+            if (w.Attached) spin = Mathf.Max(spin, Mathf.Abs(w.Spin));
+        float throttle = Mathf.Abs(Throttle);
+        Gearbox.Update(delta, _engineMaxSpin > 0f ? spin / _engineMaxSpin : 0f, throttle, Airborne);
+
+        _popCooldown = Mathf.Max(0f, _popCooldown - delta);
+        if (_lastThrottle > 0.6f && throttle < 0.1f && Gearbox.Rpm > 0.7f) Backfire(true);
+        _lastThrottle = throttle;
+    }
+
+    private void Backfire(bool liftOff)
+    {
+        if (_popCooldown > 0f || _rearCell == null || _backfire == null) return;
+        _popCooldown = 0.6f;
+        Backfires++;
+        Vector2 a = Pos[_rearCell.Corners[0]], b = Pos[_rearCell.Corners[3]];
+        Vector2 back = (Pos[_rearCell.Corners[0]] - Pos[_rearCell.Corners[1]]).Normalized();
+        _backfire.Position = ToLocal((a + b) / 2f + back * 4f);
+        _backfire.Rotation = back.Angle() - GlobalRotation + Mathf.Pi;   // particles' Direction is -X: point it out the back
+        _backfire.Restart();
+        _backfire.Emitting = true;
+        Backfired?.Invoke(liftOff);
     }
 
     /// <summary>Axis-aligned bounds of all nodes including wheel radius, for broad-phase checks.</summary>
