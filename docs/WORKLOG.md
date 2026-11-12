@@ -33,6 +33,7 @@ Newest entry first. Each session: what was built and why, how it was verified, w
 - The prediction ignores the booster and air drag, so with Shift held the shadow creeps forward during the jump (first guesses up to 9 m short on rocket jumps, last guesses within about 2 m).
 - The shadow is a flat ellipse even on a slope; it can sit slightly in the hill.
 - The drive scene (Hill Climb, `drive.tscn`) still uses the old fixed camera.
+- **A crash at exit, once**: run 43266117147 (the docs-only commit, code identical to the green run 3) failed the smoke test because Godot segfaulted *after* the Scrap 4-Cylinder launch-control run had finished its 900 frames ("Leaked unsafe reference" for the world generator's FastNoiseLite/RandomNumberGenerator, then a segmentation fault at shutdown). The game itself ran normally. I re-ran the job and the smoke test passed (attempt 2), so it is a rare shutdown flake, not the air cam. If it comes back, the likely fix is to free the world generator's noise objects on exit (or ignore a crash after `--quit-after`), worth a look next session.
 
 **Next**
 
