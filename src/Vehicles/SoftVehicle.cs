@@ -41,6 +41,12 @@ public partial class SoftVehicle : Node2D, IVehicle
     /// <summary>Bots only: fire the boosters whenever the car is in a safe attitude.</summary>
     public bool AutoBoost;
 
+    /// <summary>
+    /// Raised once per hard hit (landing, slam into the ground, snapped beams, lost wheel), for
+    /// screen shake, sparks and crunch sounds. Fired from the physics tick.
+    /// </summary>
+    public event System.Action<CrashEvent> Crashed;
+
     /// <summary>True while the rocket boosters are firing this tick.</summary>
     public bool Boosting { get; private set; }
 
@@ -89,6 +95,7 @@ public partial class SoftVehicle : Node2D, IVehicle
         public int Sprite;
         public bool Attached = true;
         public bool Grounded;
+        public Vector2 GroundNormal = Vector2.Up;
     }
 
     private sealed class DrillTip
@@ -133,6 +140,18 @@ public partial class SoftVehicle : Node2D, IVehicle
     private float _autoStuckTime, _autoReverseTime;
     private int _rearHub = -1, _frontHub = -1;
     private Vector2 _centerAtTickStart;
+
+    // Impact detection (see DetectImpact).
+    private const float ImpactThreshold = 230f;   // px/s (about 13 km/h): body slams and scrapes
+    private const float LandingThreshold = 380f;  // px/s (about 21 km/h): small hops on the suspension are not hits
+    private const int ImpactGatherTicks = 4;      // a hit's dents and snaps arrive over a few ticks
+    private float _age, _impactCooldown, _impactPeak, _dentThisHit, _subDt = 1f / 960f, _airTimer;
+    private float _bodyImpact, _landing;
+    private Vector2 _airVelocity;
+    private int _impactTicks = -1, _snapsThisTick, _snapsThisHit;
+    private bool _firstIteration, _bodyHit, _wheelLostThisTick, _wheelLostThisHit;
+    private bool[] _isDrillTip;
+    private Vector2 _hitPoint, _hitNormal = Vector2.Up, _snapPoint;
 
     public float RadiusOf(int node) => _nodeRadius[node];
 
@@ -317,6 +336,8 @@ public partial class SoftVehicle : Node2D, IVehicle
             _nodeRadius[i] = NodeRadius;
         }
         foreach (var w in _wheels) _nodeRadius[w.Hub] = w.Radius;
+        _isDrillTip = new bool[count];
+        foreach (var d in _drills) _isDrillTip[d.Node] = true;
 
         // Rearmost and frontmost wheels, for measuring pitch.
         foreach (var w in _wheels)
@@ -403,6 +424,8 @@ public partial class SoftVehicle : Node2D, IVehicle
     public void Integrate(float dt)
     {
         Vector2 gravityStep = new Vector2(0f, Gravity) * dt * dt;
+        _subDt = dt;
+        _firstIteration = true;
         for (int i = 0; i < Pos.Length; i++)
         {
             Vector2 velocity = (Pos[i] - Prev[i]) * AirDrag;
@@ -438,8 +461,19 @@ public partial class SoftVehicle : Node2D, IVehicle
         for (int i = 0; i < Pos.Length; i++)
         {
             if (terrain.Collide(Pos[i], _nodeRadius[i], out Vector2 n, out float depth))
+            {
+                // On the first pass after integrating, how deep a body node sank into the ground is
+                // how fast it was moving into it: depth / substep = approach speed.
+                if (_firstIteration && i < BodyNodeCount && !_isDrillTip[i] && depth / _subDt > _bodyImpact)
+                {
+                    _bodyImpact = depth / _subDt;
+                    _hitPoint = Pos[i] - n * _nodeRadius[i];
+                    _hitNormal = n;
+                }
                 Pos[i] += n * depth;
+            }
         }
+        _firstIteration = false;
     }
 
     /// <summary>Velocity fixes after the constraint passes: damping, friction, tyres, damage.</summary>
@@ -581,6 +615,7 @@ public partial class SoftVehicle : Node2D, IVehicle
 
         _drillContactTime = Mathf.Max(0f, _drillContactTime - delta);
         Speed = (BodyCenter() - _centerAtTickStart).Length() / delta;
+        DetectImpact(delta);
 
         // Dust from the rearmost grounded wheel when moving; exhaust smoke under throttle.
         Wheel dusty = null;
@@ -696,6 +731,7 @@ public partial class SoftVehicle : Node2D, IVehicle
         wheel.Grounded = terrain.Collide(Pos[h], wheel.Radius + 0.5f, out Vector2 n, out _);
         if (wheel.Grounded)
         {
+            wheel.GroundNormal = n;
             Vector2 v = (Pos[h] - Prev[h]) / dt;
             Vector2 tangent = new Vector2(-n.Y, n.X); // along the ground, pointing right on flat ground
             float normalSpeed = v.Dot(n);
@@ -718,6 +754,102 @@ public partial class SoftVehicle : Node2D, IVehicle
         wheel.Angle += wheel.Spin * dt;
     }
 
+    /// <summary>
+    /// Finds hard hits, two ways: a body node slamming into the ground (its approach speed,
+    /// measured in the contact solver), or a landing after real air time (the falling speed at
+    /// touchdown, so driving over crests and dips never counts). Dents, snapped beams and lost
+    /// wheels from the next few ticks are gathered into the same hit, which is then reported
+    /// once through <see cref="Crashed"/>.
+    /// </summary>
+    private void DetectImpact(float delta)
+    {
+        _age += delta;
+        _impactCooldown = Mathf.Max(0f, _impactCooldown - delta);
+        Vector2 velocity = (BodyCenter() - _centerAtTickStart) / delta;
+
+        bool airborne = Airborne;
+        _landing = 0f;
+        if (airborne)
+        {
+            _airTimer += delta;
+            _airVelocity = velocity;
+        }
+        else
+        {
+            if (_airTimer > 0.3f)
+            {
+                // How fast the car came down into the ground it landed on (not along a matching slope).
+                foreach (var w in _wheels)
+                    if (w.Attached && w.Grounded) _landing = Mathf.Max(_landing, -_airVelocity.Dot(w.GroundNormal));
+            }
+            _airTimer = 0f;
+        }
+
+        float body = _bodyImpact;
+        _bodyImpact = 0f;
+        int snaps = _snapsThisTick;
+        bool wheelLost = _wheelLostThisTick;
+        _snapsThisTick = 0;
+        _wheelLostThisTick = false;
+
+        // Ignore the first moment after spawning (the car drops onto its wheels).
+        if (_age < 0.6f)
+        {
+            _dentThisHit = 0f;
+            return;
+        }
+
+        bool started = _impactTicks >= 0;
+        bool trigger = body > ImpactThreshold || _landing > LandingThreshold || snaps > 0 || wheelLost;
+        if (!started && (!trigger || (_impactCooldown > 0f && snaps == 0 && !wheelLost)))
+        {
+            _dentThisHit = 0f;
+            return;
+        }
+        if (!started)
+        {
+            _impactTicks = 0;
+            _impactPeak = 0f;
+            _bodyHit = false;
+            _snapsThisHit = 0;
+            _wheelLostThisHit = false;
+        }
+
+        if (body > ImpactThreshold)
+        {
+            _bodyHit = true;
+            _impactPeak = Mathf.Max(_impactPeak, body);
+        }
+        if (_landing > LandingThreshold) _impactPeak = Mathf.Max(_impactPeak, _landing);
+        _snapsThisHit += snaps;
+        _wheelLostThisHit |= wheelLost;
+        _impactTicks++;
+        if (_impactTicks < ImpactGatherTicks) return;
+
+        Vector2 point = _hitPoint, normal = _hitNormal;
+        if (!_bodyHit)
+        {
+            if (_snapsThisHit > 0)
+            {
+                point = _snapPoint;
+            }
+            else
+            {
+                // Landed on the wheels: the hit is under the lowest wheel.
+                Wheel low = null;
+                foreach (var w in _wheels)
+                    if (w.Attached && (low == null || Pos[w.Hub].Y > Pos[low.Hub].Y)) low = w;
+                point = low != null ? Pos[low.Hub] + new Vector2(0f, low.Radius) : BodyCenter();
+            }
+            normal = Vector2.Up;
+        }
+
+        Crashed?.Invoke(new CrashEvent(point, normal, _impactPeak, _bodyHit, _snapsThisHit, _dentThisHit, _wheelLostThisHit, velocity));
+        _impactTicks = -1;
+        _impactCooldown = 0.25f;
+        _dentThisHit = 0f;
+    }
+
     /// <summary>Permanent bending (dents) and breaking. A beam snaps once its total permanent bend passes its part's limit.</summary>
     private void ApplyDeformation()
     {
@@ -730,12 +862,15 @@ public partial class SoftVehicle : Node2D, IVehicle
 
             float newRest = length / (1f + Mathf.Sign(strain) * beam.Yield);
             Damage += Mathf.Abs(newRest - beam.Rest);
+            _dentThisHit += Mathf.Abs(newRest - beam.Rest);
             beam.Rest = newRest;
 
             if (Mathf.Abs(beam.Rest - beam.OriginalRest) / beam.OriginalRest > beam.BreakLimit)
             {
                 beam.Broken = true;
                 Damage += 5f;
+                _snapsThisTick++;
+                _snapPoint = (Pos[beam.A] + Pos[beam.B]) / 2f;
             }
         }
 
@@ -746,6 +881,7 @@ public partial class SoftVehicle : Node2D, IVehicle
             foreach (var beam in _beams)
                 if (beam.Suspension && !beam.Broken && (beam.A == wheel.Hub || beam.B == wheel.Hub))
                     connected = true;
+            if (!connected) _wheelLostThisTick = true;
             wheel.Attached = connected;
         }
     }
@@ -968,3 +1104,4 @@ public partial class SoftVehicle : Node2D, IVehicle
         FillTriangleLocal(a, c, d, color);
     }
 }
+

@@ -2,6 +2,12 @@
 
 Newest first. One entry per big decision: what, why, and what would make us revisit it.
 
+## 2026-11-12 — Crash feedback: how a "hit" is measured
+
+- **What:** A hit is a body node slamming into the ground faster than about 13 km/h, or a landing after at least 0.3 s in the air faster than about 21 km/h (measured into the ground under the wheels). Each hit is reported once, with its dents, snapped beams and lost wheels, and drives screen shake, sparks, dust, sounds and call-outs (`CrashFx`).
+- **Why this way:** measuring the change of the car's velocity was tried on paper first and rejected: driving through a dip at speed changes velocity as much as a real landing, so the screen would shake on every hill. The contact-depth and air-time measures only fire on real impacts. The first CI run showed 18 hits in 40 s of calm driving with a 13 km/h landing threshold; 21 km/h brought it to 7, all gentle.
+- **Revisit when:** playtesters say shake is too much or too little (tune `ImpactThreshold`, `LandingThreshold` in `SoftVehicle` and `MaxShake` in `CrashFx`), or car-to-car combat arrives (then car contacts need the same reporting). A settings toggle for screen shake belongs in the settings menu when it exists.
+
 ## 2026-11-11 (evening) — Rocket Booster, first biome-tied part
 
 - **What:** A new part category, Booster. The Rocket Booster (2 Scrap, 2 Iron, 3 Copper) goes on the back of the car; hold Shift (gamepad RB or X) for thrust along the car's nose direction. It costs 3 fuel per second on top of the engine, and the thrust fades out towards about 96 km/h (1700 px/s) so it cannot run away.

@@ -20,7 +20,7 @@ public partial class Sfx : Node
 
     public override void _Ready()
     {
-        foreach (string name in new[] { "pick", "break", "place", "pickup" })
+        foreach (string name in new[] { "pick", "break", "place", "pickup", "thud", "crunch", "snap" })
             _streams[name] = GD.Load<AudioStream>($"res://assets/audio/{name}.wav");
 
         for (int i = 0; i < 6; i++)
@@ -51,8 +51,11 @@ public partial class Sfx : Node
 
     public override void _Process(double delta) => _time += delta;
 
-    /// <summary>Plays a one-shot, at most once per <paramref name="minGap"/> seconds per sound.</summary>
-    public void Play(string name, float volumeDb = -8f, float minGap = 0.05f)
+    /// <summary>
+    /// Plays a one-shot, at most once per <paramref name="minGap"/> seconds per sound.
+    /// A <paramref name="pitch"/> of 0 picks a slightly random pitch.
+    /// </summary>
+    public void Play(string name, float volumeDb = -8f, float minGap = 0.05f, float pitch = 0f)
     {
         if (!_streams.TryGetValue(name, out var stream) || stream == null) return;
         if (_lastPlayed.TryGetValue(name, out double last) && _time - last < minGap) return;
@@ -62,7 +65,7 @@ public partial class Sfx : Node
         _nextVoice = (_nextVoice + 1) % _voices.Count;
         voice.Stream = stream;
         voice.VolumeDb = volumeDb;
-        voice.PitchScale = (float)GD.RandRange(0.9, 1.1);
+        voice.PitchScale = pitch > 0f ? pitch * (float)GD.RandRange(0.96, 1.04) : (float)GD.RandRange(0.9, 1.1);
         voice.Play();
     }
 

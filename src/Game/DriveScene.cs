@@ -32,6 +32,7 @@ public partial class DriveScene : Node2D
     private Label _hud;
     private Label _banner;
     private Label _toast;
+    private CrashFx _crashFx;
 
     private RaceState _race;
     private float _raceTime;
@@ -87,7 +88,23 @@ public partial class DriveScene : Node2D
         AddChild(_camera);
         _camera.MakeCurrent();
 
+        var sfx = new Sfx { Name = "Sfx" };
+        AddChild(sfx);
+        _crashFx = new CrashFx
+        {
+            Name = "CrashFx", Camera = _camera, Sfx = sfx, Log = GameSession.AutoDrive,
+            GroundColor = _ => _isRace ? new Color(0.45f, 0.38f, 0.3f) : new Color(0.5f, 0.42f, 0.32f),
+        };
+        AddChild(_crashFx);
+
         BuildHud();
+        _crashFx.Toast = text =>
+        {
+            if (_toastTime > 1.2f) return;
+            _toast.Text = text;
+            _toast.AddThemeColorOverride("font_color", new Color(1f, 0.55f, 0.35f));
+            _toastTime = 2f;
+        };
         SpawnPlayer();
         GD.Print($"[drive] mode={GameSession.Mode} design=\"{GameSession.CurrentDesign.Name}\" autodrive={GameSession.AutoDrive} rocks={_ore.RocksLeft}");
     }
@@ -216,6 +233,7 @@ public partial class DriveScene : Node2D
         };
         _player.AutoBoost = GameSession.AutoDrive;
         AddChild(_player);
+        _crashFx.Watch(_player);
 
         _race = RaceState.WaitingForStart;
         _raceTime = 0f;

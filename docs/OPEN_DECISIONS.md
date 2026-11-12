@@ -2,13 +2,13 @@
 
 Everything here waits on you. Each item lists the options, my recommendation and the date it's needed by. Reply in chat (for example "D3: B") or edit this file. When an item is decided, it moves to [DECISIONS.md](DECISIONS.md).
 
-Last updated: 2026-11-11 (evening)
+Last updated: 2026-11-12
 
 ## Needed now (this week)
 
 | # | Decision | Options | My recommendation | Why it matters |
 | --- | --- | --- | --- | --- |
-| D1 | **Play the new build** | Walk, mine, build a drill at the garage, drive and tunnel. New: build a Rocket Booster (3 Copper) and hold Shift on a hill. Tell me what feels good and bad, and whether boosting is too strong or too thirsty | — | This is the game's new direction; your reaction decides what I polish next |
+| D1 | **Play the new build** | Walk, mine, build a drill at the garage, drive and tunnel. Build a Rocket Booster (3 Copper) and hold Shift on a hill. New: crashes now shake the screen, throw sparks and dust and crunch. Tell me what feels good and bad: is boosting too strong or too thirsty, and is the crash shake too much or too little? | — | This is the game's new direction; your reaction decides what I polish next |
 | D20 | **Art pack** | A) keep my generated pixel art for now · B) you download a free CC0 pack (for example Kenney "Pixel Platformer") and attach the zip here, and I fit it into the layout in `docs/ART.md` | A now, B or an artist at the vertical slice | I can't download files from this workspace, so a pack has to come from you |
 | D2 | **Hours per week** | A) about 20 h part-time · B) full-time · C) less than 10 h | A to start | Every date in the roadmap assumes A. B makes it about 40% faster, C about twice as slow |
 | D21 | **What comes next** | A) crafting stations and more parts (new engines, tracks, armor, boosters per biome) · B) enemies and danger (raiders in The Wastes, cave creatures) · C) day and night, weather · D) music and better sounds | A, then B | Not answered yet, so I started on A: the Rocket Booster (copper from The Wastes) is built. Say if you want B or C first |
