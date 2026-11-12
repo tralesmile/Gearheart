@@ -2,6 +2,41 @@
 
 Newest entry first. Each session: what was built and why, how it was verified, what is not verified, and what comes next.
 
+## 2026-11-12, about 04:20–05:00 UTC — Trip report card (PR #12)
+
+**Built**
+
+- **Trips** (`src/Game/Trip.cs`, `WorldScene.UpdateTrip`): a trip starts when you (on foot or in the car) go more than 18 m from the middle of the garage pad and ends when you come back within 8 m (not deep underground). While out, the status line reads "Trip 84 m (best 212 m)", and passing your farthest point ever gives a "NEW FARTHEST!" call-out. A new trip does not start while the report card is still showing.
+- **Trip report card** (`src/Game/TripCard.cs`, drawn in code like the dashboard): pops in at the garage, rows tick in one by one with a rising `tally` click (farthest + side + depth, top speed, longest air, scrap heaps + best streak, fuel cans, stashes, haul, carnage), each with its points; then the trip score counts up; then "Your first trip! Now beat it.", "Best trip 560 · 148 to beat it" or, on a new best, a gold pulsing border, "NEW BEST TRIP! old best 316" and a brassy `record` fanfare. Stats that beat their own record get a gold NEW BEST tag. Enter or Esc skips the count / closes it; it fades by itself after 10 s. Toasts are hidden while it shows.
+- **Score** (see `docs/DECISIONS.md`): 2/m, 1 per km/h, 4 per 0.1 s of air, 10 per heap + 15 per streak step, 5 per can, 100 per stash, haul 2/5/8, 5 per crash or roll-over. Best trip saved in `progress.json` (`bestTrip`); world save unchanged, no version bump.
+- **Sounds:** `tally.wav` and `record.wav` from `tools/make_sounds.py` (no random stream used; all older sounds checked byte-identical).
+- **CI:** `--triptest` bot (into the car at once, out east 9 s and back, out 15 s and back, closes card 1 with Enter after 5 s), `[trip]` lines in every world run, `trip_*.png` screenshots (8, 30 and 60 frames after each report).
+
+**Why this** — Brainstorm in `docs/IDEAS.md`: the drive out is busy now (heaps, cans, streaks, dashboard), but coming back is a silent dead end and everything the trip did is forgotten. It has been the top-ranked open idea and the first "Next" item for two sessions. A score with a best to beat is the cheapest strong "one more trip" hook (Hill Climb Racing's end screen) and it rewards every play style, including crashing. The last session was polish, so a feature was due.
+
+**Verified (CI runs 43155164037 and 43156140600, both green)**
+
+- Trip test, report 1: 85 m east, 18.9 s, top 48 km/h, air 0.9 s, 2 heaps (streak x2), 1 can, +6 Scrap, 2 crashes → score 316, "first trip". Report 2: passed the old farthest (85 m) at t=34.2 s with the cheer, reached The Wastes at 112 m, 51 km/h, 1.0 s air, 1 heap, 3 cans, 8 crashes and 3 roll-overs → **399, newBest=True, records=[farthest, top_speed]**. Same numbers in the headless smoke run and the 10 fps screenshot run.
+- Screenshots `trip_245.png` (card 1 complete, "Your first trip! Now beat it.") and `trip_611.png` (card 2 with two NEW BEST tags and "NEW BEST TRIP! old best 316" in gold, status line "Trip … (best 112 m)") look right at 1280×720; the card does not cover the dashboard or the inventory bar.
+- Nothing else changed: starter drive still ends at tile x=2231.7 at 40 s (10 heaps, streak x5), left run reaches x=583 in the Frozen North, drill car 8.8 m deep, Hill Climb 18.97 s and 15.25 s.
+- That run showed the bot coasting 22 m past the garage after report 2 and starting a new trip while the card was up ("Trip 22 m" behind the card). Fixed in the second commit (no new trip while the card shows). Run 2: no trip starts after report 2; the bot closes card 1 with Enter 5 s after it appears, at 26 m out, and trip 2 starts at once (t=26.9 s). Report 2 is now 377 (best before 316, newBest=True, records=[farthest]; top speed 46 km/h is lower because the first seconds of the drive out happened while card 1 was up). `trip_223.png` shows the rows sliding in one by one with the time as 0:18; `trip_275.png` shows the card gone and the status line "Trip 30 m (best 85 m)".
+
+**Not verified / known issues**
+
+- Not listened to: the tally clicks and the record fanfare are tuned by reading the numbers only.
+- Fun of the scoring is my judgement; the weights are a first guess. Carnage scoring 55 on trip 2 (8 crashes) is a lot next to 10 for a heap; watch whether it rewards driving badly.
+- Haul only counts Scrap/Iron/Copper gained during the trip; dirt and stone are ignored on purpose.
+- Pickups taken in the seconds while the card is still showing on the way out do not count for the next trip (the trip has not started yet). Press Enter to close the card first.
+- The card is only in the world, not in the Hill Climb scene.
+
+**Next**
+
+1. Trip goal at the gate: one bonus objective per trip ("smash 8 heaps", "reach The Wastes", "2 s air") worth double on the report (small) — gives each trip a purpose.
+2. Snow/ice part (tracks or spiked tyres) from Frozen North iron (medium) — a new part that changes how the car drives; overdue on the roadmap.
+3. Smashable props per biome (cacti, snowmen, fences) feeding the streak (small).
+4. Landing grades and a perfect-landing speed kick (small).
+5. Tow home when out of fuel far away (small).
+
 ## 2026-11-12, about 03:15–04:15 UTC — Polish: dashboard, speed lines, smash streaks (PR #11)
 
 **Built** (a polish-and-feel session)
