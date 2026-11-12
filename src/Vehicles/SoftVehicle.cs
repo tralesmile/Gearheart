@@ -266,6 +266,8 @@ public partial class SoftVehicle : Node2D, IVehicle
         Position = Origin;
     }
     public float Speed { get; private set; }
+    /// <summary>Velocity of the body centre over the last physics tick (px/s, y down).</summary>
+    public Vector2 CenterVelocity { get; private set; }
     public float Damage { get; private set; }
     public float Fuel { get; private set; }
     public float FuelCapacity { get; private set; }
@@ -965,7 +967,8 @@ public partial class SoftVehicle : Node2D, IVehicle
         if (Mathf.FloorToInt(_rightingTime / 1.5f) > Mathf.FloorToInt(before / 1.5f)) _hopPending = true;
 
         _drillContactTime = Mathf.Max(0f, _drillContactTime - delta);
-        Speed = (BodyCenter() - _centerAtTickStart).Length() / delta;
+        CenterVelocity = (BodyCenter() - _centerAtTickStart) / delta;
+        Speed = CenterVelocity.Length();
         UpdateRock(delta);
         DetectImpact(delta);
 

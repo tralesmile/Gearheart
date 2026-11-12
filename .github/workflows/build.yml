@@ -54,6 +54,7 @@ jobs:
             grep "\[sprint\]" smoke.log | head -12
             grep "\[rock\]" smoke.log | head -30
             grep "\[flip\]" smoke.log | head -90
+            grep "\[aircam\]" smoke.log | head -30
             # "resources still in use at exit" is a shutdown notice about cached textures and sounds, not a fault.
             if grep -E "ERROR|Unhandled exception|SCRIPT ERROR|System\.[A-Za-z]*Exception" smoke.log | grep -v "still in use at exit" | grep .; then
               echo "::error::Smoke test failed: $name"
@@ -137,6 +138,18 @@ jobs:
             f=$(printf "shots/flip/f%08d.png" $((n + 2))); [ -f "$f" ] && cp "$f" keep/flip_crashed_$((n + 2)).png
           done
           grep -E "\[flip\]" shots/flip.log | head -16
+          # Air cam: a moment into each of the first big jumps (eased out, landing shadow), and the touchdown.
+          for run in flip rocket jump; do
+            grep "\[aircam\] big air" shots/$run.log | head -3 | sed -E 's/.*frame=([0-9]+).*/\1/' | while read n; do
+              for d in 3 7; do
+                f=$(printf "shots/$run/f%08d.png" $((n + d))); [ -f "$f" ] && cp "$f" keep/aircam_${run}_$((n + d)).png
+              done
+            done
+            grep "\[aircam\] touchdown" shots/$run.log | head -2 | sed -E 's/.*frame=([0-9]+).*/\1/' | while read n; do
+              f=$(printf "shots/$run/f%08d.png" $((n + 2))); [ -f "$f" ] && cp "$f" keep/aircam_${run}_down_$((n + 2)).png
+            done
+            grep "\[aircam\]" shots/$run.log | head -8
+          done
           # Launch control: charging, the GO window just before letting go, and the PERFECT START a moment after.
           grep "\[launch\] Perfect start" shots/launch.log | head -1 | sed -E 's/.*frame=([0-9]+).*/\1/' | while read n; do
             for d in -6 -1 2 6; do
