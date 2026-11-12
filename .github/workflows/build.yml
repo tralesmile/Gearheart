@@ -56,6 +56,7 @@ jobs:
           run "world: walk, mine, place, then drive 30 s" res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --design=starter
           run "world: drill car tunnelling"            res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --design=driller
           run "world: drive left to the Frozen North"  res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --left --design=starter
+          run "world: drive left to the Frozen North on Spiked Tyres" res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --left --design=spiked
           run "world: rocket booster car"             res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --design=rocket
           run "world: crash test (15 m drop, then drive)" res://scenes/world.tscn --quit-after 2400 -- --fresh --autoplay --crashtest --design=starter
           run "world: buried stash test (dig up planted stashes)" res://scenes/world.tscn --quit-after 1800 -- --fresh --autoplay --stashtest --design=starter
