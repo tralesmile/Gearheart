@@ -1644,7 +1644,11 @@ public partial class WorldScene : Node2D
         {
             // First it meets hills with the drill on (level tunnelling), later it noses down to dig deeper.
             bool dig = _elapsed > 26f && _elapsed < 36f;
-            _car.AutoTilt = dig && _car.PitchDegrees() < 30f ? 1f : dig ? 0.001f : 0f;
+            // Since the local-origin fix (PR #21) Q/E tilt works at full strength everywhere (near the
+            // garage its sideways part used to be rounded away), so the bot eases off before 30 degrees
+            // and pulls the nose back up past 36 instead of diving into the first cave it meets.
+            float pitchNow = _car.PitchDegrees();
+            _car.AutoTilt = !dig ? 0f : pitchNow < 22f ? 1f : pitchNow > 36f ? -0.6f : 0.001f;
             _car.AutoThrottle = (dig ? 0.6f : 1f) * (GameSession.DriveLeft ? -1f : 1f);
         }
 

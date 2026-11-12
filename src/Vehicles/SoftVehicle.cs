@@ -164,7 +164,46 @@ public partial class SoftVehicle : Node2D, IVehicle
     public SoftPhysicsWorld World { get; set; }
 
     public string PhysicsName => "B: soft body";
-    public Vector2 CenterPosition => BodyCenter();
+    public Vector2 CenterPosition => BodyCenter() + Origin;
+
+    // ---- Local origin ---------------------------------------------------------------------------
+    // Node positions (Pos, Prev) are kept relative to Origin, a whole multiple of OriginStep pixels
+    // along x, so they stay small numbers. Far from x = 0 a 32-bit float can only step 0.002 px, and
+    // the Verlet velocity (position minus previous position) then lost every change under about
+    // 1.9 px/s per substep: the Scrap 4 pickup could not leave the garage pad. The node itself sits at
+    // Origin, so drawing uses Pos directly; the world (terrain, crashes, other cars) gets Pos + Origin.
+
+    /// <summary>World position of the node frame (x only, a multiple of <see cref="OriginStep"/>).</summary>
+    public Vector2 Origin { get; private set; }
+    public const float OriginStep = 1024f;
+    private readonly ShiftedTerrain _localTerrain = new();
+
+    /// <summary>Node drawing: Pos is already relative to this node, which sits at <see cref="Origin"/>.</summary>
+    private new Vector2 ToLocal(Vector2 local) => local;
+
+    private ShiftedTerrain Local(ITerrainCollider terrain, IMineable mineable = null)
+    {
+        _localTerrain.Inner = terrain;
+        _localTerrain.InnerMine = mineable;
+        _localTerrain.Shift = Origin;
+        return _localTerrain;
+    }
+
+    /// <summary>Moves the origin when the car has driven far from it (exact: whole multiples of 1,024 px).</summary>
+    private void Recenter()
+    {
+        float x = BodyCenter().X;
+        if (Mathf.Abs(x) < OriginStep * 1.5f) return;
+        float shift = Mathf.Round(x / OriginStep) * OriginStep;
+        for (int i = 0; i < Pos.Length; i++)
+        {
+            Pos[i].X -= shift;
+            Prev[i].X -= shift;
+        }
+        _centerAtTickStart.X -= shift;
+        Origin += new Vector2(shift, 0f);
+        Position = Origin;
+    }
     public float Speed { get; private set; }
     public float Damage { get; private set; }
     public float Fuel { get; private set; }
@@ -266,7 +305,7 @@ public partial class SoftVehicle : Node2D, IVehicle
     {
         get
         {
-            foreach (var d in _drills) yield return Pos[d.Node];
+            foreach (var d in _drills) yield return Pos[d.Node] + Origin;
         }
     }
 
@@ -276,7 +315,7 @@ public partial class SoftVehicle : Node2D, IVehicle
         var parts = new List<string>();
         foreach (var w in _wheels)
             parts.Add($"wheel(att={w.Attached} spin={w.Spin:0} y={Pos[w.Hub].Y:0})");
-        Vector2 c = BodyCenter();
+        Vector2 c = CenterPosition;
         parts.Add($"body=({c.X:0},{c.Y:0}) nodes={Pos.Length} broken={_beams.FindAll(b => b.Broken).Count}");
         return string.Join(" ", parts);
     }
@@ -303,7 +342,7 @@ public partial class SoftVehicle : Node2D, IVehicle
             foreach (var w in _wheels)
             {
                 if (!w.Attached || !w.Grounded) continue;
-                yield return new WheelContact(Pos[w.Hub] - w.GroundNormal * w.Radius, w.GroundNormal, w.Slip, w.Spin * w.Radius,
+                yield return new WheelContact(Pos[w.Hub] + Origin - w.GroundNormal * w.Radius, w.GroundNormal, w.Slip, w.Spin * w.Radius,
                     w.OnFrozen, w.FrozenGrip > 0f, w.Biting);
             }
         }
@@ -399,6 +438,9 @@ public partial class SoftVehicle : Node2D, IVehicle
 
     private void Build(VehicleDesign design)
     {
+        Origin = new Vector2(Mathf.Round(Spawn.X / OriginStep) * OriginStep, 0f);
+        Position = Origin;
+        Vector2 spawn = Spawn - Origin;
         var positions = new List<Vector2>();
         var masses = new List<float>();
         var cornerIndex = new Dictionary<(int, int), int>();
@@ -416,7 +458,7 @@ public partial class SoftVehicle : Node2D, IVehicle
         {
             if (cornerIndex.TryGetValue((gx, gy), out int index)) return index;
             index = positions.Count;
-            positions.Add(Spawn + (new Vector2(gx, gy) - gridCenter) * CellSize);
+            positions.Add(spawn + (new Vector2(gx, gy) - gridCenter) * CellSize);
             masses.Add(0f);
             cornerIndex[(gx, gy)] = index;
             return index;
@@ -655,6 +697,7 @@ public partial class SoftVehicle : Node2D, IVehicle
     /// <summary>One constraint pass: beams, then push every node out of the terrain.</summary>
     public void SolveIteration(ITerrainCollider terrain)
     {
+        terrain = Local(terrain);
         foreach (var beam in _beams)
             if (!beam.Broken) SolveBeam(beam);
 
@@ -679,6 +722,9 @@ public partial class SoftVehicle : Node2D, IVehicle
     /// <summary>Velocity fixes after the constraint passes: damping, friction, tyres, damage.</summary>
     public void EndSubstep(float dt, ITerrainCollider terrain, IMineable mineable = null)
     {
+        var local = Local(terrain, mineable);
+        terrain = local;
+        if (mineable != null) mineable = local;
         DampSuspension();
 
         if (mineable != null && DrillEnabled)
@@ -864,6 +910,7 @@ public partial class SoftVehicle : Node2D, IVehicle
         if (_rearCell != null) _exhaust.Position = ToLocal((Pos[_rearCell.Corners[0]] + Pos[_rearCell.Corners[3]]) / 2f);
         UpdateLaunch(delta);
         UpdateGearbox(delta);
+        Recenter();
         QueueRedraw();
     }
 
@@ -957,7 +1004,14 @@ public partial class SoftVehicle : Node2D, IVehicle
     /// <summary>Axis-aligned bounds of all nodes including wheel radius, for broad-phase checks.</summary>
     public Rect2 Bounds()
     {
-        if (Pos.Length == 0) return new Rect2(Spawn, Vector2.Zero);
+        Rect2 local = LocalBounds();
+        return new Rect2(local.Position + Origin, local.Size);
+    }
+
+    /// <summary><see cref="Bounds"/> in the car's own frame (relative to <see cref="Origin"/>).</summary>
+    public Rect2 LocalBounds()
+    {
+        if (Pos.Length == 0) return new Rect2(Spawn - Origin, Vector2.Zero);
         Vector2 min = Pos[0], max = Pos[0];
         foreach (var p in Pos)
         {
@@ -970,7 +1024,10 @@ public partial class SoftVehicle : Node2D, IVehicle
     }
 
     /// <summary>True if the point is inside any block of the body.</summary>
-    public bool ContainsPoint(Vector2 p)
+    public bool ContainsPoint(Vector2 p) => ContainsLocalPoint(p - Origin);
+
+    /// <summary><see cref="ContainsPoint"/> for a point in the car's own frame.</summary>
+    public bool ContainsLocalPoint(Vector2 p)
     {
         foreach (var cell in _cells)
         {
@@ -1173,7 +1230,7 @@ public partial class SoftVehicle : Node2D, IVehicle
             normal = Vector2.Up;
         }
 
-        Crashed?.Invoke(new CrashEvent(point, normal, _impactPeak, _bodyHit, _snapsThisHit, _dentThisHit, _wheelLostThisHit, velocity));
+        Crashed?.Invoke(new CrashEvent(point + Origin, normal, _impactPeak, _bodyHit, _snapsThisHit, _dentThisHit, _wheelLostThisHit, velocity));
         _impactTicks = -1;
         _impactCooldown = 0.25f;
         _dentThisHit = 0f;
@@ -1233,12 +1290,12 @@ public partial class SoftVehicle : Node2D, IVehicle
     public string StallReport()
     {
         var sb = new System.Text.StringBuilder();
-        sb.Append($"torque={_engineTorque:0} maxSpin={_engineMaxSpin:0} mass={_totalMass:0.00} throttle={_input.Throttle:0.0} handbrake={_input.Handbrake} overdrive={_overdrive:0}");
+        sb.Append($"origin={Origin.X:0} tilt={_input.Tilt:0.0} torque={_engineTorque:0} maxSpin={_engineMaxSpin:0} mass={_totalMass:0.00} throttle={_input.Throttle:0.0} handbrake={_input.Handbrake} overdrive={_overdrive:0}");
         int touching = 0;
         var touched = new System.Text.StringBuilder();
         for (int i = 0; i < BodyNodeCount; i++)
         {
-            if (World != null && World.Terrain != null && World.Terrain.Collide(Pos[i], NodeRadius + 0.5f, out _, out _))
+            if (World != null && World.Terrain != null && World.Terrain.Collide(Pos[i] + Origin, NodeRadius + 0.5f, out _, out _))
             {
                 touching++;
                 if (touched.Length < 80) touched.Append($"{i}@({Pos[i].X:0},{Pos[i].Y:0}) ");
@@ -1249,7 +1306,7 @@ public partial class SoftVehicle : Node2D, IVehicle
         foreach (var w in _wheels)
         {
             float hubVx = (Pos[w.Hub].X - Prev[w.Hub].X) * 960f;
-            sb.Append($" w{k++}(att={w.Attached} gnd={w.Grounded} spin={w.Spin:0.0} slip={w.Slip:0} hubVx={hubVx:0} n=({w.GroundNormal.X:0.00},{w.GroundNormal.Y:0.00}) hub=({Pos[w.Hub].X:0},{Pos[w.Hub].Y:0}))");
+            sb.Append($" w{k++}(att={w.Attached} gnd={w.Grounded} spin={w.Spin:0.0} slip={w.Slip:0} hubVx={hubVx:0} n=({w.GroundNormal.X:0.00},{w.GroundNormal.Y:0.00}) hub=({Pos[w.Hub].X + Origin.X:0},{Pos[w.Hub].Y:0}))");
         }
         return sb.ToString();
     }
@@ -1258,10 +1315,30 @@ public partial class SoftVehicle : Node2D, IVehicle
     /// Drives like a careful player, for bots and automated playtests: full throttle,
     /// ease off while drilling, and tilt the nose back down if the car starts to flip.
     /// </summary>
+    private int _stuckReports;
+
     private VehicleInput AutoPilot()
     {
         if (AutoHandbrake) return new VehicleInput(AutoThrottle, 0f, true);
-        if (AutoTilt != 0f) return new VehicleInput(AutoThrottle, AutoTilt, false, AutoBoostNow());
+        const float tick = 1f / 120f;
+        if (AutoTilt != 0f)
+        {
+            // Digging with the nose held down: if the car is wedged (slow, the drill biting nothing)
+            // for 3 s, back out for a moment like the plain bot does.
+            if (_autoReverseTime > 0f)
+            {
+                _autoReverseTime -= tick;
+                return new VehicleInput(-AutoThrottle * 0.8f, -AutoTilt, false);
+            }
+            _autoStuckTime = Speed < 15f && !IsDrilling && AutoThrottle != 0f ? _autoStuckTime + tick : 0f;
+            if (_autoStuckTime > 3f)
+            {
+                _autoStuckTime = 0f;
+                _autoReverseTime = 1.2f;
+                GD.Print($"[autoplay] wedged while digging at x={CenterPosition.X / 16f:0.0} pitch={PitchDegrees():0}: backing out | {StallReport()}");
+            }
+            return new VehicleInput(AutoThrottle, AutoTilt, false, AutoBoostNow());
+        }
 
         float throttle = AutoThrottle;
         float tilt = 0f;
@@ -1281,7 +1358,6 @@ public partial class SoftVehicle : Node2D, IVehicle
         if (IsDrilling) throttle = Mathf.Clamp(throttle, -0.45f, 0.45f);
 
         // Stuck for 3 s without drilling: back up for a moment, then try again.
-        const float tick = 1f / 120f;
         if (_autoReverseTime > 0f)
         {
             _autoReverseTime -= tick;
@@ -1292,6 +1368,7 @@ public partial class SoftVehicle : Node2D, IVehicle
         {
             _autoStuckTime = 0f;
             _autoReverseTime = 1.2f;
+            if (_stuckReports++ < 4) GD.Print($"[autoplay] stuck at x={CenterPosition.X / 16f:0.0} pitch={PitchDegrees():0}: backing up | {StallReport()}");
         }
 
         return new VehicleInput(throttle, tilt, false, AutoBoostNow());

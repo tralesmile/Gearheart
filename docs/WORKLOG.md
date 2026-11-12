@@ -2,6 +2,32 @@
 
 Newest entry first. Each session: what was built and why, how it was verified, what is not verified, and what comes next.
 
+## 2026-11-12, about 14:00–14:45 UTC — Car physics relative to a local origin (PR #21, left open)
+
+**Built** — Each car keeps its node positions relative to its own origin (`SoftVehicle.Origin`, a multiple of 1,024 px along x, moved by `Recenter()` when the car drives more than 1.5 steps away; the shift is exact). The world only sees world coordinates: terrain, grip and mining go through `ShiftedTerrain` (adds the origin to every point asked about), and `CenterPosition`, `Bounds()`, `ContainsPoint()`, `DrillTips`, `WheelContacts` and crash points add it back; car-to-car and car-to-loose-object contacts in `SoftPhysicsWorld` convert between frames. The car node itself sits at its origin, so drawing uses the node positions as they are (a private `ToLocal` that returns its argument).
+
+**Why** — PR #20 found the cause of the Next list's #1 (the Scrap 4 pickup cannot leave the pad): 32-bit positions at x ≈ 20,600 px lose every velocity change under about 1.9 px/s per substep (see `docs/DECISIONS.md`). That is a trap in the garage and quietly bends every car's handling in the world.
+
+**Verified (CI run 43225624030, green)**
+
+- **Scrap 4 pickup drives**: 2 s after getting in 6.5 m at 23 km/h (before: 0.2 m, 0 km/h). With a perfect launch 14.3 m at 29 km/h (before 10.7 m).
+- **V8 pickup starts properly**: 12.3 m at 33 km/h after 2 s (before: stuck at 6 km/h, 3.3 m).
+- **Parked cars stay put**: 1288.0 → 1287.9 tiles over 10 s (before: 4.5 tiles of creep, left or right depending on the engine).
+- **Changes elsewhere** (expected, physics is now what the formulas say): the starter V6 starts slower (10.8 m / 33 km/h after 2 s, before 14.4 m / 39 km/h — the rounding had been helping it) but ends the 40 s drive at about the same place (2179.0 vs 2189.5); rocket car further (2533.8 vs 2155.9); left run 512.7 vs 603.2 (further west), spiked 375.1 vs 300.1; trip reports 414 and 379 (before 259 and 443; the second trip did not beat the first); Hill Climb 19.19 s (was 18.97 s) and rocket 14.11 s (was 15.25 s). Launch control still grades and shoves (perfect 16.8 m vs plain 10.8 m after 2 s). No errors.
+
+**Not verified / known issues — why it is left open**
+
+- **The drill car got wedged**: tunnelling into the hill east of the garage it nosed into a cave, snapped a front suspension beam while standing still (dent 41, damage 48, `drill_280.png`) and sat at 2.5 m deep for the last 14 s (before: 8.8 m, no damage). The Crystal Drill car also dug less deep (6.6 m vs 10.9 m, damage 5). It may be the bot arriving at the cave at a different moment (the start is slower now, and the dig phase is timed), or a real change in how drilling behaves. One run cannot tell, and I had used this session's runs, so I did not merge.
+- Handling feel changed everywhere (slower standing starts with the V6). That may need a small torque retune once you have driven it.
+
+**Picked up and merged by the next session (2026-11-12, about 13:25–13:55 UTC)** — The drill question is answered: the wedges are places, not a drilling fault. A stall report on every stuck/wedged bot (`[autoplay] stuck` / `wedged while digging`, CI run 43229946586, green) shows no body node touching the ground and both wheels grounded with spin 0.0–0.1 at throttle 0.6–1.0: the plain drill car sits in a V-shaped notch (wheel normals (0.45,−0.89) and (−0.45,−0.89)) and the Crystal Drill car has its rear wheel against a one-tile step (normal (−1.00,−0.02)). The tyres never break loose, so neither forwards nor reverse moves the car — the same physics as before, the route is just different now that the start and the tilt behave as written. The tilt really did change: at x ≈ 22,000 px a float steps 0.002 px and one substep of Q/E tilt moves a node about 0.0005 px, so the sideways part of air control was rounded away near the garage until this fix. Drilling itself is as fast as before (Crystal Drill car 1353 → 1472 tiles in 12 s). The bot now eases off the dig tilt before 30° and tries to back out when wedged (it cannot, as above). Getting stuck in a notch is a real player problem too, so IDEAS #84 ("rock it free") is next in line. Every other number in this run is identical to the run above.
+
+**Next (for the session that picks this up)**
+
+1. Check the drill question: run the drill car two or three times with different start delays (or compare `--design=driller` in Free Drive near x = 0, where nothing changed), and look at `drill_*` screenshots. If drilling is fine, merge PR #21.
+2. If standing starts feel sluggish, raise the V6 torque a little rather than bring back the rounding.
+3. Then: gate sprint (IDEAS #76), garage "too weak" warning (#77).
+
 ## 2026-11-12, about 12:40–14:00 UTC — Launch control, and why the Scrap 4 pickup will not move (PR #20)
 
 **Started by** checking for unfinished work: PR #19 (engine sounds and gearbox) was open with a green build (run 43215472593) and a playtest log matching its description (40 s positions unchanged, starter 4 up / 0 down shifts), so I squash-merged it.
