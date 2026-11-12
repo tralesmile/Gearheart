@@ -67,7 +67,7 @@ public partial class RoadsidePickups : Node2D
     {
         ulong seed = 9001;
         for (int x = 0; x < TileWorld.Width; x += 97) seed = seed * 31 + (ulong)world.SurfaceRow(x);
-        var rng = new RandomNumberGenerator { Seed = seed };
+        using var rng = new RandomNumberGenerator { Seed = seed };
         var list = new List<Pickup>();
         int center = (TileWorld.PadFrom + TileWorld.PadTo) / 2;
         foreach (int dir in new[] { 1, -1 })
@@ -86,7 +86,7 @@ public partial class RoadsidePickups : Node2D
     /// <summary>What a scrap heap at this column holds (fixed per spot).</summary>
     public static List<(string Item, int Amount)> HeapLoot(int x)
     {
-        var rng = new RandomNumberGenerator { Seed = (ulong)(uint)(x * 2654435761u) };
+        using var rng = new RandomNumberGenerator { Seed = (ulong)(uint)(x * 2654435761u) };
         var loot = new List<(string, int)> { ("Scrap", rng.RandiRange(1, 3)) };
         Biome biome = TileWorld.BiomeAt(x);
         float roll = rng.Randf();

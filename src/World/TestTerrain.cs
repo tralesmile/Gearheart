@@ -27,7 +27,7 @@ public partial class TestTerrain : StaticBody2D, ITerrainCollider
 
     public override void _Ready()
     {
-        var rng = new RandomNumberGenerator { Seed = (ulong)Seed };
+        using var rng = new RandomNumberGenerator { Seed = (ulong)Seed };
         _phaseA = rng.Randf() * 10f;
         _phaseB = rng.Randf() * 10f;
 

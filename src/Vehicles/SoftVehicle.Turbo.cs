@@ -27,7 +27,8 @@ public partial class SoftVehicle
     private Cell _turboCell;
     private float _turboTorque, _turboSpin, _spoolTime = 1f;
     private bool _turboOnPower;
-    private float _turboWheelAngle, _turboFullTime;
+    private float _turboWheelAngle;
+    private bool _turboFullLatched;   // full boost was announced; re-armed when boost drops below 0.6
     private CpuParticles2D _blowOffPuff;
 
     /// <summary>True when the car carries a working Turbocharger.</summary>
@@ -104,8 +105,15 @@ public partial class SoftVehicle
         }
         _turboOnPower = onPower;
 
-        if (TurboBoost >= 0.99f && before < 0.99f && _turboFullTime <= 0f) TurboFull?.Invoke();
-        _turboFullTime = TurboBoost >= 0.9f ? _turboFullTime + delta : 0f;
+        if (TurboBoost >= 0.99f && !_turboFullLatched)
+        {
+            _turboFullLatched = true;
+            TurboFull?.Invoke();
+        }
+        else if (TurboBoost < 0.6f)
+        {
+            _turboFullLatched = false;
+        }
         if (TurboBoost >= 0.9f) TurboFullSeconds += delta;
         TurboPeak = Mathf.Max(TurboPeak, TurboBoost);
         _turboWheelAngle += delta * (4f + 70f * TurboBoost);
