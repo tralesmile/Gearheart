@@ -2,6 +2,45 @@
 
 Newest entry first. Each session: what was built and why, how it was verified, what is not verified, and what comes next.
 
+## 2026-11-12, about 03:15–04:15 UTC — Polish: dashboard, speed lines, smash streaks (PR #11)
+
+**Built** (a polish-and-feel session)
+
+- **Dashboard** (`src/Game/Dashboard.cs`), bottom-left while driving, drawn in code: speedometer dial (0–120 km/h, red from 100) with a needle that chases the speed and wobbles a hair when fast (orange while boosting), a big km/h number, a segmented fuel gauge (green, amber under 50%, blinking red "LOW FUEL" under 20%) and a damage meter (40 = badly bent). The top-right status line now only shows "BOOST!" and the biome.
+- **Speed lines** (`src/Game/SpeedLines.cs`): streaks across the screen, kept away from the car's height, from 35 km/h of sideways speed and full at 70 km/h, warm-tinted while boosting. Falling straight down makes none.
+- **Wind** (`wind.wav`, new in `tools/make_sounds.py` with its own random stream; every older sound byte-identical): a hissy, gusting loop from 30 km/h, loud and higher-pitched near 75 km/h.
+- **Smash streaks**: heaps smashed within 2.5 s of each other chain into "SMASH x2", "SMASH x3"…; the crunch rises in pitch, the spray and the shake grow, and from x3 each heap pays +1 combo Scrap. A newer smash call-out replaces the previous one. A smash on the ground now costs the car 10% of its speed (`SoftVehicle.Slow`), so heaps have weight; in the air it does not (slowing a flying car ruined its jump in the first run).
+- **Bigger scrap heaps** (`tools/make_art.py`): the heap fills most of its 32 px cell (a door panel and a bent rod stick up), about 28 px tall instead of 18; hit box 30×24. Only `pickups.png` changed.
+- **Self-righting fix**: the first CI run showed the starter car stuck on its roof for 20 s in a dip on the way to the Frozen North (pitch 172, speed 0), even though self-righting was on. The roll push now grows the longer it is stuck (2.5 → 8) and every 1.5 s the car gets a small hop. A pre-existing bug, made visible because heap slowdowns changed the bot's line.
+- **Stunts**: time spent lying on the roof no longer counts as air (it gave "MONSTER AIR 2.6 s, took off at 1 km/h" after a roll-over).
+- **CI**: `[speed]` lines (first time the streaks pass 0.6) and `speed_<run>_<frame>.png` screenshots; `[stunt] upside down / back on its wheels` lines; `bestStreak`, `dash`, `lines`, `peakLines`, `wind`, `rollOvers` in every `[autoplay]` line.
+
+**Why this** — Brainstorm in `docs/IDEAS.md`: in the screenshots, speed was a small grey number in a line of text; 90 km/h with the booster looked like 20 km/h. Heaps were tiny next to the fuel can and smashing one did not touch the car. After three feature sessions, a feel pass on driving (what a player does most in the first minute) was due, and the last worklog's "Next" put exactly this polish first, plus the smash streak.
+
+**Verified (CI runs 43148428946, 43149476107, 43150236362 and the docs run on the PR, all green)**
+
+- Run 2 numbers: starter car smashed 10 heaps in 40 s, best streak x5, three combo payouts; rocket car best streak x4; left run x2. Ground smashes cost 10% (e.g. 32 → 28 km/h); air smashes none (28 → 28).
+- Speed lines reach 0.88 (left run, 70 km/h) and 0.79 (rocket) in run 2, 0.82 and 0.76 in run 3 after switching to sideways speed (the 15 m crash-test drop no longer triggers them); `[speed] streaks at 0.73 at 68 km/h, wind 0.83, boosting=True`. Wind level follows speed (0.14 at 36 km/h, 0.8+ at 66–70 km/h).
+- Self-righting: the left run now rolls back twice ("back on its wheels at x=1162") and reaches the Frozen North (tile x=583 at 40 s, 7 heaps, 3 cans); the rocket car rolls back once.
+- Screenshots on the `screenshots` branch: `pickup_world_178.png` (dashboard at 29 km/h, "SMASH! +3 Scrap"), `rocket_230.png` (orange needle while boosting, the new bigger heap on the road), `speed_rocket_112.png` and `speed_left_115.png` (streaks at 54 and 67 km/h; faint in run 2, brighter and clearly visible in run 3). In run 3 the roll-overs no longer produce a false "MONSTER AIR".
+- Unchanged: Hill Climb 18.97 s (starter) and 15.25 s (rocket); drill car 8.8 m deep with Scrap 22 / Iron 3 / Copper 1. The starter world drive now ends at tile x≈2232 instead of 2240 (heaps slow it down; expected).
+
+**Not verified / known issues**
+
+- Not listened to: the wind loop and the rising crunch pitch are tuned by reading the numbers only.
+- Speed lines are judged from 10 fps still frames; in motion they may look too busy or too faint. Please play.
+- The dashboard and speed lines are only in the world, not in the Hill Climb / Free Drive test scenes.
+- Damage meter scale (40 = full) is a guess; damage still rarely happens.
+- Combo Scrap makes the economy a bit richer again (+3–4 Scrap per 40 s drive).
+
+**Next**
+
+1. Trip summary card at the garage (distance, top speed, best air, heaps, best streak, stashes, crashes) with a best trip to beat (small) — the strongest "one more trip" hook left.
+2. Smashable props per biome (cacti, snowmen, fences) feeding the streak (small).
+3. Landing grades and a perfect-landing speed kick (small).
+4. Biome welcome banner the first time you arrive (small).
+5. Snow/ice part (tracks or spiked tyres) from Frozen North iron (medium).
+
 ## 2026-11-12, about 02:30–03:00 UTC — Roadside pickups (PR #10)
 
 **Built**
