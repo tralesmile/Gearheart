@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Gearheart.Core;
 using Gearheart.Physics;
 using Gearheart.Vehicles;
@@ -52,6 +53,15 @@ public partial class WorldScene : Node2D
     private bool _driving;
     private float _toastTime, _elapsed, _nextLog, _saveTimer;
     private float _airTime, _airStartSpeed, _boostSeconds, _topSpeed, _longestAir;
+
+    // Trips: leave the garage grounds, come back, get a report card with a score and a best to beat.
+    private const float TripLeave = 18f, TripHome = 8f;   // metres from the middle of the garage pad
+    private Trip _trip;
+    private TripCard _card;
+    private int _tripsReported;
+    private bool _farthestCheered;
+    private int _tripLeg;          // --triptest bot: which leg of the two out-and-back trips
+    private float _legStart;
 
     public override void _Ready()
     {
@@ -183,6 +193,12 @@ public partial class WorldScene : Node2D
     public override void _UnhandledInput(InputEvent @event)
     {
         if (@event is not InputEventKey { Pressed: true, Echo: false } key) return;
+        if (_card.Showing && key.PhysicalKeycode is Key.Enter or Key.KpEnter or Key.Escape)
+        {
+            _card.Dismiss();
+            GetViewport().SetInputAsHandled();
+            return;
+        }
 
         switch (key.PhysicalKeycode)
         {
@@ -270,6 +286,7 @@ public partial class WorldScene : Node2D
         if (GameSession.AutoPlay) RunBot();
         if (_driving) TrackStunts(dt);
         CheckPickups();
+        UpdateTrip();
 
         _saveTimer += dt;
         if (_saveTimer > 60f)
@@ -421,6 +438,7 @@ public partial class WorldScene : Node2D
                 _smashStreak = _elapsed - _lastSmashAt <= StreakWindow ? _smashStreak + 1 : 1;
                 _lastSmashAt = _elapsed;
                 _bestStreak = Mathf.Max(_bestStreak, _smashStreak);
+                _trip?.NoteStreak(_smashStreak);
                 int bonus = _smashStreak >= 3 ? 1 : 0;   // a chain of three or more pays a little extra
                 if (bonus > 0)
                 {
@@ -591,6 +609,11 @@ public partial class WorldScene : Node2D
         _toast.CustomMinimumSize = new Vector2(400f, 0f);
         layer.AddChild(_toast);
 
+        // The trip report, centred; it pops up when you get back to the garage.
+        _card = new TripCard { Name = "TripCard", Sfx = _sfx };
+        layer.AddChild(_card);
+        _card.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.Center, Control.LayoutPresetMode.KeepSize);
+
         // Inventory bar along the bottom.
         var bar = new HBoxContainer();
         bar.AddThemeConstantOverride("separation", 18);
@@ -658,7 +681,7 @@ public partial class WorldScene : Node2D
                          (NearGarage() ? "   G: garage   R: repair" : "");
             // Speed, fuel and damage live on the dashboard now; the status line keeps where you are.
             float kmh = _car.Speed / PixelsPerMeter * 3.6f;
-            _status.Text = $"{(_car.Boosting ? "BOOST!   " : "")}{BiomeName(_car.CenterPosition.X)}";
+            _status.Text = $"{(_car.Boosting ? "BOOST!   " : "")}{BiomeName(_car.CenterPosition.X)}{TripStatus()}";
             _status.Modulate = _car.Boosting ? new Color(1f, 0.8f, 0.4f) : Colors.White;
             _dash.Visible = true;
             _dash.Set(kmh, _car.Fuel, _car.FuelCapacity, _car.Damage, _car.Boosting);
@@ -679,14 +702,112 @@ public partial class WorldScene : Node2D
             _dash.Visible = false;
             _lines.Set(0f, _carDir, false);
             _status.Modulate = Colors.White;
-            _status.Text = $"{BiomeName(_player.Position.X)}   Depth {Mathf.Max(0f, (_player.Position.Y / Ts - _world.SurfaceRow(Mathf.FloorToInt(_player.Position.X / Ts))) * 0.25f):0} m" +
+            _status.Text = $"{BiomeName(_player.Position.X)}{TripStatus()}   Depth {Mathf.Max(0f, (_player.Position.Y / Ts - _world.SurfaceRow(Mathf.FloorToInt(_player.Position.X / Ts))) * 0.25f):0} m" +
                            (GameSession.StashesFound > 0 ? $"   Stashes found {GameSession.StashesFound}" : "");
         }
 
+        _toast.Visible = !_card.Showing;   // the report card has the stage
         if (_toastTime > 0f)
         {
             _toastTime -= dt;
             _toast.Modulate = new Color(1f, 1f, 1f, Mathf.Clamp(_toastTime, 0f, 1f));
+        }
+    }
+
+    // ---- Trips ------------------------------------------------------------------------------
+
+    /// <summary>Metres from the middle of the garage pad (negative = west).</summary>
+    private float MetersFromGarage(float worldX) => (worldX - TileWorld.PadCenter.X) / Ts * 0.25f;
+
+    private string TripStatus()
+    {
+        if (_trip == null) return "";
+        TripBest best = GameSession.BestTrip;
+        return $"   Trip {_trip.Farthest:0} m" + (best != null && best.Farthest >= 20f ? $" (best {best.Farthest:0} m)" : "");
+    }
+
+    /// <summary>Starts a trip when you leave the garage grounds and ends it (with the report card) when you come back.</summary>
+    private void UpdateTrip()
+    {
+        Vector2 focus = Focus;
+        float dx = MetersFromGarage(focus.X);
+        float away = Mathf.Abs(dx);
+        if (_trip == null)
+        {
+            // The report card has the stage: coasting past the garage while it shows does not start a new trip.
+            if (away > TripLeave && !_card.Showing) StartTrip();
+            return;
+        }
+
+        if (away > _trip.Farthest)
+        {
+            _trip.Farthest = away;
+            _trip.FarthestSide = Mathf.Sign(dx);
+            _trip.FarthestX = focus.X;
+        }
+        float depth = (focus.Y / Ts - _world.SurfaceRow(Mathf.FloorToInt(focus.X / Ts))) * 0.25f;
+        _trip.Deepest = Mathf.Max(_trip.Deepest, depth);
+        if (_driving) _trip.NoteSpeed(_car.Speed / PixelsPerMeter * 3.6f);
+
+        // Passing your farthest point ever: a cheer, like the best-distance flag in Hill Climb Racing.
+        TripBest best = GameSession.BestTrip;
+        if (!_farthestCheered && best != null && best.Farthest >= 20f && _trip.Farthest > best.Farthest)
+        {
+            _farthestCheered = true;
+            Toast($"NEW FARTHEST!\n{best.Farthest:0} m passed");
+            _sfx.Play("tally", -4f, 0.1f, 1.2f);
+            _sfx.Play("pickup", -5f, 0.1f, 1.3f);
+            if (GameSession.AutoPlay) GD.Print($"[trip] passed the farthest point ever ({best.Farthest:0} m) at x={focus.X / Ts:0} t={_elapsed:0.0}s");
+        }
+
+        if (away < TripHome && depth < 3f) EndTrip();
+    }
+
+    private void StartTrip()
+    {
+        _trip = new Trip
+        {
+            StartedAt = _elapsed,
+            HeapsAtStart = _heapsTaken, CansAtStart = _cansTaken, CrashesAtStart = _crashFx.Hits,
+            RollOversAtStart = _rollOvers, StashesAtStart = GameSession.StashesFound,
+        };
+        foreach (string item in Trip.HaulItems) _trip.MaterialsAtStart[item] = GameSession.Count(item);
+        _farthestCheered = false;
+        if (GameSession.AutoPlay) GD.Print($"[trip] start: left the garage grounds {(_driving ? "driving" : "on foot")} at t={_elapsed:0.0}s");
+    }
+
+    private void EndTrip()
+    {
+        Trip t = _trip;
+        _trip = null;
+        t.Seconds = _elapsed - t.StartedAt;
+        t.Heaps = _heapsTaken - t.HeapsAtStart;
+        t.Cans = _cansTaken - t.CansAtStart;
+        t.Crashes = _crashFx.Hits - t.CrashesAtStart;
+        t.RollOvers = _rollOvers - t.RollOversAtStart;
+        t.Stashes = GameSession.StashesFound - t.StashesAtStart;
+        foreach (string item in Trip.HaulItems) t.Haul[item] = Mathf.Max(0, GameSession.Count(item) - t.MaterialsAtStart.GetValueOrDefault(item));
+        if (!t.WorthReporting)
+        {
+            if (GameSession.AutoPlay) GD.Print($"[trip] back after a short stroll ({t.Farthest:0} m), no report");
+            return;
+        }
+
+        var rows = t.Rows(GameSession.BestTrip);
+        int score = Trip.Score(rows);
+        TripBest before = GameSession.SubmitTrip(score, t.Farthest, t.TopKmh, t.LongestAir, t.BestStreak);
+        int number = (before?.Trips ?? 0) + 1;
+        string subtitle = $"Trip {number}   ·   {(int)(t.Seconds / 60f)}:{(int)(t.Seconds % 60f):00}   ·   reached {BiomeName(t.FarthestX)}";
+        _card.Open(rows, score, before, subtitle);
+        _tripsReported++;
+        if (GameSession.AutoPlay)
+        {
+            string records = string.Join(",", rows.FindAll(r => r.Record).ConvertAll(r => r.Label.ToLowerInvariant().Replace(' ', '_')));
+            GD.Print($"[trip] report {number}: score={score} best_before={(before == null ? "none" : before.Score.ToString())} newBest={(before != null && score > before.Score)} " +
+                     $"farthest={t.Farthest:0}m side={(t.FarthestSide < 0 ? "west" : "east")} reached=\"{BiomeName(t.FarthestX)}\" time={t.Seconds:0.0}s top={t.TopKmh:0}km/h air={t.LongestAir:0.0}s " +
+                     $"heaps={t.Heaps} streak={t.BestStreak} cans={t.Cans} stashes={t.Stashes} haul=\"{t.HaulText()}\" crashes={t.Crashes} rollOvers={t.RollOvers} " +
+                     $"records=[{records}] frame={Engine.GetFramesDrawn()}");
+            foreach (TripRow r in rows) GD.Print($"[trip]   {r.Label}: {r.Value} -> +{r.Points}{(r.Record ? " NEW BEST" : "")}");
         }
     }
 
@@ -717,6 +838,7 @@ public partial class WorldScene : Node2D
             _airTime += dt;
             return;
         }
+        if (_airTime > 0.3f) _trip?.NoteAir(_airTime);
         if (_airTime > 0.9f)
         {
             _longestAir = Mathf.Max(_longestAir, _airTime);
@@ -732,6 +854,59 @@ public partial class WorldScene : Node2D
     // ---- Automated playtest -----------------------------------------------------------------
     // --autoplay: walk, dig down by hand, then get in the car and drive (and drill) to the right.
 
+    /// <summary>
+    /// --triptest: straight into the car, drive out east for 9 s and back to the garage (report 1),
+    /// then out for 15 s (further: a new farthest and, most likely, a new best trip) and back (report 2).
+    /// </summary>
+    private void RunTripBot()
+    {
+        if (!_driving)
+        {
+            if (_elapsed > 0.5f && _tripLeg == 0)
+            {
+                EnterCar();
+                _legStart = _elapsed;
+                GD.Print("[trip] test: two out-and-back drives from the garage");
+            }
+            return;
+        }
+
+        float throttle = 0f;
+        switch (_tripLeg)
+        {
+            case 0:
+                throttle = 1f;
+                if (_elapsed - _legStart > 9f) Leg(1, "heading home");
+                break;
+            case 1:
+                throttle = -1f;
+                if (_tripsReported >= 1) Leg(2, "out again, further this time");
+                break;
+            case 2:
+                throttle = 1f;
+                // Like a player pressing Enter once the score has counted up (a new trip waits for the card).
+                if (_card.Showing && !_card.Closing && _elapsed - _legStart > 5f)
+                {
+                    _card.Dismiss();
+                    GD.Print($"[trip] test: closed the card (Enter) at {MetersFromGarage(_car.CenterPosition.X):0} m t={_elapsed:0.0}s");
+                }
+                if (_elapsed - _legStart > 15f) Leg(3, "heading home");
+                break;
+            case 3:
+                throttle = -1f;
+                if (_tripsReported >= 2) Leg(4, "home, parking");
+                break;
+        }
+        _car.AutoThrottle = throttle;
+    }
+
+    private void Leg(int leg, string what)
+    {
+        _tripLeg = leg;
+        _legStart = _elapsed;
+        GD.Print($"[trip] test leg {leg}: {what} at x={_car.CenterPosition.X / Ts:0} ({MetersFromGarage(_car.CenterPosition.X):0} m) t={_elapsed:0.0}s");
+    }
+
     private void RunBot()
     {
         // --crashtest: skip the walk, drop the car from about 15 m up with the bot at the wheel.
@@ -743,7 +918,9 @@ public partial class WorldScene : Node2D
             GD.Print("[crash] test: car dropped from about 15 m");
         }
 
-        if (!_driving && !GameSession.CrashTest)
+        if (GameSession.TripTest) RunTripBot();
+
+        if (!_driving && !GameSession.CrashTest && !GameSession.TripTest)
         {
             Vector2 feet = _player.Position + new Vector2(0f, Player.HalfHeight);
             // --stashtest: once the bot starts digging, bury a toolbox and a strongbox under its feet
@@ -779,6 +956,7 @@ public partial class WorldScene : Node2D
 
         if (_elapsed < _nextLog) return;
         _nextLog += 2f;
+        string tripNow = _trip == null ? "none" : $"{_trip.Farthest:0}m";
         Vector2 p = _player.Position, c = _car.CenterPosition;
         int surface = _world.SurfaceRow(Mathf.FloorToInt(c.X / Ts));
         GD.Print($"[autoplay] t={_elapsed:0}s {(_driving ? "driving" : "on foot")} biome={TileWorld.BiomeAt(Mathf.FloorToInt(c.X / Ts))} grip={_world.GripAt(c + new Vector2(0f, 60f)):0.00} player=({p.X / Ts:0.0},{p.Y / Ts:0.0}) grounded={_player.Grounded} " +
@@ -787,7 +965,7 @@ public partial class WorldScene : Node2D
                  $"top={_topSpeed / PixelsPerMeter * 3.6f:0}km/h longestAir={_longestAir:0.0}s " +
                  $"crashes={_crashFx.Hits} hardest={_crashFx.HardestHit / PixelsPerMeter * 3.6f:0}km/h sparks={_crashFx.SparkBursts} " +
                  $"cans={_cansTaken} heaps={_heapsTaken} smashed={_heapsSmashed} bestStreak={_bestStreak} " +
-                 $"dash={(_dash.Visible ? $"{_dash.ShownKmh:0}km/h" : "hidden")} lines={_lines.Intensity:0.00} peakLines={_peakLines:0.00} wind={_sfx.WindLevel:0.00} rollOvers={_rollOvers} | " +
+                 $"dash={(_dash.Visible ? $"{_dash.ShownKmh:0}km/h" : "hidden")} lines={_lines.Intensity:0.00} peakLines={_peakLines:0.00} wind={_sfx.WindLevel:0.00} rollOvers={_rollOvers} trip={tripNow} reports={_tripsReported} card={(_card.Showing ? _card.ShownScore.ToString() : "hidden")} | " +
                  string.Join(" ", System.Array.ConvertAll(GameSession.Items, i => $"{i}={GameSession.Count(i)}")));
     }
 }

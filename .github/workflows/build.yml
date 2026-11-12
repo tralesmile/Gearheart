@@ -45,7 +45,7 @@ jobs:
             name="$1"; shift
             echo "=== $name"
             timeout 300 godot --headless --path . --fixed-fps 120 "$@" > smoke.log 2>&1
-            grep -E "\[(world|autoplay|drive|race|mining|autodrive|stunt|crash|stash|pickup|speed)\]" smoke.log | tail -60
+            grep -E "\[(world|autoplay|drive|race|mining|autodrive|stunt|crash|stash|pickup|speed|trip)\]" smoke.log | tail -60
             # "resources still in use at exit" is a shutdown notice about cached textures and sounds, not a fault.
             if grep -E "ERROR|Unhandled exception|SCRIPT ERROR|System\.[A-Za-z]*Exception" smoke.log | grep -v "still in use at exit" | grep .; then
               echo "::error::Smoke test failed: $name"
@@ -59,6 +59,7 @@ jobs:
           run "world: rocket booster car"             res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --design=rocket
           run "world: crash test (15 m drop, then drive)" res://scenes/world.tscn --quit-after 2400 -- --fresh --autoplay --crashtest --design=starter
           run "world: buried stash test (dig up planted stashes)" res://scenes/world.tscn --quit-after 1800 -- --fresh --autoplay --stashtest --design=starter
+          run "world: trip report (two out-and-back drives)" res://scenes/world.tscn --quit-after 7800 -- --fresh --autoplay --triptest --design=starter
           run "garage"            res://scenes/garage.tscn --quit-after 300
           run "physics lab"       res://scenes/tests/physics_test.tscn --quit-after 600
           run "hill climb, starter car, 40 s" res://scenes/drive.tscn --quit-after 4800 -- --hillclimb --autodrive --design=starter
@@ -71,7 +72,7 @@ jobs:
         run: |
           sudo apt-get update -qq > /dev/null 2>&1 || true
           sudo apt-get install -y -qq xvfb libgl1-mesa-dri > /dev/null 2>&1 || true
-          mkdir -p shots/world shots/left shots/drill shots/rocket shots/crash shots/stash shots/garage keep
+          mkdir -p shots/world shots/left shots/drill shots/rocket shots/crash shots/stash shots/trip shots/garage keep
           # Keep Godot from importing (and exporting) the thousands of movie frames: they slowed every
           # later run, bloated the game builds and flooded the job log past the playtest lines.
           touch shots/.gdignore keep/.gdignore
@@ -81,6 +82,7 @@ jobs:
           xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/rocket/f.png --quit-after 400 res://scenes/world.tscn -- --fresh --autoplay --design=rocket > shots/rocket.log 2>&1 || true
           xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/crash/f.png --quit-after 200 res://scenes/world.tscn -- --fresh --autoplay --crashtest --design=starter > shots/crash.log 2>&1 || true
           xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/stash/f.png --quit-after 110 res://scenes/world.tscn -- --fresh --autoplay --stashtest --design=starter > shots/stash.log 2>&1 || true
+          xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/trip/f.png --quit-after 650 res://scenes/world.tscn -- --fresh --autoplay --triptest --design=starter > shots/trip.log 2>&1 || true
           xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/garage/f.png --quit-after 12 res://scenes/garage.tscn > shots/garage.log 2>&1 || true
           for run in world left drill rocket; do
             for i in 25 98 130 180 230 280 330 390; do
@@ -112,6 +114,13 @@ jobs:
               done
             done
           done
+          # Trip report cards: rows ticking in, the score counted up, and the card a few seconds later.
+          grep "\[trip\] report" shots/trip.log | head -2 | sed -E 's/.*frame=([0-9]+).*/\1/' | while read n; do
+            for d in 8 30 60; do
+              f=$(printf "shots/trip/f%08d.png" $((n + d))); [ -f "$f" ] && cp "$f" keep/trip_$((n + d)).png
+            done
+          done
+          grep "\[trip\]" shots/trip.log | head -30
           grep "\[speed\]" shots/*.log | head -5
           grep "\[pickup\]" shots/world.log | head -8
           for i in 28 32 36 40 45 50 60 75 95; do

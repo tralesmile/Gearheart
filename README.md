@@ -49,6 +49,8 @@ A 2D side-view sandbox where you mine, craft and build vehicles part by part, th
 
 **On the road:** fuel cans and scrap heaps lie along the surface every 10–19 m. Drive through a can for +18 fuel (it stays put if your tank is nearly full). Plough through a scrap heap at speed to smash it for Scrap (sometimes Iron in the meadow and the north, Copper in The Wastes), or walk into it to pick it up. Both come back a couple of minutes after you take them. The fuel readout blinks LOW FUEL under 20%.
 
+**Trips:** leave the garage grounds (about 18 m out) and a trip starts; the status line shows how far out you are and your farthest ever ("Trip 84 m (best 212 m)"), with a "NEW FARTHEST!" cheer when you pass it. Come back to the garage and a **trip report** ticks in: farthest, top speed, longest air, scrap heaps and best streak, fuel cans, stashes, haul and carnage, each with points, then the trip score and your best trip to beat (a fanfare and NEW BEST tags when you beat it). Enter or Esc closes it.
+
 **Biomes:** the garage stands in the **Home Meadow**. Drive about 95 m east to reach **The Wastes** (sand dunes, sandstone, copper close to the surface) or west to the **Frozen North** (snow, rugged hills, more caves, lots of iron, and ice patches with almost no grip).
 
 The world, your materials and your car are saved automatically (`user://world.bin`, `progress.json`, `designs/current.json`). Start the game with `-- --fresh` to begin again.
@@ -63,7 +65,7 @@ The world, your materials and your car are saved automatically (`user://world.bi
 
 ## Automated playtests
 
-Every build runs the game headless at a fixed 120 FPS and fails on any error: a bot walks, mines and places blocks in the world, then drives the car (once with the starter pickup, once tunnelling with a drill car); plus the garage, the physics lab, the Hill Climb and the old boulder test. The build also renders real screenshots with software graphics and pushes them to the `screenshots` branch. Progress lines (`[autoplay]`, `[race]`, `[mining]`, `[stunt]`, `[crash]`, `[stash]`, `[pickup]`; `--crashtest` drops the car from 15 m, `--stashtest` buries stashes under the bot's pickaxe) appear in the build log. Run one yourself:
+Every build runs the game headless at a fixed 120 FPS and fails on any error: a bot walks, mines and places blocks in the world, then drives the car (once with the starter pickup, once tunnelling with a drill car); plus the garage, the physics lab, the Hill Climb and the old boulder test. The build also renders real screenshots with software graphics and pushes them to the `screenshots` branch. Progress lines (`[autoplay]`, `[race]`, `[mining]`, `[stunt]`, `[crash]`, `[stash]`, `[pickup]`, `[trip]`; `--crashtest` drops the car from 15 m, `--stashtest` buries stashes under the bot's pickaxe, `--triptest` makes two out-and-back drives for the trip report) appear in the build log. Run one yourself:
 
 ```
 godot --headless --path . --fixed-fps 120 res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay

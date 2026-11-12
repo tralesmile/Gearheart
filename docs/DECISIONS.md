@@ -2,6 +2,13 @@
 
 Newest first. One entry per big decision: what, why, and what would make us revisit it.
 
+## 2026-11-12 — Trip report and trip score
+
+- **What:** a trip is the time between leaving the garage grounds (18 m from the middle of the pad, on foot or driving) and coming back (within 8 m, less than 3 m underground). Trips with something to show (20 m out, a heap, a stash or any haul) end with a report card and a score: 2 per metre of farthest distance, 1 per km/h of top speed, 4 per tenth of a second of the longest air, 10 per heap plus 15 per streak step above x1, 5 per fuel can, 100 per stash, haul 2/5/8 per Scrap/Iron/Copper, and 5 per crash or roll-over ("carnage", because crashes are a pillar, not a failure). The best score and the best of each stat are saved in `progress.json` (`bestTrip`); no world format change.
+- **Why:** coming home was a silent dead end. A number to beat after every trip is the cheapest strong "one more trip" hook (Hill Climb Racing's end screen). Scoring every kind of fun keeps all play styles worth it: a careful miner and a stunt driver both score.
+- **Choices:** a new trip does not start while the card is showing (coasting past the garage would start one at once). Enter or Esc close it, not A/D or Space, so driving keys never skip it by accident. The score is points only; it pays nothing yet (paying out waits for D19, what materials are for).
+- **Revisit when:** you have played a few trips (D1): if the score feels arbitrary, weight it towards distance; if carnage points feel wrong, drop them.
+
 ## 2026-11-12 — Driving HUD is a dashboard; heaps have weight; self-righting escalates
 
 - **What:** Speed, fuel and damage moved from the top-right text line to a drawn dashboard (dial, gauges) at the bottom-left while driving; the top line keeps the biome and BOOST. Smashing a scrap heap on the ground costs 10% speed; chains within 2.5 s give "SMASH xN" and from x3 +1 Scrap each. Speed lines from 35 km/h sideways speed, wind sound from 30 km/h. Self-righting pushes harder the longer the car stays on its roof, with a small hop every 1.5 s.

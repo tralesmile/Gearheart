@@ -22,6 +22,17 @@ public sealed class RaceRecord
     public string Vehicle { get; set; } = "";
 }
 
+/// <summary>Your best trip so far (saved in progress.json).</summary>
+public sealed class TripBest
+{
+    public int Score { get; set; }
+    public float Farthest { get; set; }
+    public float TopKmh { get; set; }
+    public float LongestAir { get; set; }
+    public int BestStreak { get; set; }
+    public int Trips { get; set; }
+}
+
 /// <summary>State that lives across scene changes, plus the small save file for materials and records.</summary>
 public static class GameSession
 {
@@ -63,6 +74,8 @@ public static class GameSession
     public static bool CrashTest => UserArgs.Contains("--crashtest");
     /// <summary>Bot only: bury stashes right where the bot digs, to check the payout and the effects.</summary>
     public static bool StashTest => UserArgs.Contains("--stashtest");
+    /// <summary>Bot only: two out-and-back drives from the garage, to check the trip report card.</summary>
+    public static bool TripTest => UserArgs.Contains("--triptest");
     private static bool FreshStart => UserArgs.Contains("--fresh");
 
     public static void ApplyCommandLine()
@@ -84,6 +97,7 @@ public static class GameSession
         public Dictionary<string, int> Built { get; set; }
         public List<RaceRecord> Records { get; set; } = new();
         public int StashesFound { get; set; }
+        public TripBest BestTrip { get; set; }
     }
 
     private static Progress Data => _progress ??= LoadProgress();
@@ -99,6 +113,32 @@ public static class GameSession
             Data.StashesFound = value;
             _dirty = true;
         }
+    }
+
+    /// <summary>The best trip so far, or null before the first trip report.</summary>
+    public static TripBest BestTrip => Data.BestTrip;
+
+    /// <summary>
+    /// Records a finished trip: keeps the best score and the best of each stat, counts the trip.
+    /// Returns the record as it was before (null on the first trip), so the report can show what was beaten.
+    /// </summary>
+    public static TripBest SubmitTrip(int score, float farthest, float topKmh, float longestAir, int bestStreak)
+    {
+        TripBest old = Data.BestTrip;
+        TripBest before = old == null ? null : new TripBest
+        {
+            Score = old.Score, Farthest = old.Farthest, TopKmh = old.TopKmh, LongestAir = old.LongestAir, BestStreak = old.BestStreak, Trips = old.Trips,
+        };
+        var best = old ?? new TripBest();
+        best.Score = Mathf.Max(best.Score, score);
+        best.Farthest = Mathf.Max(best.Farthest, farthest);
+        best.TopKmh = Mathf.Max(best.TopKmh, topKmh);
+        best.LongestAir = Mathf.Max(best.LongestAir, longestAir);
+        best.BestStreak = Mathf.Max(best.BestStreak, bestStreak);
+        best.Trips++;
+        Data.BestTrip = best;
+        SaveProgress();
+        return before;
     }
 
     public static int Count(string item) => Data.Materials.GetValueOrDefault(item);
