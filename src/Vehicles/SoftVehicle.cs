@@ -105,7 +105,7 @@ public partial class SoftVehicle : Node2D, IVehicle
 
     /// <summary>
     /// A short shove along the way the car is already rolling (a perfect landing), in px/s.
-    /// Spread over <see cref="KickTime"/> seconds like a short nitro shot; the tyres spin up with it
+    /// Spread over <see cref="KickTime"/> seconds (a jolt); the tyres spin up with it
     /// so they do not brake it away.
     /// </summary>
     public void Kick(float speed)
@@ -121,7 +121,7 @@ public partial class SoftVehicle : Node2D, IVehicle
     public float Overdrive => _overdrive;
     private const float OverdriveFade = 180f;   // px/s lost per second
 
-    public const float KickTime = 0.3f;
+    public const float KickTime = 0.05f;   // near-instant: in A/B bot runs a 0.3 s spread was weaker
 
     /// <summary>Shows the driver in the cab window.</summary>
     public bool Occupied { get; set; }
