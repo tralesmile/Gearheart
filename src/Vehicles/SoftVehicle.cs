@@ -84,6 +84,7 @@ public partial class SoftVehicle : Node2D, IVehicle
     private const float RockChainWindow = 0.9f;   // seconds between taps that still build the chain
     private const float RockMinGap = 0.16f;       // seconds between two rocks
     private const float RockTiltBoost = 2.5f;     // ground tilt strength while stuck
+    private const float RockBuffer = 0.4f;        // seconds a tap made in the air waits for touchdown
     public const int RockChainMax = 5;
     private const float RockFreeDistance = 96f;   // px sideways from the stuck point (1.5 m)
 
@@ -105,7 +106,8 @@ public partial class SoftVehicle : Node2D, IVehicle
 
     private float _stuckTime, _stuckFor, _sinceRock = 10f, _giveUp, _autoRockTime;
     private Vector2 _stuckAt;
-    private int _rocksThisStuck, _heldTiltSign, _lastRockSign;
+    private int _rocksThisStuck, _heldTiltSign, _lastRockSign, _bufferedRock;
+    private float _bufferedFor;
     private bool _rockPending;
     private Vector2 _rockPush;
     private float _rockSpin;
@@ -1233,10 +1235,29 @@ public partial class SoftVehicle : Node2D, IVehicle
         int sign = _input.Tilt > 0.5f ? 1 : _input.Tilt < -0.5f ? -1 : 0;
         if (sign != _heldTiltSign)
         {
-            // Only off the ground: a wheel has to push off, or taps in the air would stack hop on hop
-            // (the first CI run flew the rocket car 13 m up with 13 taps).
-            if (sign != 0 && Stuck && grounded && _sinceRock >= RockMinGap) Rock(sign);
+            // A rock pushes off the ground. A tap in the air is kept for a moment and fires on touchdown,
+            // so the rhythm survives a bounce but hops never stack in the air (the first CI run, which
+            // let them stack, flew the rocket car 13 m up with 13 taps).
+            if (sign != 0 && Stuck && _sinceRock >= RockMinGap)
+            {
+                if (grounded) Rock(sign);
+                else
+                {
+                    _bufferedRock = sign;
+                    _bufferedFor = RockBuffer;
+                }
+            }
             _heldTiltSign = sign;
+        }
+        if (_bufferedRock != 0)
+        {
+            _bufferedFor -= dt;
+            if (!Stuck || _bufferedFor <= 0f) _bufferedRock = 0;
+            else if (grounded)
+            {
+                Rock(_bufferedRock);
+                _bufferedRock = 0;
+            }
         }
     }
 

@@ -72,8 +72,9 @@ jobs:
           run "world: launch control, let go too early (bogged)" res://scenes/world.tscn --quit-after 900 -- --fresh --autoplay --launchearly --design=starter
           run "world: launch control, Scrap 4-Cylinder" res://scenes/world.tscn --quit-after 900 -- --fresh --autoplay --launchtest --design=scrap4
           run "world: rock it free (3-tile trench past the pad, the bot rocks E/Q when stuck)" res://scenes/world.tscn --quit-after 2700 -- --fresh --autoplay --rocktest --design=starter
-          run "world: rock it free, CONTROL (same trench, no rocking, only backing up)" res://scenes/world.tscn --quit-after 2700 -- --fresh --autoplay --rocktest --norock --design=starter
           run "world: rock it free, 2-tile trench" res://scenes/world.tscn --quit-after 2700 -- --fresh --autoplay --rocktest --rockdepth=2 --design=starter
+          run "world: rock it free, CONTROL (2-tile trench, no rocking, only backing up)" res://scenes/world.tscn --quit-after 2700 -- --fresh --autoplay --rocktest --rockdepth=2 --norock --design=starter
+          run "world: rock it free, CONTROL (3-tile trench, no rocking)" res://scenes/world.tscn --quit-after 2700 -- --fresh --autoplay --rocktest --norock --design=starter
           run "world: rocket booster car"             res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --design=rocket
           run "world: crash test (15 m drop, then drive)" res://scenes/world.tscn --quit-after 2400 -- --fresh --autoplay --crashtest --design=starter
           run "world: buried stash test (dig up planted stashes)" res://scenes/world.tscn --quit-after 1800 -- --fresh --autoplay --stashtest --design=starter
@@ -112,7 +113,7 @@ jobs:
           xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/jump/f.png --quit-after 400 res://scenes/world.tscn -- --fresh --autoplay --jumptest --design=starter > shots/jump.log 2>&1 || true
           xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/deep/f.png --quit-after 260 res://scenes/world.tscn -- --fresh --autoplay --deeptest --design=starter > shots/deep.log 2>&1 || true
           xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/crystal/f.png --quit-after 400 res://scenes/world.tscn -- --fresh --autoplay --design=crystal > shots/crystal.log 2>&1 || true
-          xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/rock/f.png --quit-after 230 res://scenes/world.tscn -- --fresh --autoplay --rocktest --design=starter > shots/rock.log 2>&1 || true
+          xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/rock/f.png --quit-after 230 res://scenes/world.tscn -- --fresh --autoplay --rocktest --rockdepth=2 --design=starter > shots/rock.log 2>&1 || true
           xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/launch/f.png --quit-after 90 res://scenes/world.tscn -- --fresh --autoplay --launchtest --design=starter > shots/launch.log 2>&1 || true
           # Launch control: charging, the GO window just before letting go, and the PERFECT START a moment after.
           grep "\[launch\] Perfect start" shots/launch.log | head -1 | sed -E 's/.*frame=([0-9]+).*/\1/' | while read n; do
