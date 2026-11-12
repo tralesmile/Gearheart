@@ -83,6 +83,8 @@ public static class GameSession
 
     /// <summary>--deeptest: the bot starts on foot in a glowing cavern of the Deep and digs out crystals.</summary>
     public static bool DeepTest => UserArgs.Contains("--deeptest");
+    /// <summary>--hooktest: a 12 m shaft is dug next to the garage, the bot starts at its bottom and climbs out with the grappling hook.</summary>
+    public static bool HookTest => UserArgs.Contains("--hooktest");
     /// <summary>--launchtest: the bot gets straight in and launches with launch control, letting go in the green
     /// (--launchearly: lets go far too early for a bogged start).</summary>
     public static bool LaunchTest => UserArgs.Contains("--launchtest") || LaunchEarly;

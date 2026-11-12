@@ -2,6 +2,14 @@
 
 Newest first. One entry per big decision: what, why, and what would make us revisit it.
 
+## 2026-11-12 — Grappling hook: a free tool on foot, reel-in style
+
+- **What:** E (or middle mouse; the right shoulder on a gamepad, aimed with the left stick) throws a hook toward the cursor. It flies 4 m (`HookRange` 256 px) at 1500 px/s and bites the first solid tile; a miss snaps back. A bite reels the mechanic in at 640 px/s with no gravity, then they **hang** (no gravity, can mine), or, if the tile it bit has three open tiles above it, **climb onto it** (moved by hand over the lip, no collision on the way). Space jumps off (mid reel-in a fling: the rope's sideways speed is kept, plus an upward kick capped at 1.4 jumps), S lets go, E again throws to the next hold while the old one still holds. Mining away the held tile drops you. The camera leans 35% of the way toward the hook.
+- **Why:** the on-foot half had no new verb since day one, and climbing out of a deep hole (pillaring blocks or digging stairs) was the dullest minute in the game. Reel-in (Terraria) rather than a swinging rope (Worms) because it is predictable on a tile grid, cannot get stuck in a pendulum, and works with one key; swinging is kept as an idea (#140) for after the owner has tried this.
+- **Free, not crafted:** every player has it from the start, so it is felt in the first minute. Whether tools should cost materials is part of D19 (what materials are for); a better hook (longer, faster) would be the natural upgrade if they should.
+- **Faster air movement kept after a rope ride:** in the air, above walking speed, the mechanic now slows at 35% of the usual rate, so a fling carries. Nothing could exceed walking speed before, so every older run is unchanged (verified: all 40 s positions identical).
+- **Revisit when:** you have played (D1). Too strong (it trivialises digging out) → shorten `HookRange` or slow `PullSpeed` in `Player.Hook.cs`; too weak → the reverse. If it should cost something, see D19.
+
 ## 2026-11-12 — Dust devils: the first hazard is weather, and it is also a free jump
 
 - **What:** three stretches of The Wastes road (about 111–176, 178–242 and 244–309 m east of the pad) each grow a dust devil on hot afternoons (heat rises 10:30–11:30, falls 16:30–17:30 on the world clock). A devil wanders its stretch at 0.7–1.5 m/s, lives 25–45 s, then dies down and another forms 6–20 s later. Driving into one grips the car: its velocity is eased towards 14 m/s upwards, sideways towards half its own speed plus half the devil's drift, and its rotation towards 2.4 rad/s; the grip is strongest at the core and low down. After a real ride (held more than 0.12 s, or 1.6 s at most) the devil is spent and blows itself out in a burst of sand. On foot it lifts you and drops you a little way off. The push is a uniform velocity change plus a rigid turn (`SoftVehicle.Whirl`), so the soft body is never bent by it.

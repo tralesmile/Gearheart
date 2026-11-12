@@ -484,6 +484,44 @@ def gust():
     return s
 
 
+hook_rng = np.random.default_rng(136)   # its own stream, so the older sounds stay the same
+
+
+def hook():
+    """The grappling hook thrown: a quick airy whizz that rises in pitch, with a rattle of rope
+    and chain links (short metallic ticks, fast then slowing) running out behind it. 0.3 s."""
+    n = int(SR * 0.3); t = np.arange(n) / SR
+    noise = hook_rng.standard_normal(n)
+    whizz = (lowpass(noise, 3) - lowpass(noise, 12)) * np.sin(np.pi * np.minimum(t / 0.22, 1)) ** 2
+    s = 1.4 * whizz
+    # A whistle sweeping up from ~900 Hz to ~1.8 kHz as the hook leaves the hand.
+    f = 900 + 900 * np.minimum(t / 0.18, 1)
+    s += 0.25 * np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t * 9)
+    # Chain ticks: about 45 a second at first, slowing as the rope pays out.
+    tick_t = 0.0; gap = 1 / 45
+    while tick_t < 0.26:
+        i = int(tick_t * SR)
+        m = min(n - i, int(SR * 0.012))
+        tt = np.arange(m) / SR
+        ring = np.sin(2 * np.pi * hook_rng.uniform(3200, 4200) * tt) * np.exp(-tt * 600)
+        s[i:i + m] += 0.45 * (1 - tick_t / 0.3) * ring
+        tick_t += gap; gap *= 1.08
+    return s
+
+
+def clank():
+    """The hook bites rock: a hard metallic 'tink' with a short bright ring, a gritty scrape of
+    stone and a low knock. 0.35 s."""
+    n = int(SR * 0.35); t = np.arange(n) / SR
+    s = hook_rng.standard_normal(n) * np.exp(-t * 160)                       # the hit
+    s += 0.9 * sum(a * np.sin(2 * np.pi * f * t + hook_rng.uniform(0, 6)) * np.exp(-t * (28 + f / 220))
+                   for f, a in [(1460, 1), (2390, 0.7), (3720, 0.45), (5150, 0.25)])
+    grit = hook_rng.standard_normal(n) * (hook_rng.random(n) < 0.3)
+    s += 0.6 * lowpass(grit, 4) / 0.2 * np.exp(-t * 30)                    # stone chips
+    s += 0.7 * np.sin(2 * np.pi * 110 * t) * np.exp(-t * 40)                 # knock
+    return s
+
+
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
     save("engine", engine(), 0.7)
@@ -517,4 +555,6 @@ if __name__ == "__main__":
     save("horn", tail_fade(horn(), 20), 0.6)
     save("devil", devil(), 0.5)
     save("gust", tail_fade(gust(), 60), 0.6)
+    save("hook", tail_fade(hook(), 30), 0.55)
+    save("clank", tail_fade(clank(), 40), 0.6)
     print("sounds written to", os.path.abspath(OUT))
