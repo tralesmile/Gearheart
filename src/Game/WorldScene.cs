@@ -354,9 +354,9 @@ public partial class WorldScene : Node2D
 
         _status = Outlined(new Label { HorizontalAlignment = HorizontalAlignment.Right }, 20);
         _status.SetAnchorsPreset(Control.LayoutPreset.TopRight);
-        _status.Position += new Vector2(-436f, 44f);   // second row: the controls hint fills the first
-        _status.CustomMinimumSize = new Vector2(420f, 0f);
-        _status.GrowHorizontal = Control.GrowDirection.Begin;   // long driving status grows left, never off screen
+        // Own row under the controls hint, right-aligned in a box wide enough for the driving status.
+        _status.Position += new Vector2(-836f, 44f);
+        _status.CustomMinimumSize = new Vector2(820f, 0f);
         layer.AddChild(_status);
 
         _toast = Outlined(new Label { HorizontalAlignment = HorizontalAlignment.Center }, 28);
