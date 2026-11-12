@@ -20,8 +20,11 @@ public partial class TyreSpray : Node2D
     /// <summary>True when the ground at a point is ice (not just snow).</summary>
     public Func<Vector2, bool> IsIce { get; set; } = _ => false;
 
-    /// <summary>Shows a short message on screen.</summary>
-    public Action<string> Toast { get; set; }
+    /// <summary>Shows a short message on screen; returns false when another call-out is still being read.</summary>
+    public Func<string, bool> Toast { get; set; }
+
+    /// <summary>Writes [ice] lines to the log (bot runs).</summary>
+    public bool Log { get; set; }
 
     /// <summary>Seconds with any wheel on ice, sliding on snow or ice, and studs biting (for the bot log).</summary>
     public float IceSeconds { get; private set; }
@@ -40,6 +43,8 @@ public partial class TyreSpray : Node2D
     private readonly RandomNumberGenerator _rng = new();
     private float _emit, _slipRun, _biteRun;
     private bool _slipHinted, _biteCheered;
+    private string _pending;       // a hint waiting for the screen to be free
+    private float _pendingFor;
 
     public TyreSpray()
     {
@@ -68,15 +73,15 @@ public partial class TyreSpray : Node2D
             {
                 biting = true;
                 bitingOnIce |= ice;
-                float rate = 34f * Mathf.Clamp(Mathf.Abs(c.RimSpeed) / 450f, 0.2f, 1f);
-                Emit(c.Point, tangent * back, c.Normal, rate * dt, 90f + Mathf.Abs(c.RimSpeed) * 0.25f, new Color(0.95f, 0.98f, 1f), 2f, 3.2f);
+                float rate = 50f * Mathf.Clamp(Mathf.Abs(c.RimSpeed) / 450f, 0.25f, 1f);
+                Emit(c.Point, tangent * back, c.Normal, rate * dt, 100f + Mathf.Abs(c.RimSpeed) * 0.25f, new Color(0.97f, 0.99f, 1f), 3f, 4.5f);
             }
             else if (Mathf.Abs(c.Slip) > SlipLimit)
             {
                 slipping = true;
                 slippingOnIce |= ice;
-                float rate = 60f * Mathf.Clamp(Mathf.Abs(c.Slip) / 300f, 0.2f, 1f);
-                Emit(c.Point, tangent * back, c.Normal, rate * dt, 60f + Mathf.Abs(c.Slip) * 0.3f, new Color(0.74f, 0.88f, 0.98f, 0.85f), 1.5f, 2.6f);
+                float rate = 110f * Mathf.Clamp(Mathf.Abs(c.Slip) / 300f, 0.25f, 1f);
+                Emit(c.Point, tangent * back, c.Normal, rate * dt, 70f + Mathf.Abs(c.Slip) * 0.35f, new Color(0.86f, 0.95f, 1f, 0.95f), 2.5f, 5f);
             }
         }
 
@@ -89,14 +94,37 @@ public partial class TyreSpray : Node2D
         if (!_slipHinted && _slipRun > 0.8f)
         {
             _slipHinted = true;
-            Toast?.Invoke("ICE! Your tyres can't grip\nSpiked Tyres bite here (garage)");
+            Queue("ICE! Your tyres can't grip\nSpiked Tyres bite here (garage)");
         }
         _biteRun = bitingOnIce ? _biteRun + dt : 0f;
         if (!_biteCheered && _biteRun > 0.4f)
         {
             _biteCheered = true;
-            Toast?.Invoke("SPIKES BITE!");
+            Queue("SPIKES BITE!");
         }
+
+        // Show the waiting hint as soon as the screen is free (a trip-goal call-out may be up),
+        // but drop it if it has gone stale.
+        if (_pending != null)
+        {
+            _pendingFor += dt;
+            if (Toast != null && Toast(_pending))
+            {
+                if (Log) GD.Print($"[ice] hint shown after {_pendingFor:0.0}s: \"{_pending.Replace('\n', ' ')}\" frame={Engine.GetFramesDrawn()}");
+                _pending = null;
+            }
+            else if (_pendingFor > 5f)
+            {
+                if (Log) GD.Print($"[ice] hint dropped (screen busy): \"{_pending.Replace('\n', ' ')}\"");
+                _pending = null;
+            }
+        }
+    }
+
+    private void Queue(string text)
+    {
+        _pending = text;
+        _pendingFor = 0f;
     }
 
     private void Emit(Vector2 at, Vector2 back, Vector2 normal, float count, float speed, Color color, float minSize, float maxSize)
@@ -149,6 +177,8 @@ public partial class TyreSpray : Node2D
             Color col = c.Color;
             col.A *= Mathf.Clamp(t * 1.6f, 0f, 1f);
             float s = c.Size * (0.6f + 0.4f * t);
+            // A dark rim so pale chips read against snow, ice and sky.
+            DrawRect(new Rect2(c.Pos - new Vector2(s + 2f, s + 2f) / 2f, new Vector2(s + 2f, s + 2f)), new Color(0.22f, 0.32f, 0.45f, col.A * 0.7f));
             DrawRect(new Rect2(c.Pos - new Vector2(s, s) / 2f, new Vector2(s, s)), col);
         }
     }

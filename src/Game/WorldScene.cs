@@ -164,9 +164,12 @@ public partial class WorldScene : Node2D
         {
             Name = "TyreSpray",
             IsIce = p => _world.GripAt(p) < 0.5f,
+            Log = GameSession.AutoPlay,
             Toast = text =>
             {
-                if (_toastTime < 1.2f) Toast(text);
+                if (_toastTime >= 1.2f || _card.Showing) return false;   // let the current call-out be read first
+                Toast(text);
+                return true;
             },
         };
         AddChild(_spray);

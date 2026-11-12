@@ -20,7 +20,7 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 10 | Speed lines and wind sound above 60 km/h | S | **Built 2026-11-12** (PR #11, from 50 km/h) |
 | 10b | Dashboard: speedometer dial, fuel gauge, damage meter instead of a text line | S | **Built 2026-11-12** (PR #11) |
 | 11 | Damage that bites: hard landings dent the car for real, with visible bent panels and smoke from a hurt engine | S–M | Open |
-| 12 | Part unlocks per biome: off-road tracks/spiked tyres for snow and ice, need iron from the Frozen North | M | Open |
+| 12 | Part unlocks per biome: off-road tracks/spiked tyres for snow and ice, need iron from the Frozen North | M | **Built 2026-11-12** (PR #14: Spiked Tyres, 2 Scrap + 4 Iron, ice spray, ice now runs over the hills; tracks still open) |
 | 13 | Ramps and natural jumps (cliff lips, dune crests) placed by world generation | S | Open |
 | 14 | Jerry-can part: a fuel can block on the car that you can fill at the garage, a lighter alternative to the fuel tank | S | Open |
 | 15 | Rare part blueprints inside strongboxes (a part you can only build after finding it) | S–M | Open (needs D19 direction; small version possible now) |
@@ -47,7 +47,25 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 32 | Launch ramp at the garage gate, so every trip starts with a jump | S | Open (new 2026-11-12) |
 | 33 | Best-moment snapshot on the trip card (frame of the biggest air or crash) | M | Open (new 2026-11-12) |
 | 34 | Engine sound follows the engine part (small engine buzzes, big V8 rumbles) | S | Open (new 2026-11-12) |
+| 40 | Frozen lake: one long flat sheet of ice in the Frozen North with a jump at the end; plain tyres pirouette, spikes fly | S | Open (new 2026-11-12, seventh session) |
+| 41 | Desert part: Sand Paddles or a big-bore engine from Wastes copper, so each biome has its own part | S–M | Open (new 2026-11-12) |
+| 42 | Garage "part of the day" glow: the garage list marks parts you can afford now and parts one trip away | S | Open (new 2026-11-12) |
+| 43 | Tyre marks: dark streaks in snow and scratches on ice where wheels slid, fading after a while | S | Open (new 2026-11-12) |
+| 44 | Avalanche/snow slide: digging under a snow overhang drops a slide of snow on the car | M | Open (new 2026-11-12) |
+| 45 | Goal kinds tied to parts: "Cross the ice without sliding" or "Climb the north ridge" | S | Open (new 2026-11-12) |
 | 29 | Speedometer redline overdrive: holding the needle in the red for 3 s with the booster unlocks a "SONIC" call-out and a sonic-boom puff | S | Open (new 2026-11-12, cheap thrill) |
+
+## 2026-11-12 (seventh session)
+
+Looked at `left_330.png`: the Frozen North looks lovely (snow, blue ice), but the ice is single tiles between ramp steps, and the bot drives through it at 24 km/h without noticing. The north is "the same road, painted white": the car drives the same everywhere, so no part is ever a reason to go somewhere. Starbound and Terraria make biomes matter with gear that answers each place (ice skates, lava charms). The most disappointing moment: a goal says "Reach the Frozen North" and when you get there nothing changes.
+
+- **Spiked Tyres + real ice** (S–M): a wheel that grips snow and ice, ice patches long enough to stall plain tyres on a hill, ice spray from spinning wheels and a "SPIKES BITE!" cheer. Why fun: the first part that changes how the car drives in one place; a reason to dig Iron and come back. *Built.*
+- **Frozen lake with a kicker** (S): a long flat ice sheet ending in a jump. Why fun: a set piece; plain tyres spin and slide sideways, spiked tyres launch.
+- **Desert part** (S–M): Sand Paddles or a big-bore engine from Wastes copper. Why fun: each biome gets its own answer, so the garage list grows with the map.
+- **Affordable-part highlight in the garage** (S): parts you can build now glow; parts one ore short say "need 1 Iron". Why fun: the "one more trip" reason is visible at the garage.
+- **Tyre marks** (S): streaks in snow and scratches on ice where wheels slid. Why fun: your driving leaves a trace, and slides read at a glance.
+- **Avalanche** (M): digging under snow overhangs drops a slide on the car. Why fun: danger and a story in the north.
+- **Part-tied goals** (S): "Cross the ice without sliding". Why fun: goals that make new parts shine.
 
 ## 2026-11-12 (sixth session)
 
