@@ -290,7 +290,6 @@ public partial class WorldScene : Node2D
         _car.Occupied = true;
         _car.PlayerControlled = !GameSession.AutoPlay;
         _car.AutoThrottle = GameSession.AutoPlay ? (GameSession.DriveLeft ? -1f : 1f) : 0f;
-        _car.AutoAirControl = GameSession.AutoPlay;
         if (GameSession.AutoPlay) _car.DrillEnabled = true;
         _car.AutoBoost = GameSession.AutoPlay && _car.HasBooster;
     }

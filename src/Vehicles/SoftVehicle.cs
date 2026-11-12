@@ -23,9 +23,6 @@ public partial class SoftVehicle : Node2D, IVehicle
 
     /// <summary>Bots only: forces a tilt input (-1..1) and switches off the autopilot's anti-flip.</summary>
     public float AutoTilt;
-
-    /// <summary>Bots: level the car in the air with Q/E like a player aiming for a clean landing.</summary>
-    public bool AutoAirControl;
     [Export] public Vector2 Spawn = new(200f, -150f);
     [Export] public float AirControl = 9f;          // rad/s² of tilt
 
@@ -1080,10 +1077,6 @@ public partial class SoftVehicle : Node2D, IVehicle
         {
             tilt = -Mathf.Sign(throttle == 0f ? 1f : throttle);
         }
-
-        // In the air: hold the nose a little down (most landings are on a down slope), as a player does with Q/E.
-        if (AutoAirControl && Airborne && !_selfRighting && Mathf.Abs(pitch) < 120f)
-            tilt = Mathf.Clamp((8f - pitch) / 20f, -1f, 1f) * Mathf.Sign(throttle == 0f ? 1f : throttle);
 
         if (IsDrilling) throttle = Mathf.Clamp(throttle, -0.45f, 0.45f);
 
