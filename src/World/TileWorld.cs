@@ -523,8 +523,8 @@ public sealed class TileWorld : ITerrainCollider, IMineable, ISurfaceInfo
     }
 
     /// <summary>
-    /// Jump kickers: a steep ramp (one tile up every two columns, about 27 degrees, steeper than any
-    /// natural hill) facing away from the garage, a sharp crest, and a gentler back slope (one tile
+    /// Jump kickers: a steep ramp (easing in, then one tile up every two columns, about 27 degrees,
+    /// steeper than any natural hill) facing away from the garage, a sharp crest, and a gentler back slope (one tile
     /// every three columns) that the car flies over and that the drive home climbs. The first is
     /// just past the garage gate on each side, then one every 26-42 m; they get taller further out.
     /// Only the surface line is changed here; the fill below follows it.
@@ -543,16 +543,24 @@ public sealed class TileWorld : ITerrainCollider, IMineable, ISurfaceInfo
                 int rise = biome == Biome.Meadow ? (distance < 200 ? 4 : 5) + (int)(rng.Randi() % 2) : 5 + (int)(rng.Randi() % 3);
                 if (x0 - 2 * rise - 130 < 8 || x0 + 2 * rise + 130 >= Width - 8) break;
 
-                // Prefer a level run-up, so the warning sign stands on flat ground and the face starts cleanly.
-                int start = x0;
-                for (int shift = 0; shift <= 24; shift++)
+                // Needs a level run-up (the sign stands there and the face starts cleanly) and ground that is
+                // flat or falling under the face and just past the crest: on a rising hill the crest would not
+                // stand out, and the car would just climb a steep wall.
+                int start = int.MinValue;
+                int face = Kicker.FaceLength(rise);
+                for (int shift = 0; shift <= 60 && start == int.MinValue; shift++)
                 {
                     int s = x0 + dir * shift;
-                    bool level = true;
-                    for (int k = -6; k < 0 && level; k++) level = world._surface[s + dir * k] == world._surface[s - dir];
-                    if (!level) continue;
-                    start = s;
-                    break;
+                    int runUp = world._surface[s - dir];
+                    bool ok = true;
+                    for (int k = -6; k < -1 && ok; k++) ok = world._surface[s + dir * k] == runUp;
+                    for (int k = 0; k < face + 4 && ok; k++) ok = world._surface[s + dir * k] >= runUp;
+                    if (ok) start = s;
+                }
+                if (start == int.MinValue)
+                {
+                    distance += 60;
+                    continue;
                 }
 
                 Kicker built = world.BuildKicker(start, dir, rise);
@@ -562,21 +570,23 @@ public sealed class TileWorld : ITerrainCollider, IMineable, ISurfaceInfo
     }
 
     /// <summary>
-    /// Raises the surface line into a kicker's shape (no tiles are written here). The face climbs
-    /// from the run-up's level; the back slope comes down one tile every three columns until it
-    /// meets the ground, however far below that is, so the drive home never meets a wall.
+    /// Raises the surface line into a kicker's shape (no tiles are written here). The face eases in
+    /// (one tile over three columns, like a hill) and then climbs one tile every two columns; the
+    /// back slope comes down one tile every three columns until it meets the ground, however far
+    /// below that is, so the drive home never meets a wall.
     /// </summary>
     private Kicker BuildKicker(int start, int dir, int rise)
     {
         int baseRow = _surface[start - dir];
         int crestRow = baseRow - rise;
+        int face = Kicker.FaceLength(rise);
         int length = 0;
-        for (int i = 0; i < 2 * rise + 80; i++)
+        for (int i = 0; i < face + 90; i++)
         {
             int x = start + dir * i;
             if (x < 2 || x >= Width - 2) break;
-            int line = i < 2 * rise ? baseRow - (i / 2 + 1) : crestRow + 1 + (i - 2 * rise) / 3;
-            if (i >= 2 * rise && line >= _surface[x]) break;   // back on the ground
+            int line = i < face ? baseRow - Kicker.FaceHeight(i) : crestRow + 1 + (i - face) / 3;
+            if (i >= face && line >= _surface[x]) break;   // back on the ground
             length = i + 1;
             if (line >= _surface[x]) continue;
             _natural[x] = _surface[x];
@@ -701,7 +711,7 @@ public sealed class TileWorld : ITerrainCollider, IMineable, ISurfaceInfo
 
 /// <summary>
 /// A jump kicker built into the surface. Columns are counted from Start in the direction Dir
-/// (away from the garage): a steep face of 2*Rise columns up to the crest, then a back slope of
+/// (away from the garage): a face of 2*Rise+1 columns up to the crest, then a back slope of
 /// one tile every three columns down to the ground (Length columns in all).
 /// </summary>
 public readonly struct Kicker
@@ -716,8 +726,14 @@ public readonly struct Kicker
         Length = length;
     }
 
+    /// <summary>Columns of the face: three for the first tile (the ease-in), then two per tile.</summary>
+    public static int FaceLength(int rise) => 2 * rise + 1;
+
+    /// <summary>Tiles above the run-up at face column i (0-based).</summary>
+    public static int FaceHeight(int i) => i < 3 ? 1 : 2 + (i - 3) / 2;
+
     /// <summary>The crest column: the last one of the steep face, where the car takes off.</summary>
-    public int Crest => Start + Dir * (2 * Rise - 1);
+    public int Crest => Start + Dir * (FaceLength(Rise) - 1);
 
     /// <summary>The far end of the back slope.</summary>
     public int End => Start + Dir * (Length - 1);

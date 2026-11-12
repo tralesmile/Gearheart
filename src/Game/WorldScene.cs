@@ -290,6 +290,7 @@ public partial class WorldScene : Node2D
         _car.Occupied = true;
         _car.PlayerControlled = !GameSession.AutoPlay;
         _car.AutoThrottle = GameSession.AutoPlay ? (GameSession.DriveLeft ? -1f : 1f) : 0f;
+        _car.AutoAirControl = GameSession.AutoPlay;
         if (GameSession.AutoPlay) _car.DrillEnabled = true;
         _car.AutoBoost = GameSession.AutoPlay && _car.HasBooster;
     }
@@ -999,7 +1000,7 @@ public partial class WorldScene : Node2D
         _lastCarCol = col;
 
         if (!_kickerHinted && _toastTime <= 0f && _world.KickerNear(col, 44) is Kicker ahead &&
-            (ahead.Start - col) * ahead.Dir > 0 && _carDir == ahead.Dir && _car.Speed > 3f * PixelsPerMeter)
+            (ahead.Start - col) * ahead.Dir > 16 && _carDir == ahead.Dir && _car.Speed > 3f * PixelsPerMeter)
         {
             _kickerHinted = true;
             Toast("KICKER AHEAD!\nhit it fast · Q/E in the air · land flat");
