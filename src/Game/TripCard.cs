@@ -30,6 +30,9 @@ public partial class TripCard : Control
     /// <summary>True from when the card pops up until it has faded out.</summary>
     public bool Showing => Visible;
 
+    /// <summary>True while it fades out after being closed.</summary>
+    public bool Closing => _closing;
+
     /// <summary>The score as the counter shows it right now (for the bot log).</summary>
     public int ShownScore => _shownScore;
 

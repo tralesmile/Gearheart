@@ -12,7 +12,7 @@ All current art is **placeholder pixel art drawn by code** (`python3 tools/make_
 | `pickups.png` | 32 x 32 px cells, art standing on the bottom edge | Fuel can · scrap heap (meadow) · rusty scrap heap (The Wastes) · snowy scrap heap (Frozen North) |
 | `decor.png` | 48 x 64 px cells, art standing on the bottom edge | Oak, snowy pine, cactus, bush, flowers, grass tuft, desert rock, snowy rock |
 
-Sounds are in `assets/audio/` (22.05 kHz mono WAV, made by `python3 tools/make_sounds.py`): `engine`, `drill` and `boost` are one-second loops; `pick`, `break`, `place`, `pickup`, `thud`, `crunch`, `snap` `treasure` (stash fanfare) and `fuel` (fuel can glug and ding) are one-shots. Replace any file with a real recording of the same name.
+Sounds are in `assets/audio/` (22.05 kHz mono WAV, made by `python3 tools/make_sounds.py`): `engine`, `drill` and `boost` are one-second loops; `pick`, `break`, `place`, `pickup`, `thud`, `crunch`, `snap` `treasure` (stash fanfare), `fuel` (fuel can glug and ding), `tally` (trip-report tick) and `record` (new best trip fanfare) are one-shots. Replace any file with a real recording of the same name.
 
 ## Using a free pack (Kenney and similar)
 

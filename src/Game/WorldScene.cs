@@ -734,7 +734,8 @@ public partial class WorldScene : Node2D
         float away = Mathf.Abs(dx);
         if (_trip == null)
         {
-            if (away > TripLeave) StartTrip();
+            // The report card has the stage: coasting past the garage while it shows does not start a new trip.
+            if (away > TripLeave && !_card.Showing) StartTrip();
             return;
         }
 
@@ -796,7 +797,7 @@ public partial class WorldScene : Node2D
         int score = Trip.Score(rows);
         TripBest before = GameSession.SubmitTrip(score, t.Farthest, t.TopKmh, t.LongestAir, t.BestStreak);
         int number = (before?.Trips ?? 0) + 1;
-        string subtitle = $"Trip {number}   ·   {GameSession.FormatTime(t.Seconds)}   ·   reached {BiomeName(t.FarthestX)}";
+        string subtitle = $"Trip {number}   ·   {(int)(t.Seconds / 60f)}:{(int)(t.Seconds % 60f):00}   ·   reached {BiomeName(t.FarthestX)}";
         _card.Open(rows, score, before, subtitle);
         _tripsReported++;
         if (GameSession.AutoPlay)
@@ -883,6 +884,12 @@ public partial class WorldScene : Node2D
                 break;
             case 2:
                 throttle = 1f;
+                // Like a player pressing Enter once the score has counted up (a new trip waits for the card).
+                if (_card.Showing && !_card.Closing && _elapsed - _legStart > 5f)
+                {
+                    _card.Dismiss();
+                    GD.Print($"[trip] test: closed the card (Enter) at {MetersFromGarage(_car.CenterPosition.X):0} m t={_elapsed:0.0}s");
+                }
                 if (_elapsed - _legStart > 15f) Leg(3, "heading home");
                 break;
             case 3:
