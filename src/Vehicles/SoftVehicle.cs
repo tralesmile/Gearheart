@@ -1290,7 +1290,7 @@ public partial class SoftVehicle : Node2D, IVehicle
     public string StallReport()
     {
         var sb = new System.Text.StringBuilder();
-        sb.Append($"origin={Origin.X:0} torque={_engineTorque:0} maxSpin={_engineMaxSpin:0} mass={_totalMass:0.00} throttle={_input.Throttle:0.0} handbrake={_input.Handbrake} overdrive={_overdrive:0}");
+        sb.Append($"origin={Origin.X:0} tilt={_input.Tilt:0.0} torque={_engineTorque:0} maxSpin={_engineMaxSpin:0} mass={_totalMass:0.00} throttle={_input.Throttle:0.0} handbrake={_input.Handbrake} overdrive={_overdrive:0}");
         int touching = 0;
         var touched = new System.Text.StringBuilder();
         for (int i = 0; i < BodyNodeCount; i++)
@@ -1315,6 +1315,8 @@ public partial class SoftVehicle : Node2D, IVehicle
     /// Drives like a careful player, for bots and automated playtests: full throttle,
     /// ease off while drilling, and tilt the nose back down if the car starts to flip.
     /// </summary>
+    private int _stuckReports;
+
     private VehicleInput AutoPilot()
     {
         if (AutoHandbrake) return new VehicleInput(AutoThrottle, 0f, true);
@@ -1333,7 +1335,7 @@ public partial class SoftVehicle : Node2D, IVehicle
             {
                 _autoStuckTime = 0f;
                 _autoReverseTime = 1.2f;
-                GD.Print($"[autoplay] wedged while digging at x={CenterPosition.X / 16f:0.0} pitch={PitchDegrees():0}: backing out");
+                GD.Print($"[autoplay] wedged while digging at x={CenterPosition.X / 16f:0.0} pitch={PitchDegrees():0}: backing out | {StallReport()}");
             }
             return new VehicleInput(AutoThrottle, AutoTilt, false, AutoBoostNow());
         }
@@ -1366,6 +1368,7 @@ public partial class SoftVehicle : Node2D, IVehicle
         {
             _autoStuckTime = 0f;
             _autoReverseTime = 1.2f;
+            if (_stuckReports++ < 4) GD.Print($"[autoplay] stuck at x={CenterPosition.X / 16f:0.0} pitch={PitchDegrees():0}: backing up | {StallReport()}");
         }
 
         return new VehicleInput(throttle, tilt, false, AutoBoostNow());
