@@ -52,6 +52,7 @@ jobs:
             grep "\[engine\]" smoke.log | head -24
             grep -E "\[(launch|stall)\]" smoke.log | head -16
             grep "\[sprint\]" smoke.log | head -12
+            grep "\[rock\]" smoke.log | head -30
             # "resources still in use at exit" is a shutdown notice about cached textures and sounds, not a fault.
             if grep -E "ERROR|Unhandled exception|SCRIPT ERROR|System\.[A-Za-z]*Exception" smoke.log | grep -v "still in use at exit" | grep .; then
               echo "::error::Smoke test failed: $name"
@@ -70,6 +71,9 @@ jobs:
           run "world: launch control, perfect start (rides the limiter once, then lets go in the green), then a second 20 m sprint" res://scenes/world.tscn --quit-after 2700 -- --fresh --autoplay --launchtest --design=starter
           run "world: launch control, let go too early (bogged)" res://scenes/world.tscn --quit-after 900 -- --fresh --autoplay --launchearly --design=starter
           run "world: launch control, Scrap 4-Cylinder" res://scenes/world.tscn --quit-after 900 -- --fresh --autoplay --launchtest --design=scrap4
+          run "world: rock it free (3-tile trench past the pad, the bot rocks E/Q when stuck)" res://scenes/world.tscn --quit-after 2700 -- --fresh --autoplay --rocktest --design=starter
+          run "world: rock it free, CONTROL (same trench, no rocking, only backing up)" res://scenes/world.tscn --quit-after 2700 -- --fresh --autoplay --rocktest --norock --design=starter
+          run "world: rock it free, 2-tile trench" res://scenes/world.tscn --quit-after 2700 -- --fresh --autoplay --rocktest --rockdepth=2 --design=starter
           run "world: rocket booster car"             res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --design=rocket
           run "world: crash test (15 m drop, then drive)" res://scenes/world.tscn --quit-after 2400 -- --fresh --autoplay --crashtest --design=starter
           run "world: buried stash test (dig up planted stashes)" res://scenes/world.tscn --quit-after 1800 -- --fresh --autoplay --stashtest --design=starter
@@ -92,7 +96,7 @@ jobs:
         run: |
           sudo apt-get update -qq > /dev/null 2>&1 || true
           sudo apt-get install -y -qq xvfb libgl1-mesa-dri > /dev/null 2>&1 || true
-          mkdir -p shots/launch shots/world shots/left shots/drill shots/rocket shots/crash shots/stash shots/trip shots/garage shots/iceplain shots/icespiked shots/jump shots/deep shots/crystal keep
+          mkdir -p shots/rock shots/launch shots/world shots/left shots/drill shots/rocket shots/crash shots/stash shots/trip shots/garage shots/iceplain shots/icespiked shots/jump shots/deep shots/crystal keep
           # Keep Godot from importing (and exporting) the thousands of movie frames: they slowed every
           # later run, bloated the game builds and flooded the job log past the playtest lines.
           touch shots/.gdignore keep/.gdignore
@@ -108,6 +112,7 @@ jobs:
           xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/jump/f.png --quit-after 400 res://scenes/world.tscn -- --fresh --autoplay --jumptest --design=starter > shots/jump.log 2>&1 || true
           xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/deep/f.png --quit-after 260 res://scenes/world.tscn -- --fresh --autoplay --deeptest --design=starter > shots/deep.log 2>&1 || true
           xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/crystal/f.png --quit-after 400 res://scenes/world.tscn -- --fresh --autoplay --design=crystal > shots/crystal.log 2>&1 || true
+          xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/rock/f.png --quit-after 230 res://scenes/world.tscn -- --fresh --autoplay --rocktest --design=starter > shots/rock.log 2>&1 || true
           xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/launch/f.png --quit-after 90 res://scenes/world.tscn -- --fresh --autoplay --launchtest --design=starter > shots/launch.log 2>&1 || true
           # Launch control: charging, the GO window just before letting go, and the PERFECT START a moment after.
           grep "\[launch\] Perfect start" shots/launch.log | head -1 | sed -E 's/.*frame=([0-9]+).*/\1/' | while read n; do
@@ -116,6 +121,24 @@ jobs:
             done
           done
           grep -E "\[(launch|engine)\]" shots/launch.log | head -10
+          # Rock it free: stuck in the trench (hint and call-out), mid-rock (third rock of a chain), and free.
+          grep "\[rock\] stuck" shots/rock.log | head -1 | sed -E 's/.*frame=([0-9]+).*/\1/' | while read n; do
+            f=$(printf "shots/rock/f%08d.png" $((n + 2))); [ -f "$f" ] && cp "$f" keep/rock_stuck_$((n + 2)).png
+          done
+          grep "\[rock\] rock chain=3" shots/rock.log | head -1 | sed -E 's/.*frame=([0-9]+).*/\1/' | while read n; do
+            for d in 0 2; do
+              f=$(printf "shots/rock/f%08d.png" $((n + d))); [ -f "$f" ] && cp "$f" keep/rock_chain_$((n + d)).png
+            done
+          done
+          grep "\[rock\] free" shots/rock.log | head -1 | sed -E 's/.*frame=([0-9]+).*/\1/' | while read n; do
+            for d in 1 6; do
+              f=$(printf "shots/rock/f%08d.png" $((n + d))); [ -f "$f" ] && cp "$f" keep/rock_free_$((n + d)).png
+            done
+          done
+          for i in 20 40; do
+            f=$(printf "shots/rock/f%08d.png" $i); [ -f "$f" ] && cp "$f" keep/rock_$i.png
+          done
+          grep "\[rock\]" shots/rock.log | head -24
           # Gate sprint: the call-out with the time a moment after crossing 20 m.
           grep "\[sprint\] finish" shots/launch.log | head -1 | sed -E 's/.*frame=([0-9]+).*/\1/' | while read n; do
             for d in 1 6; do

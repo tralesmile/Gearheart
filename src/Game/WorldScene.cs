@@ -252,6 +252,10 @@ public partial class WorldScene : Node2D
         _car.Gearbox.Shifted += OnShift;
         _car.Backfired += OnBackfire;
         _car.Launched += OnLaunch;
+        _car.StuckStarted += OnStuck;
+        _car.Rocked += OnRock;
+        _car.RockedFree += OnRockedFree;
+        _car.AutoRock = !GameSession.NoRock;
         _judge.Cancel();
         _airTime = 0f;
         _bodyDown = false;
@@ -438,6 +442,51 @@ public partial class WorldScene : Node2D
         _nextStallLog = _elapsed + 0.5f;
         _stallLines++;
         GD.Print($"[stall] t={_elapsed:0.0}s {since:0.0}s after getting in: speed {_car.Speed:0} px/s pitch {_car.PitchDegrees():0} {_car.StallReport()}");
+    }
+
+    // ---- Rock it free (see SoftVehicle.UpdateRock) ---------------------------------------------
+
+    private int _stuckCount, _rocksLogged, _rockFrees;
+    private float _longestStuck;
+
+    private void OnStuck()
+    {
+        if (!_driving) return;
+        _stuckCount++;
+        Toast("STUCK!\nRock it free: tap Q, E, Q, E");
+        _sfx.Play("thud", -18f, 0.1f, 0.7f);
+        if (GameSession.AutoPlay && _stuckCount <= 6)
+            GD.Print($"[rock] stuck #{_stuckCount} at x={_car.CenterPosition.X / Ts:0.0} pitch={_car.PitchDegrees():0} t={_elapsed:0.0}s frame={Engine.GetFramesDrawn()} | {_car.StallReport()}");
+    }
+
+    private void OnRock(int chain, float hop)
+    {
+        if (!_driving) return;
+        _sfx.Play("creak", -10f + 1.5f * chain, 0.06f, 0.9f + 0.07f * chain);
+        foreach (var contact in _car.WheelContacts)
+            _crashFx.Dust(contact.Point, contact.Normal, GroundColorAt(contact.Point - contact.Normal * 4f), 5 + 2 * chain, 50f + 25f * chain);
+        _crashFx.AddTrauma(0.05f + 0.025f * chain);
+        Toast(chain >= 2 ? $"ROCK IT! x{chain}\nkeep the throttle on" : "ROCK IT!\nkeep tapping Q, E");
+        if (GameSession.AutoPlay && _rocksLogged < 16)
+        {
+            _rocksLogged++;
+            GD.Print($"[rock] rock chain={chain} hop={hop:0}px/s x={_car.CenterPosition.X / Ts:0.0} speed={_car.Speed / PixelsPerMeter * 3.6f:0}km/h t={_elapsed:0.00}s frame={Engine.GetFramesDrawn()}");
+        }
+    }
+
+    private void OnRockedFree(int rocks, float seconds)
+    {
+        if (!_driving) return;
+        _longestStuck = Mathf.Max(_longestStuck, seconds);
+        if (rocks > 0)
+        {
+            _rockFrees++;
+            Toast($"ROCKED FREE!\n{rocks} rock{(rocks == 1 ? "" : "s")} · {seconds:0.0} s");
+            _sfx.Play("land", -6f, 0.15f, 1.05f);
+            _kickGlow = Mathf.Max(_kickGlow, 0.5f);
+        }
+        if (GameSession.AutoPlay)
+            GD.Print($"[rock] free after {seconds:0.0}s with {rocks} rocks at x={_car.CenterPosition.X / Ts:0.0} speed={_car.Speed / PixelsPerMeter * 3.6f:0}km/h t={_elapsed:0.0}s frame={Engine.GetFramesDrawn()}");
     }
 
     // ---- Engine: gear shifts and exhaust pops (sound and smoke only, see Gearbox) --------------
@@ -946,7 +995,8 @@ public partial class WorldScene : Node2D
 
         if (_driving)
         {
-            _hint.Text = (_car.Speed < 60f && !_car.Airborne ? "Hold Space + D, let go in the green: PERFECT START   " : "") +
+            _hint.Text = (_car.Stuck ? "STUCK! Tap Q, E, Q, E to rock it free (keep the throttle on)   "
+                          : _car.Speed < 60f && !_car.Airborne ? "Hold Space + D, let go in the green: PERFECT START   " : "") +
                          "A/D: drive   Q/E: tilt (also rolls you back over)   Space: handbrake   F: get out" +
                          (_car.HasDrill ? $"   X: drill {(_car.DrillEnabled ? "ON" : "OFF")}" : "") +
                          (_car.HasBooster ? "   Shift: BOOST" : "") +
@@ -1557,6 +1607,61 @@ public partial class WorldScene : Node2D
         _car.AutoThrottle = throttle;
     }
 
+    // ---- --rocktest: a trench east of the garage with a wall too tall to drive up ----------------
+
+    private bool _trenchDug, _trenchDone;
+    private int _trenchFrom, _trenchTo, _trenchFloor;
+    private float _trenchNextLog;
+
+    /// <summary>
+    /// --rocktest: dig a trench (--rockdepth=N tiles deep, default 3, 20 tiles long) just past the garage
+    /// pad, get straight in and drive at it at full throttle. The car drops in and meets the far wall.
+    /// With rocking on (the default) the bot taps E, Q, E, Q once it is stuck; --norock is the control
+    /// run (the bot only backs up and tries again). Logs whether and when the car climbs out.
+    /// </summary>
+    private void RunRockBot()
+    {
+        if (!_trenchDug)
+        {
+            _trenchDug = true;
+            _trenchFrom = TileWorld.PadTo + 2;
+            _trenchTo = _trenchFrom + 20;
+            _world.RemoveKickers(_trenchFrom - 8, _trenchTo + 30);
+            _trenchFloor = _world.SurfaceRow(_trenchFrom) + GameSession.RockDepth;
+            for (int x = _trenchFrom; x < _trenchTo; x++)
+                for (int y = _world.SurfaceRow(x) - 8; y < _trenchFloor; y++)
+                    _world.Set(x, y, Tile.Air);
+            GD.Print($"[rock] test: trench x={_trenchFrom}..{_trenchTo} floor row {_trenchFloor}, far wall {(_trenchFloor - _world.SurfaceRow(_trenchTo)) * 0.25f:0.00} m tall " +
+                     $"({_trenchFloor - _world.SurfaceRow(_trenchTo)} tiles), rocking={_car.AutoRock} design=\"{GameSession.CurrentDesign.Name}\"");
+        }
+        if (!_driving)
+        {
+            if (_elapsed > 0.5f) EnterCar();
+            return;
+        }
+        _car.AutoThrottle = 1f;
+        if (_trenchDone) return;
+
+        float carTile = _car.CenterPosition.X / Ts;
+        float carRow = _car.CenterPosition.Y / Ts;
+        if (_elapsed >= _trenchNextLog)
+        {
+            _trenchNextLog = _elapsed + 1f;
+            GD.Print($"[rock] t={_elapsed:0.0}s car=({carTile:0.0},{carRow:0.0}) speed={_car.Speed / PixelsPerMeter * 3.6f:0}km/h pitch={_car.PitchDegrees():0} " +
+                     $"stuck={_car.Stuck} chain={_car.RockChain} rocks={_car.RockPulses} damage={_car.Damage:0} frame={Engine.GetFramesDrawn()}");
+        }
+        if (carTile > _trenchTo + 6)
+        {
+            _trenchDone = true;
+            GD.Print($"[rock] test: OUT of the trench at t={_elapsed:0.0}s after {_car.RockPulses} rocks, stuck {_stuckCount} times, damage={_car.Damage:0} frame={Engine.GetFramesDrawn()}");
+        }
+        else if (_elapsed > 20f)
+        {
+            _trenchDone = true;
+            GD.Print($"[rock] test: still IN the trench after 20 s at x={carTile:0.0}, {_car.RockPulses} rocks, stuck {_stuckCount} times frame={Engine.GetFramesDrawn()}");
+        }
+    }
+
     /// <summary>
     /// --icetest: lay 40 m of ice over the ground east of the garage (two tiles deep, like the
     /// Frozen North's patches), get straight into the car and drive across at full throttle.
@@ -1708,10 +1813,11 @@ public partial class WorldScene : Node2D
         if (GameSession.IceTest) RunIceBot();
         if (GameSession.DeepTest) RunDeepBot();
         if (GameSession.LaunchTest) RunLaunchBot();
+        if (GameSession.RockTest) RunRockBot();
         UpdateWatch();
         LogStall();
 
-        if (!_driving && !GameSession.CrashTest && !GameSession.TripTest && !GameSession.IceTest && !GameSession.DeepTest && !GameSession.LaunchTest)
+        if (!_driving && !GameSession.CrashTest && !GameSession.TripTest && !GameSession.IceTest && !GameSession.DeepTest && !GameSession.LaunchTest && !GameSession.RockTest)
         {
             Vector2 feet = _player.Position + new Vector2(0f, Player.HalfHeight);
             // --stashtest: once the bot starts digging, bury a toolbox and a strongbox under its feet
@@ -1760,7 +1866,7 @@ public partial class WorldScene : Node2D
                  $"top={_topSpeed / PixelsPerMeter * 3.6f:0}km/h longestAir={_longestAir:0.0}s landings={_perfectLandings}/{_cleanLandings}/{_roughLandings}/{_flops} kickers={_kickerJumps}/{_kickerLaunches} longJumps={_longJumps}/{_jumpRecords}/{_longestJump:0.0}m " +
                  $"crashes={_crashFx.Hits} hardest={_crashFx.HardestHit / PixelsPerMeter * 3.6f:0}km/h sparks={_crashFx.SparkBursts} " +
                  $"cans={_cansTaken} heaps={_heapsTaken} smashed={_heapsSmashed} bestStreak={_bestStreak} " +
-                 $"dash={(_dash.Visible ? $"{_dash.ShownKmh:0}km/h" : "hidden")} lines={_lines.Intensity:0.00} peakLines={_peakLines:0.00} wind={_sfx.WindLevel:0.00} gear={_car.Gearbox.Gear}/{_car.Gearbox.Gears} revs={_car.Gearbox.Rpm:0.00} enginePitch={_sfx.LastEnginePitch:0.00} shifts={_car.Gearbox.Upshifts}/{_car.Gearbox.Downshifts} topGear={_car.Gearbox.TopGear} limiter={_car.Gearbox.Limiter} pops={_car.Backfires} starts={_perfectStarts}/{_goodStarts}/{_boggedStarts} sprints={_sprintsRun} sprintBest={GameSession.SprintBest:0.00} rollOvers={_rollOvers} ice={_spray.IceSeconds:0.0}s slip={_spray.SlipSeconds:0.0}s bite={_spray.BiteSeconds:0.0}s trip={tripNow} reports={_tripsReported} deepest={_deepestThisRun:0.0}m crystalsMined={_crystalsMined} card={(_card.Showing ? _card.ShownScore.ToString() : "hidden")} | " +
+                 $"dash={(_dash.Visible ? $"{_dash.ShownKmh:0}km/h" : "hidden")} lines={_lines.Intensity:0.00} peakLines={_peakLines:0.00} wind={_sfx.WindLevel:0.00} gear={_car.Gearbox.Gear}/{_car.Gearbox.Gears} revs={_car.Gearbox.Rpm:0.00} enginePitch={_sfx.LastEnginePitch:0.00} shifts={_car.Gearbox.Upshifts}/{_car.Gearbox.Downshifts} topGear={_car.Gearbox.TopGear} limiter={_car.Gearbox.Limiter} pops={_car.Backfires} starts={_perfectStarts}/{_goodStarts}/{_boggedStarts} sprints={_sprintsRun} sprintBest={GameSession.SprintBest:0.00} stuck={_stuckCount} rocks={_car.RockPulses} rockedFree={_rockFrees} longestStuck={_longestStuck:0.0}s rollOvers={_rollOvers} ice={_spray.IceSeconds:0.0}s slip={_spray.SlipSeconds:0.0}s bite={_spray.BiteSeconds:0.0}s trip={tripNow} reports={_tripsReported} deepest={_deepestThisRun:0.0}m crystalsMined={_crystalsMined} card={(_card.Showing ? _card.ShownScore.ToString() : "hidden")} | " +
                  string.Join(" ", System.Array.ConvertAll(GameSession.Items, i => $"{i}={GameSession.Count(i)}")));
     }
 }
