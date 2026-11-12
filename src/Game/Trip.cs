@@ -4,8 +4,8 @@ using Godot;
 
 namespace Gearheart.Game;
 
-/// <summary>One line of the trip report: what you did, and the points it scored.</summary>
-public readonly record struct TripRow(string Label, string Value, int Points, bool Record);
+/// <summary>One line of the trip report: what you did, and the points it scored. <c>Tag</c> overrides the NEW BEST tag (the goal row says DONE).</summary>
+public readonly record struct TripRow(string Label, string Value, int Points, bool Record, string Tag = null);
 
 /// <summary>
 /// One trip away from the garage: starts when you leave the garage grounds (on foot or driving),
@@ -26,6 +26,11 @@ public sealed class Trip
     public float LongestAir;
     public int BestStreak;
     public float Deepest;           // metres below the surface
+    public float FarthestEast, FarthestWest;   // metres out on each side
+    public bool ReachedWastes, ReachedNorth;
+
+    /// <summary>This trip's bonus objective (null if none).</summary>
+    public TripGoal Goal;
 
     // Counters at the start of the trip; the trip's share is the difference.
     public int HeapsAtStart, CansAtStart, CrashesAtStart, RollOversAtStart, StashesAtStart;
@@ -78,7 +83,7 @@ public sealed class Trip
         string side = FarthestSide < 0f ? "west" : "east";
         string streak = BestStreak >= 2 ? $", best streak x{BestStreak}" : "";
         string carnage = Crashes == 0 && RollOvers == 0 ? "spotless" : $"{Crashes} crash{(Crashes == 1 ? "" : "es")}" + (RollOvers > 0 ? $", {RollOvers} roll-over{(RollOvers == 1 ? "" : "s")}" : "");
-        return new List<TripRow>
+        var rows = new List<TripRow>
         {
             new("Farthest", $"{Farthest:0} m {side}" + (Deepest >= 2f ? $", {Deepest:0} m deep" : ""), Mathf.RoundToInt(Farthest) * PerMeter, best != null && Farthest > best.Farthest + 0.5f),
             new("Top speed", $"{TopKmh:0} km/h", Mathf.RoundToInt(TopKmh), best != null && TopKmh > best.TopKmh + 0.5f),
@@ -89,6 +94,11 @@ public sealed class Trip
             new("Haul", HaulText(), haulPts, false),
             new("Carnage", carnage, (Crashes + RollOvers) * PerCrash, false),
         };
+        if (Goal != null)
+            rows.Add(Goal.Done
+                ? new TripRow("Trip goal", Goal.Text, Goal.Bonus, false, "DONE")
+                : new TripRow("Trip goal", $"{Goal.Text}  ({Goal.ProgressText(this)})", 0, false, "MISSED"));
+        return rows;
     }
 
     public static int Score(List<TripRow> rows)
