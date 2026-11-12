@@ -53,7 +53,9 @@ A 2D side-view sandbox where you mine, craft and build vehicles part by part, th
 
 **Trip goals:** every trip has one bonus goal ("Go 50 m out", "Reach the Frozen North", "Smash 4 scrap heaps", "Fly 1.0 s in one jump", "Dig up a buried stash"...). It shows in gold under the status line before you leave, tracks your progress on the way, and pays 100–200 bonus points on the trip report when done. Distance and speed goals grow with your records.
 
-**Biomes:** the garage stands in the **Home Meadow**. Drive about 95 m east to reach **The Wastes** (sand dunes, sandstone, copper close to the surface) or west to the **Frozen North** (snow, rugged hills, more caves, lots of iron, and ice patches with almost no grip).
+**Spiked Tyres:** 2 Scrap and 4 Iron buy studded wheels. On snow and ice they keep nearly full grip, where plain tyres spin and slide (and spray ice); on bare ground they grip a little less than standard wheels. The first time your plain tyres spin on ice the game tells you about them, and the first time the spikes bite it cheers.
+
+**Biomes:** the garage stands in the **Home Meadow**. Drive about 95 m east to reach **The Wastes** (sand dunes, sandstone, copper close to the surface) or west to the **Frozen North** (snow, rugged hills, more caves, lots of iron, and ice patches with almost no grip, also on the hills).
 
 The world, your materials and your car are saved automatically (`user://world.bin`, `progress.json`, `designs/current.json`). Start the game with `-- --fresh` to begin again.
 
@@ -67,7 +69,7 @@ The world, your materials and your car are saved automatically (`user://world.bi
 
 ## Automated playtests
 
-Every build runs the game headless at a fixed 120 FPS and fails on any error: a bot walks, mines and places blocks in the world, then drives the car (once with the starter pickup, once tunnelling with a drill car); plus the garage, the physics lab, the Hill Climb and the old boulder test. The build also renders real screenshots with software graphics and pushes them to the `screenshots` branch. Progress lines (`[autoplay]`, `[race]`, `[mining]`, `[stunt]`, `[crash]`, `[stash]`, `[pickup]`, `[trip]`; `--crashtest` drops the car from 15 m, `--stashtest` buries stashes under the bot's pickaxe, `--triptest` makes two out-and-back drives for the trip report) appear in the build log. Run one yourself:
+Every build runs the game headless at a fixed 120 FPS and fails on any error: a bot walks, mines and places blocks in the world, then drives the car (once with the starter pickup, once tunnelling with a drill car); plus the garage, the physics lab, the Hill Climb and the old boulder test. The build also renders real screenshots with software graphics and pushes them to the `screenshots` branch. Progress lines (`[autoplay]`, `[race]`, `[mining]`, `[stunt]`, `[crash]`, `[stash]`, `[pickup]`, `[trip]`, `[ice]`; `--crashtest` drops the car from 15 m, `--stashtest` buries stashes under the bot's pickaxe, `--triptest` makes two out-and-back drives for the trip report, `--icetest` lays 40 m of ice by the garage and drives across it, for plain and spiked tyres) appear in the build log. Run one yourself:
 
 ```
 godot --headless --path . --fixed-fps 120 res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay

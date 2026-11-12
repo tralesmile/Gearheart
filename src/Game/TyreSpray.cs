@@ -90,8 +90,9 @@ public partial class TyreSpray : Node2D
         if (biting) BiteSeconds += dt;
 
         // Plain tyres spinning on ice for a moment: tell the player the fix, once.
-        _slipRun = slippingOnIce && !car.HasStuds ? _slipRun + dt : Mathf.Max(0f, _slipRun - dt * 0.5f);
-        if (!_slipHinted && _slipRun > 0.8f)
+        // (Wheels bounce off the ground on bumpy ice, so slipping ticks come and go: count them, forget slowly.)
+        _slipRun = slippingOnIce && !car.HasStuds ? _slipRun + dt : Mathf.Max(0f, _slipRun - dt * 0.2f);
+        if (!_slipHinted && _slipRun > 0.6f)
         {
             _slipHinted = true;
             Queue("ICE! Your tyres can't grip\nSpiked Tyres bite here (garage)");

@@ -2,6 +2,13 @@
 
 Newest first. One entry per big decision: what, why, and what would make us revisit it.
 
+## 2026-11-12 — Spiked Tyres: a grip floor on snow and ice, not a better tyre
+
+- **What:** Wheels can have `frozenGrip` in `parts.json`. On snow or ice (asked through `ISurfaceInfo.FrozenAt`), the ground's grip multiplier is raised to at least that value. Spiked Tyres: radius 20, grip 1.0 (standard 1.1), frozenGrip 0.9 (plain: snow 0.75, ice 0.22), mass 1.2, cost 2 Scrap + 4 Iron.
+- **Why:** The first biome-tied part should change how the car drives *in one place* rather than be a strict upgrade, so the garage choice means something: spikes win on the Frozen North, standard wheels on bare ground.
+- **Ice over the hills:** ice patches used to need a flat column, which on the rugged northern hills meant single tiles that no tyre noticed. Now any column in a patch is ice (noise threshold raised 0.1 → 0.25 so there are fewer, longer patches). World save bumped to GHW7, so old worlds regenerate. In the bot's left run the starter car still crosses into the north at about the same pace (no getting stuck), so plain tyres are slowed, not blocked.
+- **Revisit when:** players say the north is a chore without spikes, or spikes feel compulsory.
+
 ## 2026-11-12 — Trip goals: a flat bonus, picked by trip number
 
 - **What:** each trip gets one goal from ten kinds (distance, reach The Wastes, reach the Frozen North, smash N heaps, SMASH xN streak, air time, top speed, fuel cans, find Copper, dig up a stash). The first trip ever is always "Go 50 m out". Later goals are picked from the trip number with a fixed hash (never the same kind twice in a row), so a given trip always gets the same goal and the bot runs are repeatable. Distance and speed targets sit just past your records (best × 1.15 + 10 m; best + 4 km/h); heaps grow from 3 to 8 with the trip count; air is 1.0 s, or 1.6 s with a Rocket Booster. A done goal adds a flat bonus row to the report (100–200 points by difficulty); a missed one shows how close you got and scores 0.
