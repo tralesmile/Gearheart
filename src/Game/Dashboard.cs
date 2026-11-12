@@ -17,6 +17,8 @@ public partial class Dashboard : Control
     private bool _boosting, _limiter;
     private int _gear = 1, _lastGear = 1;
     private float _rpm, _shiftFlash;
+    private bool _launchArmed;
+    private float _launchCharge, _launchFrom = 0.75f, _launchTo = 0.97f;
     private StyleBoxFlat _panel;
 
     /// <summary>The needle's current reading (it chases the real speed with a little lag, like a real gauge).</summary>
@@ -45,6 +47,21 @@ public partial class Dashboard : Control
         _rpm = rpm;
         _limiter = limiter;
     }
+
+    /// <summary>
+    /// Launch control: while armed the rev bar shows the launch charge, with the green window
+    /// (<paramref name="from"/>..<paramref name="to"/>) bracketed, and the gear box reads "L", then "GO".
+    /// </summary>
+    public void SetLaunch(bool armed, float charge, float from, float to)
+    {
+        _launchArmed = armed;
+        _launchCharge = charge;
+        _launchFrom = from;
+        _launchTo = to;
+    }
+
+    /// <summary>True while the green launch window is lit (for the playtest log).</summary>
+    public bool LaunchGo => _launchArmed && _launchCharge >= _launchFrom && _launchCharge <= _launchTo;
 
     public override void _Process(double delta)
     {
@@ -102,9 +119,15 @@ public partial class Dashboard : Control
         // green, then amber, then red; the red tip blinks while the revs bounce off the limiter.
         var gearBox = new Rect2(122f, 10f, 28f, 30f);
         DrawRect(gearBox.Grow(2f), new Color(0f, 0f, 0f, 0.6f));
-        DrawRect(gearBox, new Color(1f, 1f, 1f, 0.08f + 0.5f * _shiftFlash));
-        DrawOutlined(font, new Vector2(gearBox.Position.X, gearBox.End.Y - 6f), $"{_gear}", gearBox.Size.X, 24,
-                     _limiter ? new Color(1f, 0.35f, 0.3f) : Colors.White, HorizontalAlignment.Center);
+        bool go = LaunchGo;
+        var goGreen = new Color(0.4f, 1f, 0.45f);
+        DrawRect(gearBox, go ? new Color(0.2f, 0.75f, 0.3f, 0.75f) : new Color(1f, 1f, 1f, 0.08f + 0.5f * _shiftFlash));
+        if (_launchArmed)
+            DrawOutlined(font, new Vector2(gearBox.Position.X - 4f, gearBox.End.Y - (go ? 8f : 6f)), go ? "GO" : "L", gearBox.Size.X + 8f, go ? 17 : 24,
+                         go ? Colors.White : new Color(1f, 0.8f, 0.3f), HorizontalAlignment.Center);
+        else
+            DrawOutlined(font, new Vector2(gearBox.Position.X, gearBox.End.Y - 6f), $"{_gear}", gearBox.Size.X, 24,
+                         _limiter ? new Color(1f, 0.35f, 0.3f) : Colors.White, HorizontalAlignment.Center);
         const int Segments = 10;
         var revs = new Rect2(126f, 48f, 20f, 64f);
         DrawRect(revs.Grow(2f), new Color(0f, 0f, 0f, 0.6f));
@@ -115,9 +138,29 @@ public partial class Dashboard : Control
             float t = (i + 1f) / Segments;
             Color on = t > 0.85f ? new Color(1f, 0.3f, 0.25f) : t > 0.65f ? new Color(1f, 0.75f, 0.2f) : new Color(0.45f, 0.9f, 0.4f);
             bool lit = _rpm >= t - 0.5f / Segments;
-            if (_limiter && t > 0.85f) lit = blinkOn;
+            if (_launchArmed)
+            {
+                // Launch: the bar is the charge; the window's segments glow green, the rest stays amber/red.
+                lit = _launchCharge >= t - 0.5f / Segments;
+                float mid = t - 0.5f / Segments;
+                bool inWindow = mid >= _launchFrom - 0.001f && mid <= _launchTo;
+                on = inWindow ? goGreen : t > _launchTo ? new Color(1f, 0.3f, 0.25f) : new Color(1f, 0.75f, 0.2f);
+            }
+            if (_limiter && t > 0.85f && !_launchArmed) lit = blinkOn;
             var seg = new Rect2(revs.Position.X, revs.End.Y - (i + 1) * segH + 1f, revs.Size.X, segH - 2f);
             DrawRect(seg, lit ? on : new Color(1f, 1f, 1f, 0.08f));
+        }
+        if (_launchArmed)
+        {
+            // Bracket the green window beside the bar, bright while the charge is in it.
+            float yTop = revs.Position.Y, yBottom = revs.End.Y - (_launchFrom - 0.05f) * revs.Size.Y;
+            Color bracket = go ? (blinkOn ? Colors.White : goGreen) : new Color(goGreen, 0.7f);
+            DrawLine(new Vector2(revs.Position.X - 5f, yTop), new Vector2(revs.Position.X - 5f, yBottom), bracket, 2f);
+            DrawLine(new Vector2(revs.End.X + 5f, yTop), new Vector2(revs.End.X + 5f, yBottom), bracket, 2f);
+            DrawLine(new Vector2(revs.Position.X - 5f, yTop), new Vector2(revs.Position.X - 1f, yTop), bracket, 2f);
+            DrawLine(new Vector2(revs.Position.X - 5f, yBottom), new Vector2(revs.Position.X - 1f, yBottom), bracket, 2f);
+            DrawLine(new Vector2(revs.End.X + 1f, yTop), new Vector2(revs.End.X + 5f, yTop), bracket, 2f);
+            DrawLine(new Vector2(revs.End.X + 1f, yBottom), new Vector2(revs.End.X + 5f, yBottom), bracket, 2f);
         }
 
         // ---- Fuel ---------------------------------------------------------------------------------
