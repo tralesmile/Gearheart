@@ -312,9 +312,9 @@ public partial class SoftVehicle : Node2D, IVehicle
         // Exhaust pop: a quick orange flash and a puff of dark smoke out of the tailpipe.
         _backfire = new CpuParticles2D
         {
-            Emitting = false, OneShot = true, Explosiveness = 0.9f, Amount = 14, Lifetime = 0.45f, Spread = 30f,
-            Direction = new Vector2(-1f, -0.2f), InitialVelocityMin = 60f, InitialVelocityMax = 150f, Gravity = new Vector2(0f, -50f),
-            ScaleAmountMin = 3f, ScaleAmountMax = 7f, LocalCoords = false,
+            Emitting = false, OneShot = true, Explosiveness = 0.9f, Amount = 20, Lifetime = 0.5f, Spread = 28f,
+            Direction = new Vector2(-1f, -0.2f), InitialVelocityMin = 70f, InitialVelocityMax = 170f, Gravity = new Vector2(0f, -50f),
+            ScaleAmountMin = 4f, ScaleAmountMax = 9f, LocalCoords = false,
             ColorRamp = new Gradient
             {
                 Offsets = new[] { 0f, 0.25f, 1f },

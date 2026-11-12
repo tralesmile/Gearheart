@@ -8,11 +8,12 @@ namespace Gearheart.Vehicles;
 /// drops at each shift and climbs again, like a real car. It never touches the physics.
 ///
 /// Inputs are the wheel spin and the car's road speed, both as a fraction of the engine's top
-/// speed (0 = still, 1 = flat out, a bit more after a perfect-landing kick). The revs follow the
-/// wheels (so wheelspin and free-spinning wheels in the air scream), but the gear is picked from
-/// the smoothed road speed with a pause after each shift, so bumps and wheelspin on the hills do
-/// not make it hunt between two gears. Lower gears are shorter, like a real box. In the air the
-/// clutch is "in": the gear holds and the revs climb towards the limiter.
+/// speed (0 = still, 1 = the engine's top spin at the tyre). In this soft-body physics the wheels
+/// spin near their top almost all the time (the tyres slip; the car cruises at about half that), so
+/// revs and gears follow the road speed, with a little extra for real wheelspin. Gears are picked
+/// from the smoothed road speed with a pause after each shift, so bumps do not make it hunt.
+/// Lower gears are shorter, like a real box. In the air the clutch is "in": the gear holds and the
+/// revs climb towards the limiter with the throttle open.
 /// </summary>
 public sealed class Gearbox
 {
@@ -20,10 +21,10 @@ public sealed class Gearbox
     private const float UpshiftAt = 0.9f;     // road speed as a share of this gear's top
     private const float DownshiftAt = 0.55f;  // road speed as a share of the lower gear's top; below it drops a gear
     private const float ShiftTime = 0.16f;    // revs dip and hold for a moment while the gear goes in
-    private const float MinShiftGap = 0.8f;   // seconds after a shift before the next one
+    private const float MinShiftGap = 0.6f;   // seconds after a shift before the next one
 
     private readonly float[] _top;            // top of each gear as a fraction of the top spin
-    private float _rpm = Idle, _shiftTimer, _road, _sinceShift = 10f;
+    private float _rpm = Idle, _shiftTimer, _road, _roadFast, _sinceShift = 10f;
 
     public int Gears => _top.Length;
     /// <summary>Current gear, 1-based.</summary>
@@ -44,10 +45,10 @@ public sealed class Gearbox
     {
         gears = Mathf.Clamp(gears, 2, 8);
         _top = new float[gears];
-        // Gear k tops out at 1.1 (k/n)^0.8: first gear is short, the top gears are long, and top gear
-        // is a bit taller than the car's top speed, so cruising flat out hums at about 0.9 instead of
-        // stuttering on the limiter (it still hits it in the lower gears, in the air or after a kick).
-        for (int k = 1; k <= gears; k++) _top[k - 1] = 1.1f * Mathf.Pow(k / (float)gears, 0.8f);
+        // Gear k tops out at 0.85 (k/n)^0.8 of the top spin's road speed: first gear is short, the
+        // top gears long. With the V6 on standard wheels that is 16, 27, 38, 48 and 57 km/h, which
+        // spreads the shifts over the speeds the cars really drive (25-50 km/h, 60+ with the booster).
+        for (int k = 1; k <= gears; k++) _top[k - 1] = 0.85f * Mathf.Pow(k / (float)gears, 0.8f);
     }
 
     /// <summary>
@@ -61,7 +62,12 @@ public sealed class Gearbox
         throttle = Mathf.Clamp(throttle, 0f, 1f);
         _shiftTimer = Mathf.Max(0f, _shiftTimer - dt);
         _sinceShift += dt;
-        if (!airborne) _road = Mathf.Lerp(_road, Mathf.Clamp(road, 0f, 1.3f), 1f - Mathf.Exp(-4f * dt));
+        road = Mathf.Clamp(road, 0f, 1.3f);
+        if (!airborne)
+        {
+            _road = Mathf.Lerp(_road, road, 1f - Mathf.Exp(-4f * dt));
+            _roadFast = Mathf.Lerp(_roadFast, road, 1f - Mathf.Exp(-12f * dt));
+        }
 
         if (!airborne && _sinceShift >= MinShiftGap)
         {
@@ -69,14 +75,15 @@ public sealed class Gearbox
             else if (Gear > 1 && _road / _top[Gear - 2] < DownshiftAt) Shift(-1);
         }
 
-        // Revs the wheels ask for in this gear; free-spinning in the air or with the throttle open
-        // and the wheels slipping they can only go up to the limiter.
-        float target = Mathf.Max(spin / _top[Gear - 1], Idle + 0.25f * throttle * (Gear == 1 ? 1f : 0f));
+        // Revs for the road speed in this gear, plus a little for wheelspin well beyond the usual slip
+        // (a standing start, spinning up a hill); first gear with the pedal down never sits at idle.
+        float slip = 0.3f * Mathf.Clamp(spin - _roadFast - 0.3f, 0f, 1f) * (throttle > 0.05f ? 1f : 0f);
+        float target = Mathf.Max(_roadFast / _top[Gear - 1] + slip, Idle + 0.25f * throttle * (Gear == 1 ? 1f : 0f));
         if (_shiftTimer > 0f) target = Mathf.Min(target, _rpm);   // hold the dip while the gear goes in
         target = Mathf.Clamp(target, Idle, 1.05f);
 
         if (airborne && throttle > 0.05f)
-            _rpm = Mathf.Min(1.05f, Mathf.Max(_rpm, Mathf.Min(target, _rpm + 2.5f * dt)));   // clutch in: revs climb freely
+            _rpm = Mathf.Min(1.05f, _rpm + 1.6f * dt * throttle);                            // clutch in: revs climb freely
         else if (airborne)
             _rpm = Mathf.Max(Idle, _rpm - 1.2f * dt);                                        // off the pedal in the air: revs sag
         else
