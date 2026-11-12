@@ -47,6 +47,17 @@ public partial class SoftVehicle
         AddChild(_reverseLight);
     }
 
+    /// <summary>
+    /// Where the lamps are, for the beam haze drawn over the darkness: position (world pixels) and
+    /// the direction each cone shines, with how bright it is (0 = off).
+    /// </summary>
+    public (Vector2 Pos, Vector2 Dir, float Strength) HeadBeam =>
+        _headlight != null && _headlight.Visible ? (_headlight.GlobalPosition, Vector2.FromAngle(_headlight.GlobalRotation), Lights) : default;
+    public (Vector2 Pos, Vector2 Dir, float Strength) ReverseBeam =>
+        _reverseLight != null && _reverseLight.Visible ? (_reverseLight.GlobalPosition, Vector2.FromAngle(_reverseLight.GlobalRotation), Lights * _reverseBlend) : default;
+    public (Vector2 Pos, float Strength, bool Braking) TailLamp =>
+        _tailLight != null && _tailLight.Visible ? (_tailLight.GlobalPosition, Lights, _tailLight.Energy > 1.2f * Lights) : default;
+
     /// <summary>0..1 how much the reversing lamp is on (for the bot log).</summary>
     public float ReverseLamp => _reverseLight != null && _reverseLight.Visible ? _reverseBlend : 0f;
 
@@ -67,7 +78,7 @@ public partial class SoftVehicle
             Vector2 forward = (Pos[c[1]] - Pos[c[0]]).Normalized();
             _headlight.Position = ToLocal(Pos[c[1]].Lerp(Pos[c[2]], 0.45f) + forward * 2f);
             _headlight.Rotation = forward.Angle() - GlobalRotation;
-            _headlight.Energy = 1.35f * Lights;
+            _headlight.Energy = 1.9f * Lights;
         }
         if (_rearCell != null)
         {
@@ -78,7 +89,7 @@ public partial class SoftVehicle
             Vector2 back = (Pos[c[0]] - Pos[c[1]]).Normalized();
             _reverseLight.Position = ToLocal(Pos[c[0]].Lerp(Pos[c[3]], 0.55f) + back * 2f);
             _reverseLight.Rotation = back.Angle() - GlobalRotation;
-            _reverseLight.Energy = 1.15f * Lights * _reverseBlend;
+            _reverseLight.Energy = 1.5f * Lights * _reverseBlend;
         }
     }
 

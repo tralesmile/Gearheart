@@ -96,8 +96,9 @@ public partial class WorldScene
         _lamp.TextureScale = _driving ? 1.6f : 1.1f;
 
         // Headlights come on at dusk and underground (a little after the sun touches the hills).
-        float target = Mathf.Clamp(Mathf.Max((night - 0.2f) / 0.4f, (under - 0.2f) / 0.4f), 0f, 1f);
+        float target = Mathf.Clamp(Mathf.Max((night - 0.2f) / 0.4f, (under - 0.4f) / 0.4f), 0f, 1f);
         _car.Lights = target;
+        _beams.Car = _car;
 
         _glints.Reach = Mathf.Lerp(1f, NightGlintReach, night * (1f - under));
         _backdrop.Hours = h;

@@ -52,7 +52,7 @@ public static class DayCycle
     /// </summary>
     public static Color Tint(float h)
     {
-        Color warm = new(1f, 0.74f, 0.58f), night = new(0.27f, 0.31f, 0.52f);
+        Color warm = new(1f, 0.74f, 0.58f), night = new(0.2f, 0.23f, 0.41f);
         return Colors.White.Lerp(warm, 0.55f * Warmth(h)).Lerp(night, Night(h));
     }
 

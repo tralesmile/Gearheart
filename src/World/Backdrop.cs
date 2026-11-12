@@ -64,8 +64,8 @@ public partial class Backdrop : Node2D
                 float y = (h / 10007 % 1000) / 1000f * size.Y * 0.62f + lift * 0.2f;
                 float twinkle = 0.55f + 0.45f * Mathf.Sin(_time * (1.5f + (h % 7) * 0.4f) + (h % 628) / 100f);
                 float a = night * night * twinkle * dark * (0.5f + 0.5f * ((h >> 3) % 3) / 2f);
-                float r = (h >> 5) % 9 == 0 ? 1.6f : 1f;
-                DrawRect(new Rect2(x, y, r * 1.6f, r * 1.6f), new Color(0.95f, 0.95f, 1f, a));
+                float r = (h >> 5) % 9 == 0 ? 3f : (h >> 5) % 3 == 0 ? 2f : 1.5f;
+                DrawRect(new Rect2(x, y, r, r), new Color(0.95f, 0.95f, 1f, Mathf.Min(1f, a * 1.3f)));
             }
         }
 

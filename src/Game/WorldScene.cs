@@ -37,6 +37,7 @@ public partial class WorldScene : Node2D
     private bool _iceDone;
     private StashGlints _glints;
     private CrystalGlow _crystals;
+    private HeadlightBeams _beams;
     private bool _deepHinted, _deepPlaced;
     private float _depthAnnounced, _deepestThisRun;
     private int _crystalsMined, _depthRecords;
@@ -188,6 +189,8 @@ public partial class WorldScene : Node2D
         _crystals = new CrystalGlow { Name = "CrystalGlow", World = _world, Focus = _player.Position };
         glintLayer.AddChild(_crystals);
         glintLayer.MoveChild(_crystals, 0);   // under the stash glints
+        _beams = new HeadlightBeams { Name = "HeadlightBeams", Car = _car };
+        glintLayer.AddChild(_beams);
         _depthAnnounced = GameSession.DeepestDig;
         if (GameSession.AutoPlay)
             GD.Print($"[deep] world: slate={_world.CountTiles(Tile.Slate)} crystals={_world.CountTiles(Tile.Crystal)} deepRow at garage={_world.DeepRow((TileWorld.PadFrom + TileWorld.PadTo) / 2)} " +

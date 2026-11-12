@@ -26,7 +26,7 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 15 | Rare part blueprints inside strongboxes (a part you can only build after finding it) | S–M | Open (needs D19 direction; small version possible now) |
 | 16 | Wrecked cars on the surface that you can strip for one random part (a bigger roadside find) | M | Open |
 | 17 | Cave critters: a slow glowing beetle that nibbles the car's wheels in deep caves | M | Open |
-| 18 | Day and night cycle with the headlight mattering at night | M | Open |
+| 18 | Day and night cycle with the headlight mattering at night | M | **Step 1 built 2026-11-12** (PR #27: clock, sky, tint, headlights, crickets, night glints; see #114) |
 | 19 | Delivery jobs at the garage ("bring 10 copper back": pays a part) for a reason to make a trip | M | Open |
 | 20 | Ghost of your best hill-climb run to race against | S–M | Open |
 | 21 | Raiders in The Wastes: a bot car that rams you | L | Open (split: dumb rammer → shooting → loot) |
@@ -62,7 +62,7 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 52 | Kicker gap: some kickers get a ditch or a scrap-heap pile after the crest, so a slow run-up lands in it | S | Open (new 2026-11-12, ninth session; risk on purpose) |
 | 53 | Landing-zone target: a painted landing mark past each kicker; land beyond it for "LONG JUMP 9.4 m" and a per-kicker record | S | **Built 2026-11-12** (PR #17: a chequered record flag where your longest landed jump came down, distance over it, NEW RECORD call-out; botched landings don't count) |
 | 54 | Engine sounds per engine part + gear-change whine (the drive's soundscape is one loop) | S | **Built 2026-11-12** (PR #19: a loop per engine, a pretend gearbox with shifts, exhaust pops, starter crank, gear + rev bar on the dashboard) |
-| 55 | Night falls on long trips: the sky darkens after a few minutes away, headlights matter, glowing ore and stash glints shine | M | Open (new 2026-11-12; roadmap day/night, first step = visual only) |
+| 55 | Night falls on long trips: the sky darkens after a few minutes away, headlights matter, glowing ore and stash glints shine | M | **Built 2026-11-12** as #114 (PR #27) |
 | 56 | Lava seam deep underground (below ~30 m): glowing orange rock that heats and damages the car, with a rich ore reward behind it | M | Open (new 2026-11-12; roadmap deep underground, first danger) |
 | 57 | Garage "next part" card: when you come back, the report ends with "2 Iron short of Spiked Tyres" | S | Open (new 2026-11-12; folds #42 into the trip report, the one-more-trip nudge) |
 | 58 | Trip goal "Beat a kicker record" / "Jump 8 m off a kicker" | S | Open (new 2026-11-12, tenth session; ties the flags into trips; shifts the bot's goal order) |
@@ -121,7 +121,30 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 111 | Paint shop: pick the body colour in the garage (a handful of colours, free) | S | Open (new 2026-11-12; your car, not the starter car; Sims-style ownership) |
 | 112 | New-part roll-out: the first time you build a part, the car rolls out of the garage with a fanfare and a short camera hold on the part | S | Open (new 2026-11-12; makes earning a part an event) |
 | 113 | Part-specific trip goals: "Hit full boost 5 times", "Clear a kicker at 70 km/h" when you own the part | S | Open (new 2026-11-12; ties trips to the car you built) |
+| 114 | Day and night, step 1: a seven-minute day; sunset sky, stars and moon, a moonlit tint, automatic headlights, tail-lights and a reversing lamp, crickets | S–M | **Built 2026-11-12** (PR #27) |
+| 115 | Night treasure: buried stashes glint from 1.8x further at night, so a night drive is a treasure hunt | S | **Built 2026-11-12** with #114 |
+| 116 | Night run bonus: a trip driven mostly in the dark scores a "NIGHT RUN" bonus on the trip report | S | Open (new 2026-11-12, nineteenth session; gives a reason to leave at dusk instead of waiting for day) |
+| 117 | Biome nights: fireflies over the meadow, an aurora in the Frozen North, a huge low moon over The Wastes | S | Open (new 2026-11-12; each biome gets its own night picture) |
+| 118 | Glowing eyes in the dark: pairs of eyes by the roadside at night that blink out when your headlights reach them (later: night critters) | S | Open (new 2026-11-12; a little thrill, first hint of danger, sets up raiders who only come out at night) |
+| 119 | Floodlight part (Iron + Crystal): a wide, long beam bolted on the roof; replaces #64 Crystal Lamp | S | Open (new 2026-11-12; a part that matters at night and underground) |
+| 120 | Sleep in the garage: press Z at the garage at night to skip to dawn (with a fade and a rooster) | S | Open (new 2026-11-12; nobody is forced to drive in the dark) |
+| 121 | Glow-in-the-dark pickups: fuel cans get a reflective strip that flashes in the headlights | S | Open (new 2026-11-12; small, helps at night) |
 | 29 | Speedometer redline overdrive: holding the needle in the red for 3 s with the booster unlocks a "SONIC" call-out and a sonic-boom puff | S | Open (new 2026-11-12, cheap thrill) |
+
+## 2026-11-12 (nineteenth session)
+
+No open PR; main green after the Turbocharger. Looked at `world_130.png`, `left_180.png` and `deep_120.png` as a player. The surface drive looks good now, but every minute of the game happens at the same noon: same sky, same light, whether you have played two minutes or two hours. Eight sessions in a row were about driving feel and parts; the roadmap's day and night has never been touched. The most boring thing is not a minute but sameness — nothing in the world changes while you play. A sunset arriving mid-drive, then headlights cutting through the dark, is the kind of moment that makes a world feel alive (Terraria and Minecraft's first night, the night races in Need for Speed). It also opens the door to danger later (raiders and critters that come out at night) without building enemies now. The last session was a feature (turbo) and the one before feel (air cam); this is a feature with a big look-and-feel side.
+
+- **Day and night, step 1** (S–M, #114): a world clock, sky colours, sun and moon, stars, moonlit tint, headlights. Why fun: the world changes while you play; a sunset drive is a screenshot moment. *Built.*
+- **Night treasure** (S, #115): stash glints reach further at night. Why fun: a reason to go out in the dark instead of waiting. *Built.*
+- **Night run bonus** (S, #116). Why fun: points for braving the dark.
+- **Biome nights** (S, #117): fireflies, aurora, a big desert moon. Why fun: each biome gets a night picture worth driving to.
+- **Glowing eyes** (S, #118). Why fun: a shiver, and the start of night danger.
+- **Floodlight part** (S, #119). Why fun: a part you want because of the night.
+- **Sleep till dawn** (S, #120). Why fun: night stays a choice, never a chore.
+- **Reflective fuel cans** (S, #121). Why fun: helps you plan a night trip.
+
+Best open picks for fun per effort now: #117 biome nights (S) and #118 glowing eyes (S) to make the night itself worth seeing, #119 Floodlight (S), #116 night run bonus (S), #107 overboost (S), #82 start lights (S), #94 Gyro (S), #110 cave bats (S), #68 surface lift (S–M), then the first real danger (#65 deep critters / night raiders, M).
 
 ## 2026-11-12 (eighteenth session)
 
