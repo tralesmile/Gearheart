@@ -155,6 +155,32 @@ def wind():
     return s
 
 
+def tally():
+    """One tick of the trip-score counter: a short, dry wooden-and-bell click."""
+    n = int(SR * 0.07); t = np.arange(n) / SR
+    s = np.sin(2 * np.pi * 1760 * t) * np.exp(-t * 70) + 0.5 * np.sin(2 * np.pi * 2640 * t) * np.exp(-t * 110)
+    return s * (1 - np.exp(-t * 900))
+
+
+def record():
+    """A new best trip: a brassy da-da-DAAA (G, G, C an octave up) over a held chord, with a little sparkle."""
+    hits = [(0.0, 392.0, 0.11), (0.13, 392.0, 0.11), (0.26, 523.25, 0.75)]
+    n = int(SR * 1.25); t = np.arange(n) / SR
+    s = np.zeros(n)
+    for start_s, f, length in hits:
+        start = int(SR * start_s)
+        tt = t[: n - start]
+        env = (1 - np.exp(-tt * 60)) * np.exp(-np.maximum(tt - length, 0) * 9)
+        vib = 1 + 0.004 * np.sin(2 * np.pi * 5.5 * tt) * (tt > 0.15)
+        tone = sum(np.sin(2 * np.pi * f * k * tt * vib) / k ** 1.1 for k in range(1, 7))   # bright, brassy stack
+        s[start:] += tone * env
+    chord = sum(np.sin(2 * np.pi * f * t) for f in (261.63, 329.63, 392.0)) * 0.22
+    s += chord * (t > 0.26) * np.exp(-np.maximum(t - 0.26, 0) * 2.2)
+    sparkle = sum(np.sin(2 * np.pi * f * t) for f in (2093.0, 3136.0)) * (0.5 + 0.5 * np.sin(2 * np.pi * 13 * t))
+    s += 0.1 * sparkle * (t > 0.3) * np.exp(-np.maximum(t - 0.3, 0) * 3.5)
+    return s
+
+
 wind_rng = np.random.default_rng(57)    # own stream, so adding wind leaves every other sound byte-identical
 crash_rng = np.random.default_rng(31)   # separate stream: adding sounds never changes the older ones
 
@@ -174,4 +200,6 @@ if __name__ == "__main__":
     save("treasure", tail_fade(treasure(), 80), 0.6)
     save("fuel", tail_fade(fuel(), 60), 0.6)
     save("wind", wind(), 0.6)
+    save("tally", tail_fade(tally(), 20), 0.5)     # deterministic: uses no random stream
+    save("record", tail_fade(record(), 120), 0.6)
     print("sounds written to", os.path.abspath(OUT))

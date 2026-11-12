@@ -13,7 +13,7 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 3 | Crash juice: screen shake, sparks, dust and a metal crunch on hard hits | S | **Built 2026-11-12** (PR #8) |
 | 4 | Buried treasure: glinting stashes underground that pay a bundle of ore | S–M | **Built 2026-11-12** (PR #9) |
 | 5 | Fuel cans and scrap heaps lying on the surface between biomes, so the drive is not empty | S | **Built 2026-11-12** (PR #10) |
-| 6 | Trip summary card when you get back to the garage: distance, top speed, best air, ore, stashes, heaps smashed, best smash streak, crashes — and your best trip to beat | S | Open (top pick for next session) |
+| 6 | Trip summary card when you get back to the garage: distance, top speed, best air, ore, stashes, heaps smashed, best smash streak, crashes — and your best trip to beat | S | **Built 2026-11-12** (PR #12: trip report with score, NEW BEST tags, best-distance on the status line) |
 | 7 | Landing grades: "CLEAN LANDING" bonus vs "BELLY FLOP" when you land on the roof, feeding a trip score | S | Open |
 | 8 | Smash streak: heaps (and later crates/cacti) smashed within a few seconds of each other chain into "SMASH x3" with rising pitch | S | **Built 2026-11-12** (PR #11, heaps only) |
 | 9 | Ore radar / "metal detector" beep that speeds up as you near a stash (car part or player tool) | S | Open |
@@ -37,7 +37,23 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 26 | Distance flags every 50 m with your best distance marked on the road ("BEST 312 m") | S | Open (new 2026-11-12) |
 | 27 | Nitro-style "perfect landing" boost: land clean on all wheels and get a short free speed kick | S | Open (new 2026-11-12; pairs with landing grades) |
 | 28 | Engine smoke and a coughing engine sound when damage is high, so the damage meter means something you can hear | S | Open (new 2026-11-12) |
+| 30 | Trip goal at the gate: one bonus objective per trip ("smash 8 heaps", "reach The Wastes", "2 s of air") worth double points on the report | S | Open (new 2026-11-12, next top pick: gives each trip a purpose) |
+| 31 | Tow home: out of fuel far away? Pay Scrap for a tow, and the trip report stamps it TOWED (score kept, haul taxed) | S | Open (new 2026-11-12) |
+| 32 | Launch ramp at the garage gate, so every trip starts with a jump | S | Open (new 2026-11-12) |
+| 33 | Best-moment snapshot on the trip card (frame of the biggest air or crash) | M | Open (new 2026-11-12) |
+| 34 | Engine sound follows the engine part (small engine buzzes, big V8 rumbles) | S | Open (new 2026-11-12) |
 | 29 | Speedometer redline overdrive: holding the needle in the red for 3 s with the booster unlocks a "SONIC" call-out and a sonic-boom puff | S | Open (new 2026-11-12, cheap thrill) |
+
+## 2026-11-12 (fifth session)
+
+Looked at `pickup_world_178.png` and `left_390.png`: the drive is now busy and readable (dashboard, heaps, cans, speed lines). But nothing happens when you *come back*. A trip ends by parking at the garage in silence; the 27 Scrap, the x5 streak and the 2 s jump are forgotten at once. In Hill Climb Racing the end-of-run screen with "best distance" is what makes you press "again". The most boring minute is now the return: you drive home, park, and there is no applause.
+
+- **Trip report card** (S): back at the garage, a card ticks in each kind of fun with points (distance, top speed, air, heaps and streak, cans, stashes, haul, carnage), counts up a trip score, and shows your best trip to beat, with a fanfare and gold border on a new best. Plus "Trip 84 m (best 212 m)" on the status line and a "NEW FARTHEST!" cheer when you pass your record. Why fun: every trip ends with a number to beat; the "one more trip" hook. *Built.*
+- **Trip goal at the gate** (S): one random bonus objective per trip, shown as you leave ("smash 8 heaps", "reach The Wastes", "2 s of air"), worth double on the report. Why fun: a reason to drive differently each trip instead of holding D.
+- **Tow home** (S): run out of fuel far away and you can call a tow for Scrap; the report stamps TOWED. Why fun: fuel becomes a real gamble — push further for the record or turn back.
+- **Launch ramp at the garage gate** (S): the first second of every trip is a jump. Why fun: instant joy in the first minute, a stunt to perfect.
+- **Best-moment snapshot** (M): the card shows a still of your biggest air or worst crash. Why fun: crashes and jumps are the stories players share.
+- **Engine sound per engine part** (S): the small engine buzzes, the big one rumbles. Why fun: a new part you can *hear* makes the upgrade feel real.
 
 ## 2026-11-12 (fourth session — polish)
 
