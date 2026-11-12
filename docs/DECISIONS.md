@@ -2,6 +2,14 @@
 
 Newest first. One entry per big decision: what, why, and what would make us revisit it.
 
+## 2026-11-12 — Day and night, step 1: a seven-minute day, looks and light only
+
+- **What:** a world clock (`DayCycle`, saved as `ClockHours` and `Day` in `progress.json`; a new game starts at 08:00). Daytime 06:30–18:00 runs at 13 game hours per 270 s; dusk (18:00–20:30) and dawn (04:00–06:30) ease the light; the night hours 21:00–04:00 run twice as fast. A full day is about 7 minutes of play, a night about 1¼ minutes plus dusk and dawn. The sky (gradient, sunset glow, sun and moon on an arc, stars, tinted clouds, hill silhouettes) and a `CanvasModulate` tint over the world (warm at sunset, moonlit blue at night, mixed with the existing underground darkness) follow the clock. The car gets headlights (a cone `PointLight2D` out of the frontmost block), tail-lights (brighter when braking) and a reversing lamp (cars face right and back up to go west), plus a haze along each beam and lamp flares drawn over the darkness. Lights come on by themselves at dusk and deep underground. Crickets chirp at night on the surface. Buried stashes glint from 1.8x further at night. The status line shows the time.
+- **Why:** nothing in the world changed while you played; the roadmap's day and night had never been started. A sunset arriving mid-drive and headlights in the dark are big, cheap "the world is alive" moments, and the night is where later danger (raiders, critters) can live. The night glints give the dark a small reward now, so it is not just "harder to see".
+- **Not gameplay (yet):** the clock does not touch physics, fuel, spawns or scoring; the 40 s bot positions are identical to main. No save version bump: old `progress.json` files just start at 08:00 (missing fields take their defaults) and world generation is unchanged.
+- **Kept the night short on purpose:** a night that is too long or too dark makes people quit or wait. If testers dislike it, the knobs are `DayCycle.NightSpeedUp`, `DayCycle.Tint` (the night colour) and `HeadlightReach`. A "sleep till dawn" at the garage (IDEAS #120) is the escape hatch if needed.
+- **Revisit when:** you have played a full day (D1), or when night danger is added (then night may need to pay more, IDEAS #116).
+
 ## 2026-11-12 — Turbocharger: the first part that reads the gearbox revs
 
 - **What:** a new block, the Turbocharger (`turbo`, category Turbo, 2 Iron + 3 Copper, mass 0.4). Boost pressure (0..1) builds while the throttle is held past half, at a rate set by the pretend gearbox's revs: nothing below 0.3 of the redline, the full rate (1 / 0.9 s) from 0.8 up. It bleeds at 2.6/s off the throttle, drops 0.25 on each upshift, and lifting off with 0.45+ boost blows off (sound and a puff). At full boost the engine has +40% torque and +12% top spin, and burns 30% more fuel. Only the best turbo on a car counts. The bot design `--design=turbo` is the starter pickup with the turbo on top of the V6.

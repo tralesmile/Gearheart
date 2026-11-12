@@ -479,6 +479,7 @@ public partial class SoftVehicle : Node2D, IVehicle
         };
         AddChild(_boostSmoke);
         CreateTurboEffects();
+        CreateLights();
 
         World?.Register(this);
     }
@@ -998,6 +999,7 @@ public partial class SoftVehicle : Node2D, IVehicle
         UpdateLaunch(delta);
         UpdateGearbox(delta);
         UpdateTurbo(delta);
+        UpdateLights();
         Recenter();
         QueueRedraw();
     }
@@ -1704,6 +1706,8 @@ public partial class SoftVehicle : Node2D, IVehicle
             DrawArc(hub, wheel.Radius + 4f, lean + Mathf.Pi * 1.1f, lean + Mathf.Pi * 1.9f, 12, outlineColor, 5f);
             DrawArc(hub, wheel.Radius + 4f, lean + Mathf.Pi * 1.12f, lean + Mathf.Pi * 1.88f, 12, new Color(0.62f, 0.17f, 0.13f), 3f);
         }
+
+        DrawLightLenses();
 
         // Wheels on top, spinning.
         Texture2D wheels = Art.Wheels;

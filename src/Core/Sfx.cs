@@ -14,7 +14,7 @@ public partial class Sfx : Node
     private readonly Dictionary<string, AudioStream> _streams = new();
     private readonly List<AudioStreamPlayer> _voices = new();
     private readonly Dictionary<string, double> _lastPlayed = new();
-    private AudioStreamPlayer _engine, _drill, _boost, _wind, _turbo;
+    private AudioStreamPlayer _engine, _drill, _boost, _wind, _turbo, _crickets;
     private readonly Dictionary<string, AudioStreamPlayer> _engines = new();
     private double _crankUntil;          // the starter is cranking: engine loop silent until then
     private int _nextVoice;
@@ -38,7 +38,22 @@ public partial class Sfx : Node
         _boost = Loop("boost");
         _wind = Loop("wind");
         _turbo = Loop("turbo");
+        _crickets = Loop("crickets", 0);
     }
+
+    /// <summary>
+    /// Night on the surface: crickets chirp, fading in at dusk (quieter in the car, under the engine).
+    /// <paramref name="night"/> is 0..1, already zero underground.
+    /// </summary>
+    public void UpdateNight(float night, bool driving)
+    {
+        float level = Mathf.Clamp((night - 0.3f) / 0.5f, 0f, 1f) * (driving ? 0.6f : 1f);
+        CricketLevel = level;
+        SetLoop(_crickets, level > 0.02f, Mathf.LinearToDb(Mathf.Max(0.001f, level)) - 16f, 1f);
+    }
+
+    /// <summary>How loud the crickets are, 0..1 (for the bot log).</summary>
+    public float CricketLevel { get; private set; }
 
     /// <summary>
     /// The turbo's whistle: silent without boost, rising in pitch and loudness as it spools
@@ -54,14 +69,15 @@ public partial class Sfx : Node
     /// <summary>How loud the turbo whistle is, 0..1 (for the bot log).</summary>
     public float TurboWhistle { get; private set; }
 
-    private AudioStreamPlayer Loop(string name)
+    /// <summary>A looping sound; <paramref name="frames"/> is the loop length (0 = the whole file).</summary>
+    private AudioStreamPlayer Loop(string name, int frames = LoopFrames)
     {
         var stream = GD.Load<AudioStream>($"res://assets/audio/{name}.wav");
         if (stream is AudioStreamWav wav)
         {
             wav.LoopMode = AudioStreamWav.LoopModeEnum.Forward;
             wav.LoopBegin = 0;
-            wav.LoopEnd = LoopFrames;
+            wav.LoopEnd = frames > 0 ? frames : Mathf.RoundToInt((float)(wav.GetLength() * wav.MixRate));
         }
         var player = new AudioStreamPlayer { Stream = stream, VolumeDb = -80f };
         AddChild(player);

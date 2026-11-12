@@ -2,6 +2,43 @@
 
 Newest entry first. Each session: what was built and why, how it was verified, what is not verified, and what comes next.
 
+## 2026-11-12, about 18:20–19:20 UTC — Day and night, step 1 (PR #27)
+
+**Started by** checking for unfinished work: no open pull requests; main's build after PR #26 (run 43277162200) green.
+
+**Built — day and night** (`src/Core/DayCycle.cs`, `src/Game/WorldScene.Night.cs`, `src/Vehicles/SoftVehicle.Lights.cs`, `src/Game/HeadlightBeams.cs`, `Backdrop`, `StashGlints`, `Sfx`, `crickets.wav`)
+
+- **Clock**: saved in `progress.json` (`ClockHours`, `Day`; a new game starts at 08:00). About 7 minutes a day: daytime 06:30–18:00 at 13 h per 270 s, dusk and dawn about 40 s each, night hours (21–04) twice as fast. The time shows at the start of the status line; "NIGHT FALLS / headlights on · buried stashes glint from further away" and "DAWN · DAY n" call-outs with a soft chime.
+- **Sky**: gradient with a sunset band, sun and moon on an arc (the sun reddens and swells at sunset, the moon has craters and a halo), 150 twinkling stars, clouds that go pink then grey-blue, far hills as silhouettes.
+- **Light**: the world is tinted warm at sunset and moonlit blue at night (mixed with the underground darkness). The carried lamp shines on foot at night. The car's **headlights** (a cone light out of the frontmost block), **tail-lights** (brighter when braking) and a **reversing lamp** (cars face right and back up to go west) switch on by themselves at dusk and deep underground; a haze along each beam and lamp flares are drawn over the darkness so the beams show in the air.
+- **Night reward**: buried stashes glint from 1.8x further at night.
+- **Sound**: a 3 s cricket loop on the surface at night (quieter in the car).
+- **CI**: `--time=H`, `--clockrate=N`; `[night]` lines (time, night/warmth, tint, lights, reversing lamp, glints, crickets) and `clock= nightFalls= nightSeconds= headlightSeconds= glintsNight= glintsDay=` on `[autoplay]`; smoke runs "dusk into night (19:00 at 3x)" and "night drive west from 22:00"; `night_*`, `nightleft_*`, `dawn_*` screenshots.
+
+**Why this** — Brainstorm in `docs/IDEAS.md` (nineteenth session). Every minute of the game happened at the same noon: nothing in the world changed while you played. Eight sessions in a row were driving feel and parts, and the roadmap's day and night had never been started. A sunset arriving mid-drive and headlights cutting through the dark are cheap, big "this world is alive" moments, and the night is where danger can live later. It is a feature with a large look-and-feel side; the turbo session before it was a feature, the air cam before that feel.
+
+**Verified (CI runs 43280528180 and 43283115816, both green; a third run for the docs and a small threshold change)**
+
+- **Clock and light** (`--time=19 --clockrate=3`): night falls at 19:15 (frame 17 of the screenshot run); tint goes (0.74, 0.66, 0.69) at 19:00 → (0.49, 0.48, 0.61) at 19:35 → full night by 20:45; headlights on from 19:35; night 38.3 s of the 40 s run, headlights 40 s, clock ends at 04:16 on day 2. Crickets 0.6 in the car, up to 1.0 on foot.
+- **Night glints**: same route east, same 40 s: at most **4 stashes glinting at night vs 2 by day**; driving west at night 5.
+- **Reversing lamp**: the night drive west has `reverseLamp=1.00` the whole way.
+- **Screenshots** (run 2): `night_10.png` (sunset at the garage: orange sun on the hills, pink clouds), `night_40.png` (NIGHT FALLS call-out), `night_180.png` (moon, stars, the headlight beam lighting the hill ahead), `nightleft_200.png` (reversing lamp and headlights both shining, the beam lights the hill behind), `dawn_100.png` (pink dawn sky, 05:39).
+- **Nothing else changed**: 40 s positions identical to main — starter 2209.3, left 465.7, spiked 424.9, Crystal Drill 1480.1, rocket 2552.7, turbo 2302.1; Hill Climb 19.18 / 17.22 / 14.08 s. No errors.
+
+**Not verified / known issues**
+
+- Fun and looks are my judgement (D1): whether the night is too dark, too long or too short, and whether you want to drive in it or wait it out. Headlights are judged from still frames only.
+- The crickets are tuned by numbers only (I cannot hear them).
+- Underground, the headlights switch on from depth alone; the threshold was raised after run 2 (a drill car at 2 m showed a beam in a half-lit tunnel); the third run's `drill_280.png` should show it off — check it.
+- The night has no gameplay effect beyond the glints: no scoring, no danger, fuel and spawns unchanged. The garage and Hill Climb scenes are always daytime.
+- The clock only runs in the world scene: time stops while the garage is open.
+
+**Next**
+
+1. Biome nights (S, IDEAS #117: fireflies, aurora, big desert moon) or glowing eyes by the road (S, #118) — make the night worth seeing.
+2. Night run bonus on the trip report (S, #116); Floodlight part (S, #119).
+3. Overboost (S, #107), start-light gantry (S, #82), Gyro (S, #94), cave bats (S, #110), then the first real danger (M: night raiders or deep critters).
+
 ## 2026-11-12, about 17:25–18:15 UTC — Merged air cam (PR #25), then the Turbocharger (PR #26)
 
 **Started by** checking for unfinished work: PR #25 (air cam) was open, its last run (43267689584, a re-check after the one-off exit crash) still going; it finished green at 17:30 with a log matching the PR (61 big-air touchdowns, 0 frames with the car off screen, no errors), so I squash-merged it (ccb69f3).

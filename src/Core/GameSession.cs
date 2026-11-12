@@ -105,6 +105,44 @@ public static class GameSession
     }
     private static bool FreshStart => UserArgs.Contains("--fresh");
 
+    /// <summary>--time=H: start the world at this hour (0..24), for testing the day-night cycle.</summary>
+    public static float? StartTime => FloatArg("--time=");
+
+    /// <summary>--clockrate=N: the clock runs N times as fast (CI: see a sunset in a 40 s run).</summary>
+    public static float ClockRate => FloatArg("--clockrate=") ?? 1f;
+
+    private static float? FloatArg(string prefix)
+    {
+        foreach (string a in UserArgs)
+            if (a.StartsWith(prefix) && float.TryParse(a.Substring(prefix.Length), System.Globalization.NumberStyles.Float,
+                                                       System.Globalization.CultureInfo.InvariantCulture, out float v)) return v;
+        return null;
+    }
+
+    // ---- Time of day (saved in progress.json) -------------------------------------------------
+
+    /// <summary>The hour of the day in the world, 0..24 (see <see cref="DayCycle"/>).</summary>
+    public static float ClockHours
+    {
+        get => Data.ClockHours;
+        set
+        {
+            Data.ClockHours = value;
+            _dirty = true;
+        }
+    }
+
+    /// <summary>Which day it is (1 on a new game); goes up at midnight.</summary>
+    public static int Day
+    {
+        get => Mathf.Max(1, Data.Day);
+        set
+        {
+            Data.Day = value;
+            _dirty = true;
+        }
+    }
+
     public static void ApplyCommandLine()
     {
         if (UserArgs.Contains("--hillclimb")) Mode = DriveMode.HillClimb;
@@ -133,6 +171,8 @@ public static class GameSession
         public float DeepestDig { get; set; }
         public float SprintBest { get; set; }   // gate sprint, seconds (0 = none yet)
         public int Sprints { get; set; }
+        public float ClockHours { get; set; } = DayCycle.StartHours;   // time of day in the world, 0..24
+        public int Day { get; set; } = 1;
     }
 
     private static Progress Data => _progress ??= LoadProgress();
