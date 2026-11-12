@@ -20,6 +20,8 @@ public partial class WorldScene
     private float _shaftStart = -1f, _shaftNextThrow;
     private int _shaftThrowsAtStart;
     private bool _shaftMissTried, _shaftLeftWall;
+    private int _flingStage;
+    private float _flingFrom;
 
     private void SetupHook()
     {
@@ -185,10 +187,29 @@ public partial class WorldScene
             input.Grapple = true;
             input.Aim = me + new Vector2(0f, -400f);
         }
-        else if (_shaftOut && _shaftMissTried && _elapsed > _shaftNextThrow + 1.5f)
+        else if (_shaftOut && _shaftMissTried && _flingStage == 0 && _elapsed > _shaftNextThrow + 1.5f && _player.Grounded)
         {
-            // Walk east a little so the screenshot run shows the mechanic back at work.
-            input.Move = _elapsed < _shaftNextThrow + 3f ? 1f : 0f;
+            // Across the shaft: hook the ground on the far side and jump mid reel-in for a fling.
+            _flingStage = 1;
+            _flingFrom = me.X;
+            input.Grapple = true;
+            input.Aim = new Vector2((_shaftX + 6.5f) * Ts, _world.SurfaceRow(_shaftX + 6) * Ts + 3f);
+        }
+        else if (_flingStage == 1 && _player.Hook == Player.HookState.Pull && _player.Position.X > (_shaftX + 0.5f) * Ts)
+        {
+            _flingStage = 2;
+            input.Jump = true;
+        }
+        else if (_flingStage == 2 && _player.Grounded && _player.Hook == Player.HookState.None)
+        {
+            _flingStage = 3;
+            GD.Print($"[hook] test: fling landed at x={me.X / Ts:0.0} ({(me.X - _flingFrom) / PixelsPerMeter:0.0} m from where it was thrown, the shaft is at {(_shaftX + 1 - _flingFrom / Ts) * 0.25f:0.0} m) " +
+                     $"depth={DepthMeters(me):0.0}m frame={Engine.GetFramesDrawn()}");
+        }
+        else if (_flingStage == 1 && _player.Hook == Player.HookState.None && !_player.HookFlying && _player.Grounded && _elapsed > _shaftNextThrow + 4f)
+        {
+            _flingStage = 3;
+            GD.Print($"[hook] test: fling NOT tried (the hook did not reel across) at x={me.X / Ts:0.0} frame={Engine.GetFramesDrawn()}");
         }
 
         _player.Override = input;

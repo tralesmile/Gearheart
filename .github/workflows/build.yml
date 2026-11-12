@@ -277,7 +277,7 @@ jobs:
           grep "\[hook\] thrown" shots/hook.log | head -6 | sed -E 's/.*frame=([0-9]+).*/\1/' | while read n; do
             f=$(printf "shots/hook/f%08d.png" $((n + 1))); [ -f "$f" ] && cp "$f" keep/hook_throw_$((n + 1)).png
           done
-          grep "\[hook\] \(bit\|hanging\|climbing\|missed\)" shots/hook.log | head -12 | sed -E 's/.*frame=([0-9]+).*/\1/' | while read n; do
+          grep "\[hook\] \(bit\|hanging\|climbing\|missed\|off the rope: jump\|test: fling\)" shots/hook.log | head -16 | sed -E 's/.*frame=([0-9]+).*/\1/' | while read n; do
             f=$(printf "shots/hook/f%08d.png" $((n + 1))); [ -f "$f" ] && cp "$f" keep/hook_$((n + 1)).png
           done
           for i in 5 60 120; do
