@@ -26,7 +26,7 @@ public partial class AirCam : Node2D
     private const float MarginX = 300f, MarginY = 230f;   // screen px kept around car and landing
 
     public TileWorld World { get; set; }
-    /// <summary>The Camera2D's position smoothing speed: its lag behind a moving target is cancelled.</summary>
+    /// <summary>How fast the camera eases toward its target (1/s). Its lag behind a moving car is cancelled.</summary>
     public float Smoothing { get; set; } = 7f;
 
     /// <summary>Where the camera should point this frame (world px).</summary>
@@ -59,7 +59,7 @@ public partial class AirCam : Node2D
             _vel = Vector2.Zero;
             _air = 0f;
             _hasLanding = false;
-            Target = car;
+            Target = Smooth(car, dt);
             Zoom = baseZoom;
             Fade(dt);
             return;
@@ -70,8 +70,8 @@ public partial class AirCam : Node2D
 
         // Look ahead along the way the car is going. Slow to follow, so bumps don't wobble the view.
         var wantLead = new Vector2(
-            Mathf.Clamp(velocity.X * LeadPerSpeed, -LeadMax, LeadMax),
-            Mathf.Clamp(velocity.Y * 0.12f, -LeadMaxUp, LeadMaxDown));
+            Mathf.Clamp(_vel.X * LeadPerSpeed, -LeadMax, LeadMax),
+            Mathf.Clamp(_vel.Y * 0.12f, -LeadMaxUp, LeadMaxDown));
         if (flying) wantLead.Y = 0f;   // the arc is framed below; don't chase the bounce
         _lead = _lead.Lerp(wantLead, 1f - Mathf.Exp(-1.3f * dt));
 
@@ -99,17 +99,41 @@ public partial class AirCam : Node2D
         // Whatever happens, keep the car on screen (judged at the zoom the camera has right now).
         Vector2 half = viewport / (2f * Mathf.Max(0.1f, currentZoom));
         Vector2 room = new(Mathf.Max(0f, half.X - 150f), Mathf.Max(0f, half.Y - 110f));
-        // The camera eases toward its target and so trails a moving car by speed / smoothing;
-        // aim that far ahead so the look-ahead is really ahead at 90 km/h too.
-        target += _vel / Mathf.Max(1f, Smoothing) * (1f - 0.5f * _air);
-        Vector2 off = target - car;
+        // The camera eases toward its target (rate Smoothing), so it trails a moving car by
+        // speed / Smoothing; aim that much further ahead so the look-ahead is really ahead at
+        // 90 km/h too. Then ease, then clamp what we got so the car is always on screen.
+        target += _vel / Smoothing * (1f - 0.5f * _air);
+        Vector2 cam = Smooth(target, dt);
+        Vector2 off = cam - car;
         off = new Vector2(Mathf.Clamp(off.X, -room.X, room.X), Mathf.Clamp(off.Y, -room.Y, room.Y));
-        Target = car + off;
+        _cam = car + off;
+        Target = _cam;
         Zoom = zoom;
         Fade(dt);
     }
 
-    private Vector2 _frameLanding;
+    private Vector2 _frameLanding, _cam;
+    private bool _hasCam;
+
+    /// <summary>Exponential easing toward <paramref name="want"/>; jumps there on a teleport.</summary>
+    private Vector2 Smooth(Vector2 want, float dt)
+    {
+        if (!_hasCam || _cam.DistanceTo(want) > 1500f)
+        {
+            _cam = want;
+            _hasCam = true;
+        }
+        else _cam = _cam.Lerp(want, 1f - Mathf.Exp(-Smoothing * dt));
+        return _cam;
+    }
+
+    /// <summary>Put the camera straight on a point (after moving the player somewhere new).</summary>
+    public void Snap(Vector2 at)
+    {
+        _cam = at;
+        _hasCam = true;
+        Target = at;
+    }
 
     /// <summary>
     /// Steps a ballistic arc from the car (gravity only; the booster and air drag are left out) until

@@ -156,8 +156,7 @@ public partial class WorldScene : Node2D
         {
             Position = _player.Position,
             Zoom = new Vector2(FootZoom, FootZoom),
-            PositionSmoothingEnabled = true,
-            PositionSmoothingSpeed = 7f,
+            PositionSmoothingEnabled = false,   // AirCam eases the position itself (it knows the car's speed)
         };
         AddChild(_camera);
         _camera.MakeCurrent();
@@ -1770,7 +1769,7 @@ public partial class WorldScene : Node2D
                     _player.Position = at;
                     _player.Velocity = Vector2.Zero;
                     _camera.Position = at;
-                    _camera.ResetSmoothing();
+                    _airCam.Snap(at);
                     GD.Print($"[deep] test: player placed in a cavern at tile ({x},{y}) depth={(y - _world.SurfaceRow(x)) * 0.25f:0.0}m " +
                              $"{(x - mid) * 0.25f:0} m from the garage, biome={TileWorld.BiomeAt(x)} frame={Engine.GetFramesDrawn()}");
                     return;
