@@ -2,6 +2,43 @@
 
 Newest entry first. Each session: what was built and why, how it was verified, what is not verified, and what comes next.
 
+## 2026-11-12, about 08:20–09:20 UTC — Jump kickers on the road (PR #16)
+
+**Built**
+
+- **Kickers from world generation** (`TileWorld.PlaceKickers` / `BuildKicker`, `Kicker` struct): a ramp built into the surface facing away from the garage: it eases in (one tile over three columns, like a normal hill), then climbs one tile every two columns (about 27°, steeper than any natural slope) to a sharp crest 1.0–1.75 m above the run-up, then a back slope of one tile every three columns that runs all the way down to the ground (so the drive home climbs it like any hill and never meets a wall). Meadow kickers are 1.0–1.5 m, Wastes and Frozen North 1.25–1.75 m. The first on each side sits just past the gate; then one every 26–42 m along the road. They only go where the run-up is level and the ground under the face is flat or falling, so the crest always stands out. On this seed: 8 kickers (E 57/107/144/187/242 m, W 74/145/292 m).
+- **Material by biome**: a grass-topped dirt mound in the meadow, a sand dune lip in The Wastes, a snow-capped cornice in the north (never ice). Everything under a kicker is generated as if it were not there (caves, ore, stashes unchanged).
+- **Warning sign** (`tools/make_art.py`, decor cells 8 and 9): a yellow board with a ramp-and-arrow icon and hazard stripes on a post, on the run-up four tiles before the face, mirrored for the west side. No trees or bushes on a kicker.
+- **One-time hint**: "KICKER AHEAD! hit it fast · Q/E in the air · land flat" when you drive toward a kicker the first time (only if the screen is free and you are at least 4 m before it).
+- Pickups are moved off kicker ramps (to just past the back slope).
+- **Save**: world save bumped to **GHW8** (the kicker list is saved); old worlds regenerate.
+- **CI**: `[kicker]` lines (world list, take-off with speed and pitch, which landing grade followed, homeward crossings), `kickers=jumps/launches` on `[autoplay]` lines, and `kicker_*` screenshots around the first two take-offs. The ice test flattens kickers on its strip (`TileWorld.RemoveKickers`) so its numbers stay comparable.
+
+**Why this** — Brainstorm in `docs/IDEAS.md` (ninth session): the landing grades from last session are a skill with nowhere to practise it; jumps only came from random bumps. The meadow road just outside the gate, driven twice on every trip, was the flattest and dullest stretch. A kicker you can see coming (sign, steep face) is what Hill Climb Racing and Trials build their tracks around. It was "Next" item 2 last session, small, and felt in the first minute.
+
+**Verified (CI runs 43183491598, 43185258953, 43186897219, 43188320845, all green)**
+
+- Run 1 (level ground required for the whole face): only 2 kickers in the whole world, and screenshots showed a sheer wall at the end of the back slope where the dunes fell away. Run 2 (no level requirement, back slope runs down to the ground): 14 kickers, but on rising ground the face merged into the hill (no crest) and the starter car reared up on it and rolled over three times (`world_180.png`); 40 s position x=1684 against 2282 on main. Run 3: ease-in face, only on flat or falling ground (8 kickers); I also tried a bot that levels the car in the air with Q/E — it over-rotated, 0 perfect landings in all runs and changed the ice numbers, so it was removed. Run 4 is the final code.
+- Run 4 take-offs: starter car 4 kickers at 25–30 km/h, 2 judged jumps (0.64 s, 0.77 s, rough); left run 2 take-offs, 1 clean (0.62 s); Spiked Tyres left run 2 take-offs, **1 PERFECT LANDING off a 1.25 m snow kicker** (0.79 s); rocket 4/4 kickers jumped at 28–40 km/h (0.61–0.98 s; 2 rough, 2 tail slams); trip test 2 take-offs + 2 homeward crossings at 15 and 26 km/h (the drive home gets over them).
+- Nothing got stuck: 40 s positions vs main — starter 2190 (main 2282, −23 m, the cost of four jumps), left 603 (560), Spiked 300 (268), rocket 2156 (2156). Roll-overs the same as main (0/2/1/1). Drill car identical to main (1473.5, 97.2). Ice strip identical (plain 7.0 s, spiked 4.7 s). Hill Climb 18.97 s and 15.25 s (unchanged). Trip reports 259 and 443 (new best). No errors.
+- Screenshots: `kicker_world_169.png` (sign on the run-up, car on the face), `kicker_rocket_249.png` (dune kicker with crest and long back slope, car in the air), `kicker_left_363.png` (snow cornice and the KICKER AHEAD hint), `kicker_left_192.png` from run 2 (meadow kicker seen from the far side).
+
+**Not verified / known issues**
+
+- Fun is my judgement. At the bot's speeds (25–40 km/h) a kicker gives about 0.6–1.0 s of air, similar to the best natural bumps; the value is that the jump is visible and reliable. With a booster or a run-up at 50+ km/h it should be much bigger, but the bot did not test that.
+- The starter car rears up on the 27° face if you hit it slowly; a player can hold the nose down with Q/E. Whether that feels like a fair challenge or annoying needs you (D1).
+- The bot does not use Q/E in the air, so most of its kicker landings are rough. A real player should get far more clean and perfect ones.
+- Kicker spacing on this seed is uneven (57 → 107 m east), because spots on rising ground are skipped.
+- I cannot hear anything; no new sounds this session.
+
+**Next**
+
+1. Long-jump mark past each kicker with a per-kicker distance record ("LONG JUMP 9.4 m, best 11.2 m") (small) — turns each kicker into a mini challenge.
+2. Perfect chain: "PERFECT x3" stacking the kick (small).
+3. A Wastes part: Sand Paddles or a big-bore copper engine (small–medium).
+4. Lava seam deep underground with rich ore behind it (medium; first underground danger).
+5. Engine sound per engine part (small).
+
 ## 2026-11-12, about 07:20–08:10 UTC — Landing grades and the perfect-landing kick (PR #15, polish session)
 
 **Built**

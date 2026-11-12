@@ -2,6 +2,13 @@
 
 Newest first. One entry per big decision: what, why, and what would make us revisit it.
 
+## 2026-11-12 — Jump kickers: shape and placement
+
+- **What:** world generation raises the surface line into kickers facing away from the garage: an ease-in (one tile over three columns), then one tile every two columns (about 27°) to a crest 4–7 tiles (1.0–1.75 m) above the run-up, then a back slope of one tile every three columns down to wherever the ground is. First kicker about 23 m out on each side (shifted up to 15 m to find a good spot), then one every 26–42 m. A spot needs six level columns of run-up and ground that does not rise under the face or just past the crest. The fill below a kicker uses the natural depth, so caves, ore and stashes do not move. World save GHW8 stores the kicker list.
+- **Why this shape:** a steeper face than any hill makes the take-off obvious and gives air at normal speeds; the ease-in stops the car slamming into a corner (run 2 without it: the starter car reared up and rolled); the long back slope means the drive home is an ordinary climb and the outbound landing is on a down slope. Kickers on rising ground had no crest (the car just climbed a wall), so those spots are skipped.
+- **Rejected for now:** a bot that levels the car in the air (it over-rotated and made landings worse); kickers in both directions (the return trip would face a 27° wall or need a symmetric pyramid that throws the car nose-up).
+- **Revisit when:** you have played (D1): if kickers feel too small, raise the rise or let players hit them faster (longer run-ups); if the starter car rears up too easily, soften the face to 1 tile per 3 columns plus a lip.
+
 ## 2026-11-12 — Landing grades and the perfect-landing kick
 
 - **What:** after every jump of 0.6 s or more (`LandingJudge`), the landing is graded. PERFECT: all attached wheels down within 0.12 s of the first, the car within 15° of the ground under its wheels at touchdown, no body hit, under 0.5 damage; verdict 0.25 s after touchdown. CLEAN: all wheels down within 0.5 s, no body hit, under 2 damage. Otherwise rough (no call-out except the old BIG AIR cheer for jumps over 0.9 s). A body hit while still in the air after 0.6 s+ is a named botched landing: ROOF LANDING (pitch over 100°), NOSE DIVE / TAIL SLAM (leading end down or up by 25°+ with not all wheels down), BELLY FLOP otherwise.
