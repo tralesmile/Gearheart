@@ -18,14 +18,16 @@ public partial class AirCam : Node2D
 {
     private const float Ts = TileWorld.TileSize;
     private const float Gravity = 980f;            // matches SoftVehicle
-    private const float Probe = 26f;               // px below the body centre that touches down first
-    private const float LeadPerSpeed = 0.32f;      // s of look-ahead (px of lead per px/s)
-    private const float LeadMax = 250f, LeadMaxDown = 90f, LeadMaxUp = 60f;
+    private const float Probe = 44f;               // px below the body centre that touches down first (about the tyres)
+    private const float LeadPerSpeed = 0.22f;      // s of look-ahead (px of lead per px/s)
+    private const float LeadMax = 220f, LeadMaxDown = 90f, LeadMaxUp = 60f;
     private const float BigAir = 0.7f;             // s of predicted flight before the air cam engages
     private const float AirZoomMin = 0.85f;
     private const float MarginX = 300f, MarginY = 230f;   // screen px kept around car and landing
 
     public TileWorld World { get; set; }
+    /// <summary>The Camera2D's position smoothing speed: its lag behind a moving target is cancelled.</summary>
+    public float Smoothing { get; set; } = 7f;
 
     /// <summary>Where the camera should point this frame (world px).</summary>
     public Vector2 Target { get; private set; }
@@ -39,7 +41,7 @@ public partial class AirCam : Node2D
     public float TimeToLand => _timeToLand;
     public Vector2 Lead => _lead;
 
-    private Vector2 _lead;
+    private Vector2 _lead, _vel;
     private float _air, _timeToLand, _flight, _shadow;
     private bool _hasLanding;
     private Vector2 _landing;
@@ -54,6 +56,7 @@ public partial class AirCam : Node2D
         if (!driving)
         {
             _lead = _lead.Lerp(Vector2.Zero, 1f - Mathf.Exp(-4f * dt));
+            _vel = Vector2.Zero;
             _air = 0f;
             _hasLanding = false;
             Target = car;
@@ -61,6 +64,9 @@ public partial class AirCam : Node2D
             Fade(dt);
             return;
         }
+
+        // A smoothed velocity: bumps and bounces must not shake the view.
+        _vel = _vel.Lerp(velocity, 1f - Mathf.Exp(-5f * dt));
 
         // Look ahead along the way the car is going. Slow to follow, so bumps don't wobble the view.
         var wantLead = new Vector2(
@@ -93,6 +99,9 @@ public partial class AirCam : Node2D
         // Whatever happens, keep the car on screen (judged at the zoom the camera has right now).
         Vector2 half = viewport / (2f * Mathf.Max(0.1f, currentZoom));
         Vector2 room = new(Mathf.Max(0f, half.X - 150f), Mathf.Max(0f, half.Y - 110f));
+        // The camera eases toward its target and so trails a moving car by speed / smoothing;
+        // aim that far ahead so the look-ahead is really ahead at 90 km/h too.
+        target += _vel / Mathf.Max(1f, Smoothing) * (1f - 0.5f * _air);
         Vector2 off = target - car;
         off = new Vector2(Mathf.Clamp(off.X, -room.X, room.X), Mathf.Clamp(off.Y, -room.Y, room.Y));
         Target = car + off;
@@ -152,8 +161,8 @@ public partial class AirCam : Node2D
         if (_shadow < 0.02f) return;
         // A soft dark ellipse on the ground, smaller and fainter the farther the car is from it.
         float near = Mathf.Clamp(1f - _timeToLand / 1.6f, 0.25f, 1f);
-        float w = 30f + 26f * near, h = 4f + 3f * near;
-        var c = new Color(0f, 0f, 0f, 0.38f * _shadow * (0.45f + 0.55f * near));
+        float w = 40f + 34f * near, h = 5f + 3f * near;
+        var c = new Color(0.05f, 0.03f, 0.02f, 0.6f * _shadow * (0.5f + 0.5f * near));
         Vector2 at = _frameLanding + new Vector2(0f, -1f);
         for (int i = 0; i < 3; i++)
         {
