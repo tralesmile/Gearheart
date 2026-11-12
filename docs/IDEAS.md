@@ -91,12 +91,30 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 81 | Rival truck: a slow bot truck drives the road; overtake it before the next kicker for "OVERTAKE" points | M | Open (new 2026-11-12; first moving thing on the road, NFS-lite without combat) |
 | 82 | Start-light gantry over the pad: red, red, red, GREEN; letting go on green scores a reaction time ("REACTION 0.21 s") on top of the sprint | S | Open (new 2026-11-12, fourteenth session; the drag-strip ritual, turns the launch into a duel with the lights) |
 | 83 | Sprint ghost: a see-through car of your best sprint launching beside you | S–M | Open (new 2026-11-12; you see exactly where you lose the tenths) |
-| 84 | Rock it free: stuck with the throttle held, Q/E rocks the car on its springs harder, with a "ROCK IT! (Q/E)" hint | S | Open (new 2026-11-12; the bot wedged in two caves this session, a player would walk home) |
+| 84 | Rock it free: stuck with the throttle held, Q/E rocks the car on its springs harder, with a "ROCK IT! (Q/E)" hint | S | **Built 2026-11-12** (PR #23: STUCK after 1 s pushing without moving; each Q/E tap hops, shoves and twists, alternating taps chain up to x5; ROCKED FREE! call-out, creak, dust) |
 | 85 | Tunnel lanterns: the drill car drops a small glowing marker every 10 m of tunnel, so the way back is lit and you can see how far you dug | S | Open (new 2026-11-12; deep tunnels become a map you made) |
 | 86 | Cave ambience: drips, a low hum and echoing drill in caverns; wind and birds on the surface | S | Open (new 2026-11-12; underground is silent apart from the drill) |
 | 87 | Record board by the garage: a chalkboard on the pad showing best sprint, farthest trip, deepest dig and best trip score | S | Open (new 2026-11-12; records you can see in the world, a lighter #36 trophy shelf) |
 | 88 | Dyno readout in the garage: an estimated 20 m sprint time for the design as you build it | M | Open (new 2026-11-12; tuning gets a number, NFS-style) |
+| 89 | Hydraulics part ("Bounce Kit", copper + iron): press J for a lowrider hop, hold for a bigger one; bounce over small rocks, pop wheelies, hop onto ledges | S–M | Open (new 2026-11-12, fifteenth session; the rock pulse as a part you own, changes how the car drives) |
+| 90 | Mud pits on the meadow road: soft dark ground that eats speed and sinks the wheels; rocking (or a run-up) gets you through, mud sprays and cakes the tyres | S–M | Open (new 2026-11-12; gives rock-it-free a place in the world on purpose) |
+| 91 | Horn (H) and birds: a honk per engine, birds on the road and on the garage roof that scatter when you honk or drive at them | S | Open (new 2026-11-12; tiny joy, life in the world) |
+| 92 | Tumbleweeds in The Wastes: they roll with the wind across the road, smash for the streak, bounce off the bonnet | S | Open (new 2026-11-12; moving things on the road, biome flavour) |
+| 93 | Rescue stats on the trip report: "rocked free x2", "walked home" as a cheeky line (no points lost) | S | Open (new 2026-11-12; makes a bad moment a story) |
 | 29 | Speedometer redline overdrive: holding the needle in the red for 3 s with the booster unlocks a "SONIC" call-out and a sonic-boom puff | S | Open (new 2026-11-12, cheap thrill) |
+
+## 2026-11-12 (fifteenth session — feel)
+
+Looked at `drill_280.png` (the drill car wedged in a V-shaped notch in a cave, 0 km/h, damage 48, "Hold Space + D … PERFECT START" still on the hint line as if nothing were wrong), `world_230.png` (SMASH x2 in The Wastes, the car looks good) and `sprint_43.png`. The most boring minute right now is being stuck: full throttle, wheels not turning, nothing the game tells you to do, and the only way out is to get out and walk home. Every off-road game makes the escape the fun part (Spintires' rocking, Trials' bunny hop); a stuck car should be a little struggle you win. The last four sessions were features and a physics fix, so this one is feel.
+
+- **Rock it free** (S): STUCK call-out, Q/E taps rock the car with growing hops, ROCKED FREE! Why fun: turns the worst minute into a ten-second minigame you win. *Built.*
+- **Hydraulics part** (S–M): a lowrider hop on a button. Why fun: a part that changes how the car moves; hop small rocks, show off.
+- **Mud pits** (S–M): soft ground that bogs you down. Why fun: a place where rocking is the skill, and mud spray looks great.
+- **Horn and birds** (S): honk, birds scatter. Why fun: pure joy, the world reacts to you.
+- **Tumbleweeds** (S): rolling across the Wastes road. Why fun: the road gets moving things without enemies.
+- **Rescue stats on the trip card** (S): "rocked free x2". Why fun: a bad moment becomes a story you tell.
+
+Best open picks for fun per effort right now: #48 flip tricks (S), #82 start lights (S), #89 hydraulics (S–M), #64 Crystal Lamp (S), #90 mud pits (S–M), #68 surface lift (S–M), #79 falling star crate (M), then #65 deep critters and #56 lava (M).
 
 ## 2026-11-12 (fourteenth session)
 

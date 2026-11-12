@@ -52,6 +52,12 @@ public partial class CrashFx : Node2D
         if (_car != null && IsInstanceValid(_car)) _car.Crashed -= OnCrash;
     }
 
+    /// <summary>A small puff of dust (rocking a stuck car, a wheel thumping down).</summary>
+    public void Dust(Vector2 at, Vector2 normal, Color color, int amount, float speed)
+    {
+        if (Enabled) Burst(at, normal, color, amount, speed, 0.6f, 2.5f, 5f, 200f, 70f, dust: true);
+    }
+
     /// <summary>Adds screen shake (0..1). Shake grows with the square of trauma, so small knocks stay subtle.</summary>
     public void AddTrauma(float amount) => _trauma = Mathf.Clamp(_trauma + amount, 0f, 1f);
 

@@ -2,6 +2,14 @@
 
 Newest first. One entry per big decision: what, why, and what would make us revisit it.
 
+## 2026-11-12 — Rock it free: a stuck car is a minigame, not a walk home
+
+- **What:** a car whose driver holds the throttle (above 30%, no handbrake, not drilling, not on its roof, a wheel on the ground) for 1 s without the body moving faster than about 1 km/h is **STUCK**. While stuck, Q/E tilt on the ground is 2.5x stronger, and every fresh tap of Q or E with a wheel on the ground gives a *rock*: a hop (110 px/s, +40 per step of the chain, up to 270), a shove the way the throttle points (60–140 px/s, 3–8 km/h) and a twist the way you tapped. Alternating taps within 0.9 s of each other build a chain up to x5. Moving 1.5 m sideways from where it got stuck at more than about 3.6 km/h is **ROCKED FREE!**; letting go of everything for 1.5 s, flipping or parking ends it quietly.
+- **Why:** being wedged (a notch, a step, a tunnel lip) was the dullest moment in the game: full throttle, nothing moving, no hint, walk home. Rocking a stuck car is what people do in real life and what off-road games (Spintires, MudRunner) make into a skill. Rhythm builds the chain, so frantic mashing of one key is weaker than a steady Q-E-Q-E. The hop only comes off the ground, because in the first CI run taps in the air stacked and flew the rocket car 13 m up.
+- **Taps in the air** are kept for 0.4 s and fire on touchdown, so a steady rhythm survives the bounce but hops never stack.
+- **Measured (CI run 43242512714):** a 2-tile (0.5 m) trench past the pad: rocking gets the starter pickup out 4.7 s after it got stuck (12 rocks); the control run without rocking (backing up and charging again) is still in the trench after 20 s. A 3-tile (0.75 m) wall is out of reach with or without rocking (by design: a wall taller than the car's wheels needs the drill or a shovel). The Crystal Drill car's wedge on the bot route: free after 1.2 s (3 rocks).
+- **Revisit when:** you have played (D1). The constants are at the top of the "Rock it free" block in `SoftVehicle`. If it feels like a cheat for climbing walls, lower the top hop or require the chain to build; if nobody finds it, the STUCK call-out is the place to make it louder.
+
 ## 2026-11-12 — Gate sprint: 20 m from any standing start on the pad
 
 - **What:** every time the car pulls away from a standstill on the garage pad (anywhere on it), the run to 20 m sideways from that spot is timed, in either direction. The clock starts at the last moment the car was below 0.5 km/h, so time spent charging a launch does not count. It is cancelled by stopping on the pad again, getting out, or taking more than 12 s. The best time is kept in progress.json.

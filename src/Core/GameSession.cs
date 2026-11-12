@@ -87,6 +87,19 @@ public static class GameSession
     /// (--launchearly: lets go far too early for a bogged start).</summary>
     public static bool LaunchTest => UserArgs.Contains("--launchtest") || LaunchEarly;
     public static bool LaunchEarly => UserArgs.Contains("--launchearly");
+    /// <summary>--rocktest: a trench past the garage pad with a wall too tall to drive up; the bot rocks the car out
+    /// (--norock: the control run, no rocking). --rockdepth=N sets the trench depth in tiles (default 3).</summary>
+    public static bool RockTest => UserArgs.Contains("--rocktest");
+    public static bool NoRock => UserArgs.Contains("--norock");
+    public static int RockDepth
+    {
+        get
+        {
+            foreach (string a in UserArgs)
+                if (a.StartsWith("--rockdepth=") && int.TryParse(a.Substring(12), out int n)) return Mathf.Clamp(n, 1, 8);
+            return 3;
+        }
+    }
     private static bool FreshStart => UserArgs.Contains("--fresh");
 
     public static void ApplyCommandLine()

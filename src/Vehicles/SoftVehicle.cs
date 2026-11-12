@@ -73,6 +73,45 @@ public partial class SoftVehicle : Node2D, IVehicle
     /// </summary>
     public event System.Action<CrashEvent> Crashed;
 
+    // ---- Rock it free -------------------------------------------------------------------------
+    // Held the throttle for a second on the ground and the car does not move (a notch, a step, a
+    // tunnel lip): it is STUCK. While stuck, Q/E tilt rocks the car on its springs much harder, and
+    // every tap of Q or E (best alternating, like rocking a real car) gives a little hop, a shove the
+    // way the throttle points and a twist the way you tapped. Taps in a rhythm build a chain that
+    // hops higher each time. Moving 1.5 m away from where it got stuck, rolling, is ROCKED FREE.
+    public const float RockStuckAfter = 1.0f;     // seconds of pushing without moving
+    private const float RockStuckSpeed = 20f;     // px/s (about 1 km/h; 64 px = 1 m)
+    private const float RockChainWindow = 0.9f;   // seconds between taps that still build the chain
+    private const float RockMinGap = 0.16f;       // seconds between two rocks
+    private const float RockTiltBoost = 2.5f;     // ground tilt strength while stuck
+    private const float RockBuffer = 0.4f;        // seconds a tap made in the air waits for touchdown
+    public const int RockChainMax = 5;
+    private const float RockFreeDistance = 96f;   // px sideways from the stuck point (1.5 m)
+
+    /// <summary>True from a second of pushing without moving until the car gets going again (or the driver gives up).</summary>
+    public bool Stuck { get; private set; }
+    /// <summary>Rocks in the current rhythm (1..<see cref="RockChainMax"/>).</summary>
+    public int RockChain { get; private set; }
+    /// <summary>All rocks since the car was built (for the playtest log).</summary>
+    public int RockPulses { get; private set; }
+    /// <summary>Bots only: rock the car (alternate Q and E) when it gets stuck. Off for a control run.</summary>
+    public bool AutoRock = true;
+
+    /// <summary>Raised when the car becomes stuck.</summary>
+    public event System.Action StuckStarted;
+    /// <summary>Raised on every rock: the chain count and the hop (px/s).</summary>
+    public event System.Action<int, float> Rocked;
+    /// <summary>Raised when a stuck car gets going again: rocks used and seconds it was stuck.</summary>
+    public event System.Action<int, float> RockedFree;
+
+    private float _stuckTime, _stuckFor, _sinceRock = 10f, _giveUp, _autoRockTime;
+    private Vector2 _stuckAt;
+    private int _rocksThisStuck, _heldTiltSign, _lastRockSign, _bufferedRock;
+    private float _bufferedFor;
+    private bool _rockPending;
+    private Vector2 _rockPush;
+    private float _rockSpin;
+
     /// <summary>True while the rocket boosters are firing this tick.</summary>
     public bool Boosting { get; private set; }
 
@@ -677,8 +716,20 @@ public partial class SoftVehicle : Node2D, IVehicle
             for (int i = 0; i < Pos.Length; i++) Prev[i].Y += 240f * dt;   // about 240 px/s upwards
         }
 
+        if (_rockPending)
+        {
+            _rockPending = false;
+            Vector2 rc = BodyCenter();
+            for (int i = 0; i < Pos.Length; i++)
+            {
+                Vector2 r = Pos[i] - rc;
+                Prev[i] -= (_rockPush + new Vector2(-r.Y, r.X) * _rockSpin) * dt;
+            }
+        }
+
         // Upside down and stopped: the car rocks itself back onto its wheels.
         float tilt = _input.Tilt;
+        if (Stuck && !_selfRighting) tilt *= RockTiltBoost;
         // If it stays stuck (wedged on its roof in a dip), the push grows until it rolls over.
         if (_selfRighting && !Parked) tilt = -Mathf.Sign(PitchDegrees()) * Mathf.Min(8f, 2.5f + 2.2f * _rightingTime);
 
@@ -887,6 +938,7 @@ public partial class SoftVehicle : Node2D, IVehicle
 
         _drillContactTime = Mathf.Max(0f, _drillContactTime - delta);
         Speed = (BodyCenter() - _centerAtTickStart).Length() / delta;
+        UpdateRock(delta);
         DetectImpact(delta);
 
         // Dust from the rearmost grounded wheel when moving; exhaust smoke under throttle.
@@ -1140,6 +1192,103 @@ public partial class SoftVehicle : Node2D, IVehicle
         wheel.Angle += wheel.Spin * dt;
     }
 
+    /// <summary>Stuck detection, rock taps and the ROCKED FREE moment (see the constants at the top).</summary>
+    private void UpdateRock(float dt)
+    {
+        _sinceRock += dt;
+        bool grounded = !Airborne;
+        bool pushing = Mathf.Abs(_input.Throttle) > 0.3f && !_input.Handbrake && !Parked && !_selfRighting && !IsDrilling && !LaunchArmed;
+
+        if (!Stuck)
+        {
+            _stuckTime = pushing && grounded && Speed < RockStuckSpeed ? _stuckTime + dt : 0f;
+            if (_stuckTime >= RockStuckAfter)
+            {
+                Stuck = true;
+                _stuckAt = CenterPosition;   // world frame: Recenter() may move the node frame meanwhile
+                _stuckFor = 0f;
+                _rocksThisStuck = 0;
+                _giveUp = 0f;
+                RockChain = 0;
+                StuckStarted?.Invoke();
+            }
+        }
+        else
+        {
+            _stuckFor += dt;
+            if (Mathf.Abs(CenterPosition.X - _stuckAt.X) > RockFreeDistance && Speed > 64f)
+            {
+                RockedFree?.Invoke(_rocksThisStuck, _stuckFor);
+                EndStuck();
+            }
+            else
+            {
+                // Let go of everything for 1.5 s (or flipped, parked): no longer stuck. A hop that
+                // brushes the drill against rock does not count as getting out.
+                bool idle = Mathf.Abs(_input.Throttle) < 0.3f && Mathf.Abs(_input.Tilt) < 0.5f;
+                _giveUp = idle ? _giveUp + dt : 0f;
+                if (_giveUp > 1.5f || _selfRighting || Parked) EndStuck();
+            }
+        }
+
+        // Tilt taps: a fresh press of Q or E (after holding the other, or nothing) is a rock.
+        int sign = _input.Tilt > 0.5f ? 1 : _input.Tilt < -0.5f ? -1 : 0;
+        if (sign != _heldTiltSign)
+        {
+            // A rock pushes off the ground. A tap in the air is kept for a moment and fires on touchdown,
+            // so the rhythm survives a bounce but hops never stack in the air (the first CI run, which
+            // let them stack, flew the rocket car 13 m up with 13 taps).
+            if (sign != 0 && Stuck && _sinceRock >= RockMinGap)
+            {
+                if (grounded) Rock(sign);
+                else
+                {
+                    _bufferedRock = sign;
+                    _bufferedFor = RockBuffer;
+                }
+            }
+            _heldTiltSign = sign;
+        }
+        if (_bufferedRock != 0)
+        {
+            _bufferedFor -= dt;
+            if (!Stuck || _bufferedFor <= 0f) _bufferedRock = 0;
+            else if (grounded)
+            {
+                Rock(_bufferedRock);
+                _bufferedRock = 0;
+            }
+        }
+    }
+
+    private void Rock(int sign)
+    {
+        // Alternating taps in a rhythm build the chain; anything else starts over.
+        bool rhythm = _lastRockSign == -sign && _sinceRock <= RockChainWindow;
+        RockChain = rhythm ? Mathf.Min(RockChain + 1, RockChainMax) : 1;
+        _lastRockSign = sign;
+        _sinceRock = 0f;
+        _rocksThisStuck++;
+        RockPulses++;
+
+        float hop = 70f + 40f * RockChain;                 // 110..270 px/s up (a 270 px/s hop rises about 37 px, 2.3 tiles)
+        float shove = (40f + 20f * RockChain) * Mathf.Sign(_input.Throttle);   // 60..140 px/s (3–8 km/h) the way you push
+        _rockPush = new Vector2(shove, -hop);
+        _rockSpin = sign * (0.6f + 0.15f * RockChain);     // rad/s, the way you tapped
+        _rockPending = true;
+        // Unloaded wheels may spin up past a stall for a moment, like the launch kick.
+        _overdrive = Mathf.Max(_overdrive, Mathf.Abs(shove));
+        Rocked?.Invoke(RockChain, hop);
+    }
+
+    private void EndStuck()
+    {
+        Stuck = false;
+        _stuckTime = 0f;
+        RockChain = 0;
+        _giveUp = 0f;
+    }
+
     /// <summary>
     /// Finds hard hits, two ways: a body node slamming into the ground (its approach speed,
     /// measured in the contact solver), or a landing after real air time (the falling speed at
@@ -1321,6 +1470,16 @@ public partial class SoftVehicle : Node2D, IVehicle
     {
         if (AutoHandbrake) return new VehicleInput(AutoThrottle, 0f, true);
         const float tick = 1f / 120f;
+        // Stuck: rock it like a player would (E, Q, E, Q every 0.3 s with the throttle held) for up
+        // to 4 s, then fall back to backing up.
+        if (!Stuck) _autoRockTime = 0f;
+        else if (AutoRock && _autoRockTime < 4f)
+        {
+            _autoRockTime += tick;
+            _autoStuckTime = 0f;
+            float rock = ((int)(_autoRockTime / 0.3f) & 1) == 0 ? 1f : -1f;
+            return new VehicleInput(AutoThrottle, rock, false);
+        }
         if (AutoTilt != 0f)
         {
             // Digging with the nose held down: if the car is wedged (slow, the drill biting nothing)

@@ -296,6 +296,30 @@ crash_rng = np.random.default_rng(31)   # separate stream: adding sounds never c
 land_rng = np.random.default_rng(91)    # own stream for the perfect-landing whoosh
 
 
+def creak():
+    """Rocking a stuck car: a leaf-spring creak (stick-slip clicks through a wooden-metal resonance)
+    over a soft suspension thump."""
+    n = int(SR * 0.42); t = np.arange(n) / SR
+    # Stick-slip: clicks whose rate sweeps up then down, like a spring compressing and coming back.
+    rate = 55 + 90 * np.sin(np.pi * np.clip(t / 0.34, 0, 1))
+    phase = np.cumsum(rate) / SR
+    tau = (phase - np.floor(phase)) / rate
+    jitter = 1 + 0.25 * lowpass(creak_rng.standard_normal(n), 200) / 0.07
+    clicks = np.exp(-tau * 900) * jitter
+    ring = np.zeros(n)
+    for f, g, d in ((640, 1.0, 38), (1130, 0.55, 55), (1720, 0.3, 70)):   # resonances of the spring and body
+        kernel_t = np.arange(int(SR * 0.05)) / SR
+        ring += g * np.convolve(clicks, np.sin(2 * np.pi * f * kernel_t) * np.exp(-kernel_t * d), mode="full")[:n]
+    env = np.sin(np.pi * np.clip(t / 0.36, 0, 1)) ** 0.6
+    s = ring / (np.max(np.abs(ring)) + 1e-9) * env * 0.8
+    # The body settling on the springs: a soft low thump at the start.
+    s += 0.7 * np.sin(2 * np.pi * (70 + 40 * np.exp(-t * 30)) * t) * np.exp(-t * 16)
+    return s
+
+
+creak_rng = np.random.default_rng(141)   # own stream for the rock-it-free creak
+
+
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
     save("engine", engine(), 0.7)
@@ -319,4 +343,5 @@ if __name__ == "__main__":
     save("shift", tail_fade(shift(), 40), 0.7)
     save("start", tail_fade(start(), 120), 0.6)
     save("pop", tail_fade(pop(), 30), 0.7)
+    save("creak", tail_fade(creak(), 40), 0.6)
     print("sounds written to", os.path.abspath(OUT))

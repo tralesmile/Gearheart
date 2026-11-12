@@ -2,6 +2,41 @@
 
 Newest entry first. Each session: what was built and why, how it was verified, what is not verified, and what comes next.
 
+## 2026-11-12, about 14:20–15:40 UTC — Rock it free (PR #23, feel session)
+
+**Started by** checking for unfinished work: no open pull requests, main green (run 43234068638 after PR #22). The branch `polish/engine-gearbox` is PR #19's, merged long ago (left alone).
+
+**Built** (`SoftVehicle` "Rock it free" block, `WorldScene.OnStuck/OnRock/OnRockedFree`, `CrashFx.Dust`, `creak.wav`)
+
+- **STUCK**: holding the throttle (no handbrake, not drilling, not on the roof, a wheel down) for 1 s without moving faster than about 1 km/h. A "STUCK! Rock it free: tap Q, E, Q, E" call-out, a low thud, and the hint line swaps the launch-control tip for "STUCK! Tap Q, E, Q, E to rock it free (keep the throttle on)".
+- **Rocks**: while stuck, ground tilt is 2.5x stronger, and each fresh Q or E tap with a wheel down gives a hop (110 px/s, +40 per chain step, up to 270), a shove the way the throttle points (3–8 km/h) and a twist the way you tapped. Alternating taps within 0.9 s build a chain up to x5 ("ROCK IT! x3 / keep the throttle on"). A tap in the air waits up to 0.4 s and fires on touchdown. Each rock plays a spring creak (pitch rises with the chain), puffs dust at the wheels and nudges the camera.
+- **ROCKED FREE!**: 1.5 m sideways from the stuck point while rolling: call-out with rocks and seconds, the landing ta-DING, warm speed streaks. Letting go of everything for 1.5 s (or flipping, parking) ends it quietly.
+- **Bot**: when stuck it taps E, Q, E, Q every 0.3 s with the throttle held for up to 4 s, then falls back to backing up (`AutoRock`, off with `--norock`).
+- **CI**: `--rocktest` digs a trench past the pad (`--rockdepth=N` tiles, default 3, 20 tiles long) and drives at it; runs at 2 tiles, 2 tiles without rocking (control), 3 tiles, 3 tiles without rocking; `[rock]` lines; `rock_*` screenshots; `stuck= rocks= rockedFree= longestStuck=` on `[autoplay]`.
+
+**Why this** — Brainstorm in `docs/IDEAS.md` (fifteenth session). `drill_280.png` showed the drill car wedged in a cave notch at 0 km/h with the hint line cheerfully offering a PERFECT START. Being stuck was the most boring minute of the game: nothing to do but get out and walk. It was #1 on the last Next list, four sessions in a row were features or a physics fix, so a feel session was due, and rocking a stuck car is a little struggle you win (Spintires, MudRunner).
+
+**Verified (CI runs 43237750998, 43240115433, 43242512714, all green)**
+
+- **Run 1** (taps stacked in the air): 3-tile trench out in 2.3 s with 8 rocks — but the rocket car, stuck in a dip at the end of its run, rocked 13 times and **flew 13 m up**. Taps in the air must not stack.
+- **Run 2** (rocks only with a wheel down): no more flying; but taps made in the air were lost, so the chain kept breaking (3-tile trench: never out forwards).
+- **Run 3** (air taps wait for touchdown): **2-tile trench: out 4.7 s after getting stuck, 12 rocks** (`rock_free_97.png`: "ROCKED FREE! 12 rocks · 4.7 s"); **control without rocking: still in the trench after 20 s** (it backs up and charges the wall three times). 3-tile wall (0.75 m): out of reach with or without rocking. The Crystal Drill car's wedge on the bot route: **free after 1.2 s, 3 rocks**, dug to 9.6 m by 40 s. The plain drill car's V-notch: 15 rocks, not free (run 2 freed it with 10 rocks); damage 62 vs 48 before (the hops knock the drill about). Rocket car's dip at 36 s: 8 rocks, not free, stays on the ground.
+- **Screenshots**: `rock_stuck_51.png` (hint line and call-out), `rock_chain_57.png` (ROCK IT! x3, dust at the wheels), `rock_free_97.png`.
+- **Nothing else changed**: 40 s positions identical where no car got stuck (starter 2179.0, left 512.7, spiked 375.1), trip reports 414/379, Hill Climb 19.19 s / 14.11 s. No errors.
+
+**Not verified / known issues**
+
+- Fun is my judgement; the bot taps at a fixed 0.3 s, a player will find their own rhythm. Whether the bounce looks floaty at x5, and whether it can be used to climb things it should not, needs you to play (D1).
+- The creak is tuned by numbers and a spectrogram only (resonances at 640/1130/1720 Hz).
+- The plain drill car's notch on the bot route is still a trap in some runs (rocking freed it once in three).
+- Rocking works with the throttle either way, but only forwards-into-a-wall is tested.
+
+**Next**
+
+1. Flip tricks (S, IDEAS #48) now that tilt is full strength — BACKFLIP! when you land it.
+2. Start-light gantry over the pad (S, #82), or the Hydraulics "Bounce Kit" part (S–M, #89): the rock pulse as a part you own.
+3. Crystal Lamp (S, #64), surface lift (S–M, #68), then the first underground danger (#65 / #56, M).
+
 ## 2026-11-12, about 13:20–14:15 UTC — Finished the physics fix (PR #21), then the gate sprint (PR #22)
 
 **Started by** checking for unfinished work: PR #21 (car nodes relative to a local origin) was open, its build green (run 43225624030), and the run before me was still finishing it (it pushed its work-log entry at 13:31 and left the PR open over one question: why the drill cars now get stuck in caves). I picked it up: one bot change and one diagnostic line, two runs (43228327979, 43229946586, green), and the answer — the wedges are a V-shaped notch and a one-tile step, both wheels grounded with spin 0.0–0.1 at full throttle and no body contact, the same tyre physics as before on a different route. The fix also turned out to have restored the sideways half of Q/E tilt near the garage (one substep of tilt moves a node about 0.0005 px; a float at x ≈ 22,000 steps 0.002 px). Details are in PR #21's entry below. Squash-merged as a7129f3. (Its squash message carried a "[skip ci]" from a docs commit, so main did not build on its own; PR #22's run builds main plus the sprint.)
