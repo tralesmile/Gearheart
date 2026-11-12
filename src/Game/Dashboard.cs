@@ -20,6 +20,8 @@ public partial class Dashboard : Control
     private bool _launchArmed;
     private float _launchCharge, _launchFrom = 0.75f, _launchTo = 0.97f;
     private StyleBoxFlat _panel;
+    private bool _hasTurbo;
+    private float _turbo;
 
     /// <summary>The needle's current reading (it chases the real speed with a little lag, like a real gauge).</summary>
     public float ShownKmh => _shownKmh;
@@ -46,6 +48,13 @@ public partial class Dashboard : Control
         _gear = gear;
         _rpm = rpm;
         _limiter = limiter;
+    }
+
+    /// <summary>Turbo boost (0..1): an inner arc on the speedometer, shown only on a car with a turbo.</summary>
+    public void SetTurbo(bool hasTurbo, float boost)
+    {
+        _hasTurbo = hasTurbo;
+        _turbo = boost;
     }
 
     /// <summary>
@@ -99,6 +108,23 @@ public partial class Dashboard : Control
             bool major = k % 2 == 0;
             DrawLine(c + dir * (DialRadius - (major ? 11f : 7f)), c + dir * (DialRadius - 2f),
                      t >= redFrom ? new Color(1f, 0.45f, 0.4f) : Colors.White, major ? 2f : 1f, true);
+        }
+
+        // Turbo boost: an inner arc across the top of the dial that fills left to right, pale blue to
+        // hot orange, with BOOST under it; it pulses white at full boost.
+        if (_hasTurbo)
+        {
+            const float From = 0.12f, To = 0.88f;
+            float r = DialRadius - 17f;
+            DrawArc(c, r, Deg(From), Deg(To), 24, new Color(1f, 1f, 1f, 0.12f), 4f, true);
+            if (_turbo > 0.01f)
+            {
+                Color hot = new Color(0.55f, 0.85f, 1f).Lerp(new Color(1f, 0.55f, 0.15f), Mathf.Clamp((_turbo - 0.4f) / 0.6f, 0f, 1f));
+                if (_turbo > 0.97f && Mathf.PosMod(_time, 0.24f) < 0.12f) hot = hot.Lightened(0.5f);
+                DrawArc(c, r, Deg(From), Deg(From + (To - From) * Mathf.Clamp(_turbo, 0f, 1f)), 24, hot, 4f, true);
+            }
+            DrawOutlined(ThemeDB.FallbackFont, new Vector2(c.X - 30f, c.Y - 9f), "BOOST", 60f, 10,
+                         _turbo > 0.9f ? new Color(1f, 0.7f, 0.3f) : new Color(1f, 1f, 1f, 0.55f), HorizontalAlignment.Center);
         }
 
         // The needle: orange when the booster fires, wobbling a hair at speed.

@@ -514,6 +514,21 @@ def part_booster():
     return img
 
 
+def part_turbo():
+    # A copper snail-shell compressor housing bolted to a dark steel mount; the game draws the spinning
+    # compressor wheel in the middle of the shell.
+    img, d = panel((58, 60, 70), (92, 96, 108), (36, 38, 46))
+    copper, light, dark = (200, 122, 58), (240, 172, 104), (130, 72, 30)
+    d.ellipse([2, 2, P - 3, P - 3], fill=copper, outline=dark)            # the shell
+    d.arc([2, 2, P - 3, P - 3], 200, 300, fill=light, width=2)            # polished highlight
+    d.arc([5, 5, P - 6, P - 6], 30, 330, fill=dark, width=1)              # the volute's spiral step
+    d.rectangle([P - 6, 1, P - 2, 7], fill=copper, outline=dark)          # outlet pipe, top right
+    d.line([(P - 5, 2), (P - 3, 2)], fill=light)
+    for x, y in ((3, P - 4), (P - 4, P - 4)):
+        d.point((x, y), fill=(200, 206, 216))                              # mount bolts
+    return img
+
+
 def wheel(radius, tread, rim_col):
     size = 56
     img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
@@ -559,7 +574,7 @@ def make_parts():
     parts = [part_frame_light(), part_steel(), part_heavy(),
              part_engine((150, 96, 60), (190, 150, 110), 2), part_engine((190, 60, 44), (220, 220, 226), 3),
              part_engine((224, 44, 30), (250, 210, 60), 4),
-             part_armor(), part_bumper(), part_fuel(), part_drill(), part_cab(), part_booster(), part_crystal_drill()]
+             part_armor(), part_bumper(), part_fuel(), part_drill(), part_cab(), part_booster(), part_crystal_drill(), part_turbo()]
     sheet = Image.new("RGBA", (P * len(parts), P), (0, 0, 0, 0))
     for i, p in enumerate(parts):
         sheet.paste(p, (i * P, 0))
