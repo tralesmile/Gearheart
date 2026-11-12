@@ -59,6 +59,8 @@ public sealed class PartDefinition
     // Wheel
     public float Radius { get; set; }
     public float Grip { get; set; }
+    /// <summary>Studded tyres: on snow and ice the ground's grip never drops below this (0 = no studs).</summary>
+    public float FrozenGrip { get; set; }
 
     // Suspension
     public float SpringStiffness { get; set; }

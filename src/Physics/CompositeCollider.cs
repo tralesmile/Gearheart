@@ -45,4 +45,7 @@ public interface ISurfaceInfo
 {
     /// <summary>Grip multiplier of the ground at a point: 1 = normal, lower = slippery.</summary>
     float GripAt(Vector2 point);
+
+    /// <summary>True on snow or ice, where studded tyres bite.</summary>
+    bool FrozenAt(Vector2 point);
 }

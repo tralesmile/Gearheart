@@ -234,6 +234,16 @@ public sealed class VehicleDesign
         return d;
     }
 
+    /// <summary>The starter car on Spiked Tyres, for snow and ice.</summary>
+    public static VehicleDesign Spiked()
+    {
+        var d = Default();
+        d.Name = "Ice Pickup";
+        d.SetWheel(3, 4, "wheel_spiked", "susp_soft");
+        d.SetWheel(8, 4, "wheel_spiked", "susp_soft");
+        return d;
+    }
+
     /// <summary>The starter car with a rocket booster on the tail.</summary>
     public static VehicleDesign Rocket()
     {

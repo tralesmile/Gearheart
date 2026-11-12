@@ -30,6 +30,11 @@ public partial class WorldScene : Node2D
     private Label _hint, _toast, _status;
     private Sfx _sfx;
     private CrashFx _crashFx;
+    private TyreSpray _spray;
+    private bool _icePlanted;
+    private int _iceFrom, _iceTo;          // --icetest: the ice strip (tile columns)
+    private float _iceEnterAt = -1f, _iceNextLog;
+    private bool _iceDone;
     private StashGlints _glints;
     private RoadsidePickups _pickups;
     private bool _canHinted;
@@ -154,6 +159,17 @@ public partial class WorldScene : Node2D
         {
             if (_toastTime < 1.2f) Toast(text);   // never hide a fresh stunt call-out
         };
+
+        _spray = new TyreSpray
+        {
+            Name = "TyreSpray",
+            IsIce = p => _world.GripAt(p) < 0.5f,
+            Toast = text =>
+            {
+                if (_toastTime < 1.2f) Toast(text);
+            },
+        };
+        AddChild(_spray);
 
         BuildHud();
         LogStashes();
@@ -287,6 +303,7 @@ public partial class WorldScene : Node2D
         _elapsed += dt;
         if (GameSession.AutoPlay) RunBot();
         if (_driving) TrackStunts(dt);
+        _spray.Track(_car, dt, _driving);
         CheckPickups();
         UpdateTrip();
 
@@ -982,6 +999,58 @@ public partial class WorldScene : Node2D
         _car.AutoThrottle = throttle;
     }
 
+    /// <summary>
+    /// --icetest: lay 40 m of ice over the ground east of the garage (two tiles deep, like the
+    /// Frozen North's patches), get straight into the car and drive across at full throttle.
+    /// Logs how long the crossing takes and how much the tyres slid, so plain and spiked tyres can be compared.
+    /// </summary>
+    private void RunIceBot()
+    {
+        const float StripMeters = 40f;
+        if (!_icePlanted)
+        {
+            _icePlanted = true;
+            _iceFrom = TileWorld.PadTo + 4;
+            _iceTo = _iceFrom + (int)(StripMeters * 4f);
+            for (int x = _iceFrom; x < _iceTo; x++)
+            {
+                int top = _world.SurfaceRow(x);
+                for (int y = top; y < top + 2; y++)
+                    if (_world.Get(x, y) != Tile.Air) _world.Set(x, y, Tile.Ice);
+            }
+            GD.Print($"[ice] test: laid {StripMeters:0} m of ice from x={_iceFrom} to x={_iceTo} (tiles); design=\"{GameSession.CurrentDesign.Name}\" studs={_car.HasStuds}");
+        }
+        if (!_driving)
+        {
+            if (_elapsed > 0.5f) EnterCar();
+            return;
+        }
+        _car.AutoThrottle = _iceDone ? 0f : 1f;
+
+        float carTile = _car.CenterPosition.X / Ts;
+        if (_iceEnterAt < 0f && carTile >= _iceFrom)
+        {
+            _iceEnterAt = _elapsed;
+            _iceNextLog = _elapsed + 2f;
+            GD.Print($"[ice] onto the ice at t={_elapsed:0.0}s speed={_car.Speed / PixelsPerMeter * 3.6f:0}km/h frame={Engine.GetFramesDrawn()}");
+        }
+        if (_iceEnterAt >= 0f && !_iceDone && _elapsed >= _iceNextLog)
+        {
+            _iceNextLog += 2f;
+            GD.Print($"[ice] t={_elapsed - _iceEnterAt:0.0}s on ice: {(carTile - _iceFrom) * 0.25f:0.0}/{StripMeters:0} m speed={_car.Speed / PixelsPerMeter * 3.6f:0}km/h " +
+                     $"iceTime={_spray.IceSeconds:0.0}s slip={_spray.SlipSeconds:0.0}s bite={_spray.BiteSeconds:0.0}s chips={_spray.ChipsThrown} damage={_car.Damage:0} frame={Engine.GetFramesDrawn()}");
+        }
+        if (_iceEnterAt >= 0f && !_iceDone && (carTile >= _iceTo || _elapsed - _iceEnterAt > 30f))
+        {
+            _iceDone = true;
+            float time = _elapsed - _iceEnterAt;
+            float meters = Mathf.Min(carTile - _iceFrom, _iceTo - _iceFrom) * 0.25f;
+            GD.Print($"[ice] {(carTile >= _iceTo ? "crossed" : "did NOT cross")} the strip: {meters:0.0} m in {time:0.0}s (avg {meters / Mathf.Max(time, 0.01f) * 3.6f:0} km/h) " +
+                     $"top={_topSpeed / PixelsPerMeter * 3.6f:0}km/h slip={_spray.SlipSeconds:0.0}s bite={_spray.BiteSeconds:0.0}s iceTime={_spray.IceSeconds:0.0}s chips={_spray.ChipsThrown} " +
+                     $"studs={_car.HasStuds} fuel={_car.Fuel:0} damage={_car.Damage:0} frame={Engine.GetFramesDrawn()}");
+        }
+    }
+
     private void Leg(int leg, string what)
     {
         _tripLeg = leg;
@@ -1001,8 +1070,9 @@ public partial class WorldScene : Node2D
         }
 
         if (GameSession.TripTest) RunTripBot();
+        if (GameSession.IceTest) RunIceBot();
 
-        if (!_driving && !GameSession.CrashTest && !GameSession.TripTest)
+        if (!_driving && !GameSession.CrashTest && !GameSession.TripTest && !GameSession.IceTest)
         {
             Vector2 feet = _player.Position + new Vector2(0f, Player.HalfHeight);
             // --stashtest: once the bot starts digging, bury a toolbox and a strongbox under its feet
@@ -1047,7 +1117,7 @@ public partial class WorldScene : Node2D
                  $"top={_topSpeed / PixelsPerMeter * 3.6f:0}km/h longestAir={_longestAir:0.0}s " +
                  $"crashes={_crashFx.Hits} hardest={_crashFx.HardestHit / PixelsPerMeter * 3.6f:0}km/h sparks={_crashFx.SparkBursts} " +
                  $"cans={_cansTaken} heaps={_heapsTaken} smashed={_heapsSmashed} bestStreak={_bestStreak} " +
-                 $"dash={(_dash.Visible ? $"{_dash.ShownKmh:0}km/h" : "hidden")} lines={_lines.Intensity:0.00} peakLines={_peakLines:0.00} wind={_sfx.WindLevel:0.00} rollOvers={_rollOvers} trip={tripNow} reports={_tripsReported} card={(_card.Showing ? _card.ShownScore.ToString() : "hidden")} | " +
+                 $"dash={(_dash.Visible ? $"{_dash.ShownKmh:0}km/h" : "hidden")} lines={_lines.Intensity:0.00} peakLines={_peakLines:0.00} wind={_sfx.WindLevel:0.00} rollOvers={_rollOvers} ice={_spray.IceSeconds:0.0}s slip={_spray.SlipSeconds:0.0}s bite={_spray.BiteSeconds:0.0}s trip={tripNow} reports={_tripsReported} card={(_card.Showing ? _card.ShownScore.ToString() : "hidden")} | " +
                  string.Join(" ", System.Array.ConvertAll(GameSession.Items, i => $"{i}={GameSession.Count(i)}")));
     }
 }

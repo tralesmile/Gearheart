@@ -95,6 +95,10 @@ public partial class SoftVehicle : Node2D, IVehicle
     {
         public int Hub;
         public float Radius, Grip, Mass, Spin, Angle;
+        public float FrozenGrip;          // studs: grip floor on snow and ice (0 = plain tyre)
+        public float Slip;                // last tyre slip speed along the ground (px/s), for effects
+        public bool OnFrozen;             // touching snow or ice right now
+        public bool Biting;               // studs gripping where a plain tyre would slide
         public int Sprite;
         public bool Attached = true;
         public bool Grounded;
@@ -179,6 +183,37 @@ public partial class SoftVehicle : Node2D, IVehicle
         parts.Add($"body=({c.X:0},{c.Y:0}) nodes={Pos.Length} broken={_beams.FindAll(b => b.Broken).Count}");
         return string.Join(" ", parts);
     }
+
+    /// <summary>What a wheel is doing on the ground, for tyre effects (ice spray, stud bite).</summary>
+    public readonly struct WheelContact
+    {
+        public readonly Vector2 Point, Normal;
+        public readonly float Slip, RimSpeed;
+        public readonly bool OnFrozen, Studded, Biting;
+
+        public WheelContact(Vector2 point, Vector2 normal, float slip, float rimSpeed, bool onFrozen, bool studded, bool biting)
+        {
+            Point = point; Normal = normal; Slip = slip; RimSpeed = rimSpeed;
+            OnFrozen = onFrozen; Studded = studded; Biting = biting;
+        }
+    }
+
+    /// <summary>The grounded, attached wheels and how they meet the ground.</summary>
+    public IEnumerable<WheelContact> WheelContacts
+    {
+        get
+        {
+            foreach (var w in _wheels)
+            {
+                if (!w.Attached || !w.Grounded) continue;
+                yield return new WheelContact(Pos[w.Hub] - w.GroundNormal * w.Radius, w.GroundNormal, w.Slip, w.Spin * w.Radius,
+                    w.OnFrozen, w.FrozenGrip > 0f, w.Biting);
+            }
+        }
+    }
+
+    /// <summary>True when at least one attached wheel has studs.</summary>
+    public bool HasStuds => _wheels.Exists(w => w.Attached && w.FrozenGrip > 0f);
 
     public IEnumerable<int> HubNodes
     {
@@ -323,7 +358,7 @@ public partial class SoftVehicle : Node2D, IVehicle
             positions.Add(attach + new Vector2(0f, suspension.RestLength));
             masses.Add(wheelPart.Mass);
 
-            _wheels.Add(new Wheel { Hub = hub, Sprite = wheelPart.Sprite, Radius = wheelPart.Radius, Grip = wheelPart.Grip, Mass = Mathf.Max(wheelPart.Mass, MinNodeMass) });
+            _wheels.Add(new Wheel { Hub = hub, Sprite = wheelPart.Sprite, Radius = wheelPart.Radius, Grip = wheelPart.Grip, FrozenGrip = wheelPart.FrozenGrip, Mass = Mathf.Max(wheelPart.Mass, MinNodeMass) });
             wheelSetups.Add((hub, suspension, anchors.ToArray()));
         }
 
@@ -770,9 +805,23 @@ public partial class SoftVehicle : Node2D, IVehicle
             float impulse = -slip / (1f / wheel.Mass + wheel.Radius * wheel.Radius / inertia);
             float carried = wheel.Attached && attachedWheels > 0 ? _totalMass / attachedWheels : wheel.Mass;
             float load = carried * Gravity * dt * Mathf.Max(0f, -n.Y) + wheel.Mass * Mathf.Max(0f, -normalSpeed);
-            float surface = terrain is ISurfaceInfo info ? info.GripAt(Pos[h] - n * (wheel.Radius + 4f)) : 1f;
+            Vector2 under = Pos[h] - n * (wheel.Radius + 4f);
+            float surface = 1f;
+            wheel.OnFrozen = false;
+            wheel.Biting = false;
+            if (terrain is ISurfaceInfo info)
+            {
+                surface = info.GripAt(under);
+                wheel.OnFrozen = surface < 1f && info.FrozenAt(under);
+                if (wheel.OnFrozen && wheel.FrozenGrip > surface)
+                {
+                    surface = wheel.FrozenGrip;   // the studs bite into snow and ice
+                    wheel.Biting = true;
+                }
+            }
             float maxImpulse = wheel.Grip * surface * load;
             impulse = Mathf.Clamp(impulse, -maxImpulse, maxImpulse);
+            wheel.Slip = slip + impulse * (1f / wheel.Mass + wheel.Radius * wheel.Radius / inertia);   // what is left sliding
 
             v += tangent * (impulse / wheel.Mass);
             wheel.Spin -= impulse * wheel.Radius / inertia;

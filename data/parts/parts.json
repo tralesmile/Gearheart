@@ -165,6 +165,23 @@
       }
     },
     {
+      "id": "wheel_spiked",
+      "name": "Spiked Tyre",
+      "short": "WS",
+      "category": "Wheel",
+      "description": "Steel studs bite into snow and ice. A touch less grip on bare rock.",
+      "mass": 1.2,
+      "color": "#1f1f24",
+      "radius": 20,
+      "grip": 1.0,
+      "frozenGrip": 0.9,
+      "sprite": 3,
+      "cost": {
+        "Scrap": 2,
+        "Iron": 4
+      }
+    },
+    {
       "id": "susp_soft",
       "name": "Soft Suspension",
       "short": "So",

@@ -76,6 +76,8 @@ public static class GameSession
     public static bool StashTest => UserArgs.Contains("--stashtest");
     /// <summary>Bot only: two out-and-back drives from the garage, to check the trip report card.</summary>
     public static bool TripTest => UserArgs.Contains("--triptest");
+    /// <summary>Bot only: lay a long strip of ice east of the garage and drive across it at full throttle.</summary>
+    public static bool IceTest => UserArgs.Contains("--icetest");
     private static bool FreshStart => UserArgs.Contains("--fresh");
 
     public static void ApplyCommandLine()
@@ -85,6 +87,7 @@ public static class GameSession
         if (UserArgs.Contains("--design=driller")) CurrentDesign = VehicleDesign.Driller();
         if (UserArgs.Contains("--design=rocket")) CurrentDesign = VehicleDesign.Rocket();
         if (UserArgs.Contains("--design=starter")) CurrentDesign = VehicleDesign.Default();
+        if (UserArgs.Contains("--design=spiked")) CurrentDesign = VehicleDesign.Spiked();
     }
 
     private static string[] UserArgs => OS.GetCmdlineUserArgs();

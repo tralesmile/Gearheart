@@ -244,6 +244,15 @@ public sealed class TileWorld : ITerrainCollider, IMineable, ISurfaceInfo
         };
     }
 
+    /// <summary>True on snow or ice (where studded tyres bite).</summary>
+    public bool FrozenAt(Vector2 point)
+    {
+        int tx = Mathf.FloorToInt(point.X / TileSize), ty = Mathf.FloorToInt(point.Y / TileSize);
+        Tile t = Get(tx, ty);
+        if (t == Tile.Air) t = Get(tx, ty + 1);
+        return t is Tile.Ice or Tile.Snow;
+    }
+
     // ---- Changing ---------------------------------------------------------------------------
 
     public void Set(int x, int y, Tile tile)
