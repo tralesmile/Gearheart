@@ -2,6 +2,13 @@
 
 Newest first. One entry per big decision: what, why, and what would make us revisit it.
 
+## 2026-11-12 — Gate sprint: 20 m from any standing start on the pad
+
+- **What:** every time the car pulls away from a standstill on the garage pad (anywhere on it), the run to 20 m sideways from that spot is timed, in either direction. The clock starts at the last moment the car was below 0.5 km/h, so time spent charging a launch does not count. It is cancelled by stopping on the pad again, getting out, or taking more than 12 s. The best time is kept in progress.json.
+- **Why:** a fixed distance from wherever you stand is fair without a start line to park on, and 20 m takes 2–3 s with the starter car, short enough to retry at once. Measuring to the trip gate (18 m from the pad's middle) instead would have made the time depend on where you parked.
+- **Measured (CI):** starter V6 perfect launch 2.32 s and 2.06 s, plain or bogged 2.99 s; rocket 1.76 s, V8 2.77 s, Scrap 4 3.85 s.
+- **Revisit when:** you have played (D1). `GateSprint.Distance` sets the length; a start-light gantry (IDEAS #82) could give the start a visible line and a reaction time.
+
 ## 2026-11-12 — Launch control: a timing window, not a reaction test
 
 - **What:** at a standstill (under about 3 km/h, a wheel on the ground), holding the handbrake and the throttle arms launch control. A charge climbs from idle to the top in 1.1 s and is shown on the rev bar (the gear box reads "L", then a green "GO"). Letting go of the handbrake with the throttle still down grades the start by the charge: 0.75–0.97 **PERFECT START** (+18 km/h shove along the body, exhaust pop, cheer), 0.45–0.75 **GOOD START** (+8 km/h), lower **BOGGED DOWN** (nothing extra). Holding past the top bounces off the limiter back to 0.6 and climbs again, so a missed window is retried by holding on, not by starting over. Letting go of the throttle first cancels it.

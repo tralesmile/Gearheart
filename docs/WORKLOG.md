@@ -2,6 +2,34 @@
 
 Newest entry first. Each session: what was built and why, how it was verified, what is not verified, and what comes next.
 
+## 2026-11-12, about 13:20–14:15 UTC — Finished the physics fix (PR #21), then the gate sprint (PR #22)
+
+**Started by** checking for unfinished work: PR #21 (car nodes relative to a local origin) was open, its build green (run 43225624030), and the run before me was still finishing it (it pushed its work-log entry at 13:31 and left the PR open over one question: why the drill cars now get stuck in caves). I picked it up: one bot change and one diagnostic line, two runs (43228327979, 43229946586, green), and the answer — the wedges are a V-shaped notch and a one-tile step, both wheels grounded with spin 0.0–0.1 at full throttle and no body contact, the same tyre physics as before on a different route. The fix also turned out to have restored the sideways half of Q/E tilt near the garage (one substep of tilt moves a node about 0.0005 px; a float at x ≈ 22,000 steps 0.002 px). Details are in PR #21's entry below. Squash-merged as a7129f3. (Its squash message carried a "[skip ci]" from a docs commit, so main did not build on its own; PR #22's run builds main plus the sprint.)
+
+**Built — gate sprint** (`src/Game/GateSprint.cs`, `WorldScene.UpdateSprint/FinishSprint`): every standing start on the garage pad is timed over 20 m, drag-strip style. The clock starts the last moment the car stood still on the pad (so the launch charge does not count) and stops 20 m sideways from there, either direction; stopping on the pad again or 12 s without finishing cancels it. While it runs the status line ticks "SPRINT 1.84 s"; at 20 m a call-out says "20 m SPRINT 2.32 s · a time to beat" / "NEW BEST! 0.26 s faster" / "best 2.06 s (+0.12)", with the `record` fanfare and warm streaks on a new best. If the trip starts during the sprint, the trip goal joins the same call-out ("…\nTRIP GOAL: Go 50 m out") instead of overwriting it. Best time and count are saved in progress.json (`SprintBest`, `Sprints`) and the best shows on the status line while you stand on the pad. CI: `[sprint]` lines, `sprints=`/`sprintBest=` on `[autoplay]`, `--launchtest` now reverses back onto the pad after the first sprint and launches again (run 2700 frames), `sprint_*` screenshots.
+
+**Why this** — Brainstorm in `docs/IDEAS.md` (fourteenth session). Launch control made the first second of a trip a skill, but nothing remembered it: the "+18 km/h" fades and there is no reason to try again. Need for Speed's drag races and Hill Climb Racing hang their hook on a number to beat; this gives one in three seconds without leaving the garage. It was #2 on the last Next list (#1 was the physics fix, now merged).
+
+**Verified (CI run 43231910550, green)**
+
+- **Launch control is worth tenths**: starter V6, perfect start **2.32 s**, bogged start 2.99 s, plain start 2.99–3.00 s; the second perfect launch (after reversing onto the pad) **2.06 s → newBest=True, best_before=2.32**. The trip test's second departure: 2.80 s, NEW BEST over 3.00.
+- Other cars, plain start: rocket 1.76 s (booster), V8 2.77 s, Scrap 4 3.85 s (2.66 s with a perfect launch), drill 6.38 s, Crystal Drill 4.62 s; on the ice strip 3.21 s plain tyres, 3.05 s spiked.
+- **Screenshot** `sprint_43.png`: "20 m SPRINT 2.32 s · a time to beat" with "TRIP GOAL: Go 50 m out" under it, in one call-out.
+- **Nothing else changed**: 40 s positions identical to PR #21's run (starter 2179.0, drill 1414.5, Crystal Drill 1474.0, left 512.7, spiked 375.1, rocket 2533.8), trip reports 414/379, Hill Climb 19.19 s / 14.11 s. No errors.
+
+**Not verified / known issues**
+
+- Fun is my judgement; please race yourself off the pad and say whether 20 m is the right length (D1).
+- The ticking "SPRINT 1.84 s" and the "sprint best" text on the status line are not in any kept screenshot (the kept frames are before the start and after the finish, and every CI run starts with a fresh save).
+- A car dropped onto the pad (the crash test) or one that rolls to a stop on the pad on its way home also starts a sprint when it drives off. That seems fine (any standing start is a sprint), but it means a trip home that ends with a stop on the pad and a drive-off counts.
+- The drill cars still wedge in a notch and against a one-tile step on the bot's route (see PR #21): a car in that spot cannot drive or reverse out.
+
+**Next**
+
+1. Rock it free (S, IDEAS #84): when the throttle is held and the car does not move, let Q/E rock it harder and say so — the wedge the bot keeps finding.
+2. Start-light gantry over the pad (S, #82) — the sprint's ritual; or flip tricks (S, #48) now that tilt works fully.
+3. Crystal Lamp (S, #64), surface lift (S–M, #68), then the first underground danger (#65 / #56, M).
+
 ## 2026-11-12, about 14:00–14:45 UTC — Car physics relative to a local origin (PR #21, left open)
 
 **Built** — Each car keeps its node positions relative to its own origin (`SoftVehicle.Origin`, a multiple of 1,024 px along x, moved by `Recenter()` when the car drives more than 1.5 steps away; the shift is exact). The world only sees world coordinates: terrain, grip and mining go through `ShiftedTerrain` (adds the origin to every point asked about), and `CenterPosition`, `Bounds()`, `ContainsPoint()`, `DrillTips`, `WheelContacts` and crash points add it back; car-to-car and car-to-loose-object contacts in `SoftPhysicsWorld` convert between frames. The car node itself sits at its origin, so drawing uses the node positions as they are (a private `ToLocal` that returns its argument).
