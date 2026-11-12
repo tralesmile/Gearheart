@@ -2,6 +2,12 @@
 
 Newest first. One entry per big decision: what, why, and what would make us revisit it.
 
+## 2026-11-12 — Gears are for the ears only
+
+- **What:** The car has a pretend gearbox (`src/Vehicles/Gearbox.cs`) that drives the engine sound and the dashboard's gear and rev bar. It never changes torque or top speed. Gears and revs follow the car's road speed (plus a little for real wheelspin), not the wheel spin, and shifts are at least 0.6 s apart.
+- **Why:** Real gear physics would change every car's handling and every balance number, and the soft-body tyres slip so much that wheel spin sits near its top almost all the time (gears picked from it hunted 31 times in 40 s in CI). The fun of gears here is the sound of the revs climbing and dropping, which needs none of that.
+- **Revisit when:** A part should change how the car pulls (a turbo, a gearbox part, launch control), or the owner wants manual shifting.
+
 ## 2026-11-12 — The Deep: a slate layer with glow crystals, and what crystals are for
 
 - **What:** below `DeepDepth` = 48 rows (12 m) under the natural ground, give or take 6 rows by noise, stone becomes **Slate** (hardness 36 vs 28, drops Stone) and caves open wider (cave threshold −0.08). After the caves are dug, slate tiles touching a cave grow **glow crystals** where a noise field passes 0.28 (inside the rock only above 0.62, as rare seams). Crystals drop the new **Crystal** material (hardness 30). The first slate row per column is saved with the world (save **GHWA**).

@@ -31,7 +31,7 @@ public sealed class Gearbox
     public int Gear { get; private set; } = 1;
     /// <summary>Engine revs as a fraction of the redline (Idle..about 1.05).</summary>
     public float Rpm => _rpm;
-    /// <summary>True while the revs are pinned at the limiter.</summary>
+    /// <summary>True while the revs bounce off the limiter (in the air, or flat out in top gear).</summary>
     public bool Limiter { get; private set; }
     public int Upshifts { get; private set; }
     public int Downshifts { get; private set; }
@@ -91,7 +91,9 @@ public sealed class Gearbox
             float rate = target > _rpm ? 9f : 14f;   // revs fall faster than they rise (the shift "drop")
             _rpm = Mathf.Lerp(_rpm, target, 1f - Mathf.Exp(-rate * dt));
         }
-        Limiter = _rpm > 0.985f && throttle > 0.05f;
+        // The limiter stutter only where a real one would bite and the gearbox cannot help: wheels free
+        // in the air, or flat out in top gear. On the ground a lower gear just shifts up instead.
+        Limiter = _rpm > 0.985f && throttle > 0.05f && (airborne || Gear == Gears);
         PeakRpm = Mathf.Max(PeakRpm, _rpm);
     }
 
