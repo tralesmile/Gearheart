@@ -2,6 +2,40 @@
 
 Newest entry first. Each session: what was built and why, how it was verified, what is not verified, and what comes next.
 
+## 2026-11-12, about 07:20–08:10 UTC — Landing grades and the perfect-landing kick (PR #15, polish session)
+
+**Built**
+
+- **Landing judge** (`src/Game/LandingJudge.cs`): every jump of 0.6 s or more is graded after touchdown. PERFECT = all wheels down within 0.12 s of the first, car within 15° of the ground at touchdown, no body hit, no damage (called 0.25 s after touchdown). CLEAN = all wheels down within 0.5 s, no body hit, under 2 damage. Otherwise rough (only the old BIG AIR cheer for 0.9 s+).
+- **Botched landings get named** (`WorldScene.OnCarCrash`): a body hit while still in the air after a real jump is ROOF LANDING, NOSE DIVE, TAIL SLAM or BELLY FLOP with the air time. Lying on the roof no longer counts as air (it could give a false BIG AIR before).
+- **Perfect-landing kick** (`SoftVehicle.Kick`): +12 to +21 km/h by air time, a near-instant jolt along the way the car rolls, wheel spin scaled with it, and a short engine "overdrive" so it may pass its top speed while the kick fades. Warm speed streaks for 0.8 s, call-out "PERFECT LANDING! / 0.6 s air +12 km/h", and a new `land` sound (thump, whoosh, ta-DING; `tools/make_sounds.py`, own random stream, all older sounds byte-identical).
+- **Trip report**: the "Longest air" row is now "Jumps" ("0.7 s, 1 perfect + 1 clean"): air points + 30 per perfect + 10 per clean landing. Card size unchanged. No save change.
+- **CI**: `[landing]` lines (grade, air, wheel timing, mismatch, speed, kick, running counts, "kick result"), `landings=perfect/clean/rough/flops` on `[autoplay]` lines, `landings=` on `[trip] report`, and `land_perfect_*` / `land_flop_*` screenshots.
+
+**Why this** — Brainstorm in `docs/IDEAS.md` (eighth session): three feature sessions since the last polish pass, so this was a feel session. The bot flies 0.6–1.75 s off the hills in almost every run, but landing on your wheels or your roof ended the same way. The touchdown, the peak of every jump, was the dullest second. Landing grades + the speed kick were ideas #7 and #27, small, felt in the first minute, and give the Q/E air control a reason to exist.
+
+**Verified (CI runs 43175769499, 43176889287, 43177736391, 43178851104, all green)**
+
+- Grades across the bot runs (run 4): starter 1 perfect / 4 rough; left run 2 roof landings (both caught as ROOF LANDING with pitch −156° and 149°); rocket 2 clean + 2 roof landings; trip test 2 perfect + 1 roof landing; spiked-ice run 1 perfect; 15 m crash drop lands flat but with 16 damage → rough (run 1 called it clean; fixed by the damage rule). The bot does not aim its landings, so most are rough (mismatch 20–60°), which is what a careless player should get.
+- **Kick A/B**: the starter run is identical up to the first perfect landing (tile x=2035, 37 km/h). Without the kick (main): x=2112 two seconds later, 2232 at 40 s. Instant 9 km/h kick (run 1): 2137 / 2276. Kick spread over 0.3 s (runs 2–3): 2123–2132 / 2251–2256. Final near-instant 12 km/h kick (run 4): 37 → 46–47 km/h, x=2142 / **2282: 7 m ahead after 2 s, 13 m by 40 s**. The 0.3 s spread was weaker, so it was dropped; the overdrive alone (run 3) did not change much.
+- Screenshots: `land_perfect_world_342.png` ("PERFECT LANDING! 0.6 s air +12 km/h" in The Wastes), `land_flop_rocket_135.png` and `land_flop_trip_46.png` ("ROOF LANDING! 0.8 s of air", car on its roof); `land_flop_left_131.png` shows the roof landing call-out correctly waiting behind a fresh TRIP GOAL call-out. `trip_566.png` (run 1) shows the "Jumps 0.7 s, 1 perfect + 1 clean +68" row fitting the card.
+- Unchanged: Hill Climb 18.97 s and 15.25 s, no errors in any run.
+
+**Not verified / known issues**
+
+- Fun is my judgement. Whether perfect landings feel earned or random, and whether the kick is too strong, needs you to play (D1). The thresholds (15°, 0.12 s) are first guesses.
+- The trip test's first trip is shorter now (39 m instead of 85 m): the kicks and an early roof landing changed the bot's timed drive. Not a bug, but the trip numbers are not comparable with older logs.
+- The warm speed streaks after a kick only show above 35 km/h, so at landing speeds they are faint; the call-out and sound carry it. I cannot listen to the `land` sound; I checked its waveform and spectrum only.
+- Clean/perfect landings mid-judgement when you get out of the car are dropped (by design).
+
+**Next**
+
+1. Perfect chain: "PERFECT x3" for landings in a row, stacking the kick (small) — direct follow-up.
+2. Jump kickers from world generation: dirt ramps on the road, dune lips, snow cornices (small) — jumps on purpose.
+3. A Wastes part: Sand Paddles or a big-bore engine from copper (small–medium).
+4. Frozen lake with a kicker in the Frozen North (small).
+5. Goal kind "Land 2 perfect landings" (small; shifts the bot's goal sequence).
+
 ## 2026-11-12, about 06:20–07:30 UTC — Spiked Tyres and real ice (PR #14)
 
 **Built**
