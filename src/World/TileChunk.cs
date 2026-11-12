@@ -48,7 +48,7 @@ public partial class TileChunk : Node2D
 
                 if (tile == Tile.Air)
                 {
-                    if (depth > 0) DrawTextureRectRegion(tex, cell, WallCell(depth, variant), tint);
+                    if (depth > 0) DrawTextureRectRegion(tex, cell, WallCell(depth, variant, ty >= World.DeepRow(tx)), tint);
 
                     if (World.FilletRisingRight(tx, ty))
                     {
@@ -71,7 +71,7 @@ public partial class TileChunk : Node2D
 
                 if (cutL || cutR)
                 {
-                    if (depth > 0) DrawTextureRectRegion(tex, cell, WallCell(depth, variant), tint);
+                    if (depth > 0) DrawTextureRectRegion(tex, cell, WallCell(depth, variant, ty >= World.DeepRow(tx)), tint);
                     if (cutL && cutR)
                     {
                         Poly(tex, src, o, tint, new Vector2(0, ts), new Vector2(0, half), new Vector2(half, 0), new Vector2(ts, half), new Vector2(ts, ts));
@@ -155,7 +155,7 @@ public partial class TileChunk : Node2D
         }
     }
 
-    private static int Hash(int x, int y)
+    internal static int Hash(int x, int y)
     {
         unchecked
         {
@@ -165,7 +165,8 @@ public partial class TileChunk : Node2D
         }
     }
 
-    private static Rect2 WallCell(int depth, int variant) => Art.TileCell((depth < 9 ? 4 : 6) + (variant & 1), 4);
+    private static Rect2 WallCell(int depth, int variant, bool deep) =>
+        deep ? Art.TileCell(variant & 1, 9) : Art.TileCell((depth < 9 ? 4 : 6) + (variant & 1), 4);
 
     private static Rect2 SourceOf(Tile tile, bool grassTop, int variant) => tile switch
     {
@@ -183,6 +184,8 @@ public partial class TileChunk : Node2D
         Tile.StashSmall => Art.TileCell(variant & 1, 7),
         Tile.StashMid => Art.TileCell(2 + (variant & 1), 7),
         Tile.StashBig => Art.TileCell(4 + (variant & 1), 7),
+        Tile.Slate => Art.TileCell(variant & 3, 8),
+        Tile.Crystal => Art.TileCell(4 + (variant & 3), 8),
         _ => Art.TileCell(variant & 1, 5),
     };
 

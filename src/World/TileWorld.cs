@@ -23,6 +23,8 @@ public enum Tile : byte
     StashSmall,   // Old Toolbox: shallow
     StashMid,     // Lost Supply Crate
     StashBig,     // Ancient Strongbox: deep, or out in the far biomes
+    Slate,        // the Deep: dark blue rock below about 12 m, harder than stone
+    Crystal,      // glow crystal: grows on the walls of the deep caverns and lights them
 }
 
 public enum Biome
@@ -44,10 +46,11 @@ public sealed class TileWorld : ITerrainCollider, IMineable, ISurfaceInfo
     public const int Height = 192;
     public const int BaseSurface = 64;       // surface row at the spawn pad
     public const int PadFrom = 1258, PadTo = 1302;   // flat ground for the garage (tile columns)
-    private const uint SaveMagic = 0x39574847;   // "GHW9": bump when generation or the save layout changes
+    private const uint SaveMagic = 0x41574847;   // "GHWA" (10): bump when generation or the save layout changes
 
     private readonly byte[] _tiles = new byte[Width * Height];
     private readonly int[] _surface = new int[Width];
+    private readonly int[] _deepRow = new int[Width];   // first row of slate (the Deep) in each column
     private readonly Dictionary<int, float> _damage = new();
     private readonly List<Vector2I> _stashes = new();
     private readonly List<Kicker> _kickers = new();
@@ -91,6 +94,20 @@ public sealed class TileWorld : ITerrainCollider, IMineable, ISurfaceInfo
 
     public int SurfaceRow(int x) => _surface[Mathf.Clamp(x, 0, Width - 1)];
 
+    /// <summary>First row of the Deep (slate and glow crystals) in this column.</summary>
+    public int DeepRow(int x) => _deepRow[Mathf.Clamp(x, 0, Width - 1)];
+
+    /// <summary>Slate starts about this many rows (12 m) under the natural ground, give or take a few.</summary>
+    public const int DeepDepth = 48;
+
+    /// <summary>Counts tiles of a kind in the whole world (for logs and tests).</summary>
+    public int CountTiles(Tile kind)
+    {
+        int n = 0;
+        foreach (byte b in _tiles) if (b == (byte)kind) n++;
+        return n;
+    }
+
     /// <summary>World y of the top of the first solid tile at or below the given point.</summary>
     public float GroundY(float worldX, float fromWorldY = 0f)
     {
@@ -109,6 +126,8 @@ public sealed class TileWorld : ITerrainCollider, IMineable, ISurfaceInfo
         Tile.Sandstone => 22f,
         Tile.Planks => 14f,
         Tile.Stone => 28f,
+        Tile.Slate => 36f,
+        Tile.Crystal => 30f,
         Tile.ScrapOre => 32f,
         Tile.IronOre => 40f,
         Tile.CopperOre => 48f,
@@ -122,7 +141,8 @@ public sealed class TileWorld : ITerrainCollider, IMineable, ISurfaceInfo
     public static (string Item, int Amount) Drop(Tile tile) => tile switch
     {
         Tile.Grass or Tile.Dirt or Tile.Sand => ("Dirt", 1),
-        Tile.Stone or Tile.Sandstone => ("Stone", 1),
+        Tile.Stone or Tile.Sandstone or Tile.Slate => ("Stone", 1),
+        Tile.Crystal => ("Crystal", 1),
         Tile.ScrapOre => ("Scrap", 2),
         Tile.IronOre => ("Iron", 1),
         Tile.CopperOre => ("Copper", 1),
@@ -435,6 +455,8 @@ public sealed class TileWorld : ITerrainCollider, IMineable, ISurfaceInfo
         var ore = new FastNoiseLite { Seed = seed + 1, Frequency = 0.16f, NoiseType = FastNoiseLite.NoiseTypeEnum.Simplex };
         var hills = new FastNoiseLite { Seed = seed + 2, Frequency = 0.012f, NoiseType = FastNoiseLite.NoiseTypeEnum.Simplex };
         var patches = new FastNoiseLite { Seed = seed + 3, Frequency = 0.03f, NoiseType = FastNoiseLite.NoiseTypeEnum.Simplex };
+        var deepLine = new FastNoiseLite { Seed = seed + 4, Frequency = 0.02f, NoiseType = FastNoiseLite.NoiseTypeEnum.Simplex };
+        var glow = new FastNoiseLite { Seed = seed + 5, Frequency = 0.11f, NoiseType = FastNoiseLite.NoiseTypeEnum.Simplex };
         var rng = new RandomNumberGenerator { Seed = (ulong)seed };
 
         // Surface line: flat at the garage pad, hillier the further you go.
@@ -479,6 +501,9 @@ public sealed class TileWorld : ITerrainCollider, IMineable, ISurfaceInfo
             // Frozen patches run over the hills too (not only flat spots), so ice is a real obstacle
             // for plain tyres and a reason to fit Spiked Tyres. Never on a kicker: it is packed snow.
             bool icePatch = biome == Biome.Frozen && lift == 0 && patches.GetNoise1D(x) > 0.25f;
+            // The Deep: below about 12 m the stone turns to dark slate with wider caverns, in every biome.
+            int deepDepth = DeepDepth + Mathf.RoundToInt(deepLine.GetNoise1D(x) * 6f);
+            world._deepRow[x] = surface + lift + deepDepth;
 
             for (int y = surface; y < Height; y++)
             {
@@ -493,8 +518,12 @@ public sealed class TileWorld : ITerrainCollider, IMineable, ISurfaceInfo
                     _ => top == 0 ? Tile.Grass : depth < topDepth ? Tile.Dirt : Tile.Stone,
                 };
 
-                // Caves, away from the surface and the garage. The frozen land has more of them.
-                float caveLimit = biome == Biome.Frozen ? 0.36f : 0.42f;
+                bool deep = depth >= deepDepth;
+                if (deep && tile == Tile.Stone) tile = Tile.Slate;
+
+                // Caves, away from the surface and the garage. The frozen land has more of them,
+                // and the Deep opens into wider caverns.
+                float caveLimit = (biome == Biome.Frozen ? 0.36f : 0.42f) - (deep ? 0.08f : 0f);
                 if (depth > 7 && !(nearPad && depth < 14) && caves.GetNoise2D(x, y * 1.6f) > caveLimit) tile = Tile.Air;
 
                 // Ore pockets: scrap is shallow and common, iron deeper, copper deepest.
@@ -519,6 +548,7 @@ public sealed class TileWorld : ITerrainCollider, IMineable, ISurfaceInfo
                     world._tiles[y * Width + x] = (byte)Tile.Bedrock;
         }
 
+        GrowCrystals(world, glow);
         PlaceStashes(world, seed);
 
         // A wooden floor under the garage, so the pad never gets dug away by accident.
@@ -527,6 +557,27 @@ public sealed class TileWorld : ITerrainCollider, IMineable, ISurfaceInfo
 
         world.IndexStashes();
         return world;
+    }
+
+    /// <summary>
+    /// Glow crystals: clusters on the slate walls of the deep caverns (where they light the cave),
+    /// and a few seams inside the rock for drillers to find. Runs after the caves are dug.
+    /// </summary>
+    private static void GrowCrystals(TileWorld world, FastNoiseLite glow)
+    {
+        var grow = new List<int>();
+        for (int y = 1; y < Height - 2; y++)
+        {
+            for (int x = 3; x < Width - 3; x++)
+            {
+                if ((Tile)world._tiles[y * Width + x] != Tile.Slate) continue;
+                bool open = world._tiles[(y - 1) * Width + x] == 0 || world._tiles[(y + 1) * Width + x] == 0 ||
+                            world._tiles[y * Width + x - 1] == 0 || world._tiles[y * Width + x + 1] == 0;
+                float n = glow.GetNoise2D(x, y);
+                if (open ? n > 0.28f : n > 0.62f) grow.Add(y * Width + x);
+            }
+        }
+        foreach (int i in grow) world._tiles[i] = (byte)Tile.Crystal;
     }
 
     /// <summary>
@@ -692,6 +743,7 @@ public sealed class TileWorld : ITerrainCollider, IMineable, ISurfaceInfo
             file.Store32((uint)k.Length);
             file.StoreFloat(JumpBest(k));
         }
+        foreach (int r in _deepRow) file.Store32((uint)r);
         return true;
     }
 
@@ -715,6 +767,7 @@ public sealed class TileWorld : ITerrainCollider, IMineable, ISurfaceInfo
             world._kickers.Add(kicker);
             if (best > 0f && best < 1000f) world._jumpBest[start] = best;
         }
+        for (int x = 0; x < Width; x++) world._deepRow[x] = (int)file.Get32();
         world.IndexStashes();
         return world;
     }

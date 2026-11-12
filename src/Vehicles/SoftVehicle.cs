@@ -1167,7 +1167,10 @@ public partial class SoftVehicle : Node2D, IVehicle
                 float f0 = i / (float)bands, f1 = (i + 1) / (float)bands;
                 Vector2 a0 = top.Lerp(tip, f0), a1 = top.Lerp(tip, f1), b0 = bottom.Lerp(tip, f0), b1 = bottom.Lerp(tip, f1);
                 bool light = ((i + (int)spin) & 1) == 0;
-                Color color = light ? new Color(0.82f, 0.84f, 0.88f) : new Color(0.5f, 0.52f, 0.58f);
+                // Crystal-tipped bits (power over 100) glow cyan; the plain steel bit is grey.
+                Color color = drill.Power > 100f
+                    ? (light ? new Color(0.62f, 1f, 0.97f) : new Color(0.2f, 0.66f, 0.8f))
+                    : (light ? new Color(0.82f, 0.84f, 0.88f) : new Color(0.5f, 0.52f, 0.58f));
                 if (i < bands - 1) FillQuad(a0, a1, b1, b0, color);
                 else FillTriangleLocal(a0, tip, b0, color);
             }

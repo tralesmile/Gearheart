@@ -278,6 +278,23 @@
       }
     },
     {
+      "id": "drill_crystal",
+      "name": "Crystal Drill",
+      "short": "CD",
+      "category": "Drill",
+      "description": "A crystal-tipped bit from the Deep. Cuts rock more than twice as fast.",
+      "mass": 0.8,
+      "color": "#4ad2e6",
+      "yield": 0.05,
+      "breakLimit": 0.4,
+      "drillPower": 150,
+      "sprite": 12,
+      "cost": {
+        "Iron": 3,
+        "Crystal": 4
+      }
+    },
+    {
       "id": "booster_rocket",
       "name": "Rocket Booster",
       "short": "RB",
