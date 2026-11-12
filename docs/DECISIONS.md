@@ -2,6 +2,14 @@
 
 Newest first. One entry per big decision: what, why, and what would make us revisit it.
 
+## 2026-11-12 — Birds: life in the world, never a target
+
+- **What:** flocks along the road (`Birds`, every 22–42 m, not on kickers; sparrows in the Home Meadow, crows drawn at 2x in The Wastes, snow buntings in the Frozen North) and three sparrows on the garage roof. They take off when the car comes within 140 px + 0.38 s of travel (about 6 m at 36 km/h, 12 m at 90 km/h), when the player walks within about 1.5 m, on a honk (H, about 12 m), an engine start (about 12 m), a crash (about 9 m) or digging next to them. They come back 75 s later, out of sight; the list is not saved.
+- **Why:** nothing in the world moved except you; animals that notice you are the cheapest way to make a world feel alive (Terraria's critters, Minecraft's animals). Scaring them at about half a second of warning means you see them sitting there and then see them go up ahead of the bonnet; earlier (the first try, 9–17 m) they left before they were on screen.
+- **Birds always get away:** there is no collision, no damage to birds and no score for them. A kid-friendly game and a cheap system: the car never hits them, the flight simply starts in time. Points for flushing a flock (IDEAS #124) are possible later, but birds must keep escaping.
+- **Horn:** H (Y on a gamepad), the same two-tone horn pitched by the engine (the Scrap 4 beeps higher, the V8 lower). It has no other effect yet.
+- **Revisit when:** you have played (D1): if birds feel too busy, raise the step between flocks in `Birds.Place`; if they go too early or too late, the knob is the radius in `WorldScene.UpdateBirds`.
+
 ## 2026-11-12 — Day and night, step 1: a seven-minute day, looks and light only
 
 - **What:** a world clock (`DayCycle`, saved as `ClockHours` and `Day` in `progress.json`; a new game starts at 08:00). Daytime 06:30–18:00 runs at 13 game hours per 270 s; dusk (18:00–20:30) and dawn (04:00–06:30) ease the light; the night hours 21:00–04:00 run twice as fast. A full day is about 7 minutes of play, a night about 1¼ minutes plus dusk and dawn. The sky (gradient, sunset glow, sun and moon on an arc, stars, tinted clouds, hill silhouettes) and a `CanvasModulate` tint over the world (warm at sunset, moonlit blue at night, mixed with the existing underground darkness) follow the clock. The car gets headlights (a cone `PointLight2D` out of the frontmost block), tail-lights (brighter when braking) and a reversing lamp (cars face right and back up to go west), plus a haze along each beam and lamp flares drawn over the darkness. Lights come on by themselves at dusk and deep underground. Crickets chirp at night on the surface. Buried stashes glint from 1.8x further at night. The status line shows the time.
