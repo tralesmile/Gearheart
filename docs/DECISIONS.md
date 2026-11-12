@@ -2,6 +2,13 @@
 
 Newest first. One entry per big decision: what, why, and what would make us revisit it.
 
+## 2026-11-12 — Buried stashes: placement, loot and glints
+
+- **What:** 53 stashes in the current world (one every 34–63 tiles, 9–16 m, plus one shallow toolbox 15–18 m to each side of the garage so a new player sees a glint in the first minute) are buried 2–28 m deep, never floating in a cave. The current seed gives 20 toolboxes, 14 supply crates and 19 strongboxes. Three kinds by depth: Old Toolbox (under 6.5 m: 5–8 Scrap, 1–2 Iron), Lost Supply Crate (6.5–15 m: 3–5 Scrap, 3–5 Iron, 1–2 Copper), Ancient Strongbox (deeper: 4–6 of each). Outside the meadow a stash is one kind richer 35% of the time, which rewards the drive out. Loot is fixed per stash (seeded by its position). They are tiles, so both the pickaxe and the drill dig them up. A twinkle over each stash within about 12 m of you is drawn on its own canvas layer, so the underground darkness never hides it.
+- **Why:** Tunnelling was steady income with no moments and no direction. A visible glint gives a goal ("dig there"), the jackpot gives the moment; a strongbox pays more than half a Rocket Booster. Two or more shallow stashes are reachable by hand, so on-foot players find them too.
+- **Save:** world format bumped to GHW6; old worlds regenerate (materials and the car are kept). `progress.json` gains `StashesFound` (old files load with 0).
+- **Revisit when:** players report stashes are too easy (glint range: `StashGlints.FadeTo`) or too rare/rich (spacing and loot in `TileWorld.PlaceStashes` / `StashLoot`), or crafting tiers arrive (then strongboxes are the natural place for rare blueprints).
+
 ## 2026-11-12 — Crash feedback: how a "hit" is measured
 
 - **What:** A hit is a body node slamming into the ground faster than about 13 km/h, or a landing after at least 0.3 s in the air faster than about 21 km/h (measured into the ground under the wheels). Each hit is reported once, with its dents, snapped beams and lost wheels, and drives screen shake, sparks, dust, sounds and call-outs (`CrashFx`).

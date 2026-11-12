@@ -521,6 +521,22 @@ public sealed class TileWorld : ITerrainCollider, IMineable, ISurfaceInfo
                 break;
             }
         }
+
+        // One shallow toolbox on each side of the garage, a short walk away, so a new player spots
+        // a glint in the first minute and learns what it means. Its own random stream keeps the others put.
+        var near = new RandomNumberGenerator { Seed = (ulong)seed + 78 };
+        for (int side = -1; side <= 1; side += 2)
+        {
+            int x = Mathf.RoundToInt(padMiddle) + side * (60 + (int)(near.Randi() % 14));
+            for (int depth = 9; depth < 16; depth++)
+            {
+                int y = world._surface[x] + depth;
+                Tile here = (Tile)world._tiles[y * Width + x];
+                if (here == Tile.Air || here == Tile.Bedrock) continue;
+                world._tiles[y * Width + x] = (byte)Tile.StashSmall;
+                break;
+            }
+        }
     }
 
     // ---- Saving -----------------------------------------------------------------------------
