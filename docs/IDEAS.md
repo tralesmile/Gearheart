@@ -13,11 +13,12 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 3 | Crash juice: screen shake, sparks, dust and a metal crunch on hard hits | S | **Built 2026-11-12** (PR #8) |
 | 4 | Buried treasure: glinting stashes underground that pay a bundle of ore | S–M | **Built 2026-11-12** (PR #9) |
 | 5 | Fuel cans and scrap heaps lying on the surface between biomes, so the drive is not empty | S | **Built 2026-11-12** (PR #10) |
-| 6 | Trip summary card when you get back to the garage: distance, top speed, best air, ore, stashes, heaps smashed, crashes — and your best trip to beat | S | Open (top pick for next session) |
+| 6 | Trip summary card when you get back to the garage: distance, top speed, best air, ore, stashes, heaps smashed, best smash streak, crashes — and your best trip to beat | S | Open (top pick for next session) |
 | 7 | Landing grades: "CLEAN LANDING" bonus vs "BELLY FLOP" when you land on the roof, feeding a trip score | S | Open |
-| 8 | Smash streak: heaps (and later crates/cacti) smashed within a few seconds of each other chain into "SMASH x3" with rising pitch | S | Open (builds on pickups) |
+| 8 | Smash streak: heaps (and later crates/cacti) smashed within a few seconds of each other chain into "SMASH x3" with rising pitch | S | **Built 2026-11-12** (PR #11, heaps only) |
 | 9 | Ore radar / "metal detector" beep that speeds up as you near a stash (car part or player tool) | S | Open |
-| 10 | Speed lines and wind sound above 60 km/h | S | Open (fold into the next polish session) |
+| 10 | Speed lines and wind sound above 60 km/h | S | **Built 2026-11-12** (PR #11, from 50 km/h) |
+| 10b | Dashboard: speedometer dial, fuel gauge, damage meter instead of a text line | S | **Built 2026-11-12** (PR #11) |
 | 11 | Damage that bites: hard landings dent the car for real, with visible bent panels and smoke from a hurt engine | S–M | Open |
 | 12 | Part unlocks per biome: off-road tracks/spiked tyres for snow and ice, need iron from the Frozen North | M | Open |
 | 13 | Ramps and natural jumps (cliff lips, dune crests) placed by world generation | S | Open |
@@ -31,6 +32,26 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 21 | Raiders in The Wastes: a bot car that rams you | L | Open (split: dumb rammer → shooting → loot) |
 | 22 | Main menu with Continue / New world / Settings (volume, controls) | M | Open |
 | 23 | Lava layer deep underground that damages the car | M | Open |
+| 24 | Biome welcome banner: "THE WASTES — copper country" with a sting the first time you arrive | S | Open (new 2026-11-12) |
+| 25 | Smashable roadside props: cacti in The Wastes, snowmen and ice spikes in the Frozen North, fences in the meadow, all feeding the smash streak | S | Open (new 2026-11-12) |
+| 26 | Distance flags every 50 m with your best distance marked on the road ("BEST 312 m") | S | Open (new 2026-11-12) |
+| 27 | Nitro-style "perfect landing" boost: land clean on all wheels and get a short free speed kick | S | Open (new 2026-11-12; pairs with landing grades) |
+| 28 | Engine smoke and a coughing engine sound when damage is high, so the damage meter means something you can hear | S | Open (new 2026-11-12) |
+| 29 | Speedometer redline overdrive: holding the needle in the red for 3 s with the booster unlocks a "SONIC" call-out and a sonic-boom puff | S | Open (new 2026-11-12, cheap thrill) |
+
+## 2026-11-12 (fourth session — polish)
+
+Looked at `rocket_180.png` and `pickup_world_166.png`: the car is big, the world is pretty, but the speed of the car is a small number in a line of grey text at the top right ("19 km/h Fuel 66/75 Damage 0"). Driving at 90 km/h with a booster looks almost the same as crawling at 20: no streaks, no wind, no needle swinging. The heaps are tiny next to the fuel can, and ploughing through one has no weight (the car does not even notice). Three feature sessions in a row; time for a feel pass on the drive, the thing a player does most in the first minute.
+
+- **Dashboard** (S): a speedometer dial with a swinging needle and a big number, a fuel gauge that goes amber then blinks red, a damage meter. Why fun: speed you can see is speed you feel; the fuel gauge makes the cans' value obvious. *Built.*
+- **Speed lines and wind** (S): streaks at the screen edges from 50 km/h, warm while boosting, and a rising wind whoosh. Why fun: the booster finally *feels* fast. *Built.*
+- **Smash streak with weight** (S): heaps within 4 s chain "SMASH x3" with rising crunch pitch and a little combo scrap; each smash costs 10% speed. Why fun: a reason to hold a fast line through a field of junk, and the heap feels solid. *Built.*
+- **Smashable props by biome** (S): cacti, snowmen, fences that join the streak. Why fun: the streak gets longer chains, each biome looks and plays different.
+- **Biome welcome banner** (S): a title card and a sting the first time you reach a biome. Why fun: arriving somewhere new should be an event.
+- **Distance flags and best-distance marker** (S): Hill Climb Racing's best hook, "beat your last flag".
+- **Perfect-landing kick** (S): land clean and get a burst of speed. Why fun: rewards skill in the air, chains with the streak.
+- **Smoking, coughing engine when damaged** (S): makes damage audible and visible.
+- **Redline "SONIC" call-out** (S): cheap thrill for keeping the needle in the red.
 
 ## 2026-11-12 (third session)
 

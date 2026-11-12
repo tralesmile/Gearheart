@@ -50,6 +50,9 @@ public partial class SoftVehicle : Node2D, IVehicle
     /// <summary>True while the rocket boosters are firing this tick.</summary>
     public bool Boosting { get; private set; }
 
+    /// <summary>True while the car is rocking itself back onto its wheels after landing on its roof.</summary>
+    public bool SelfRighting => _selfRighting;
+
     /// <summary>True while no attached wheel touches the ground.</summary>
     public bool Airborne
     {
@@ -136,6 +139,8 @@ public partial class SoftVehicle : Node2D, IVehicle
     private CpuParticles2D _dust, _exhaust, _boostSmoke;
     private float _upsideDownTime;
     private bool _selfRighting;
+    private float _rightingTime;
+    private bool _hopPending;
     private const float AirSpinDamping = 0.003f;   // share of spin removed per substep while airborne
     private float _autoStuckTime, _autoReverseTime;
     private int _rearHub = -1, _frontHub = -1;
@@ -420,6 +425,17 @@ public partial class SoftVehicle : Node2D, IVehicle
 
     public void Refuel() => Fuel = FuelCapacity;
 
+    /// <summary>
+    /// Takes away part of the car's speed at once (ploughing through junk): every node keeps
+    /// <paramref name="keep"/> of its velocity, so the car slows without turning or bending.
+    /// </summary>
+    public void Slow(float keep)
+    {
+        keep = Mathf.Clamp(keep, 0f, 1f);
+        for (int i = 0; i < Pos.Length; i++) Prev[i] = Pos[i] - (Pos[i] - Prev[i]) * keep;
+        foreach (var wheel in _wheels) wheel.Spin *= keep;   // or the tyres would spin it straight back up
+    }
+
     /// <summary>Adds fuel (a can picked up on the road), up to the tank size.</summary>
     public void AddFuel(float amount) => Fuel = Mathf.Min(FuelCapacity, Fuel + amount);
 
@@ -438,10 +454,16 @@ public partial class SoftVehicle : Node2D, IVehicle
 
         StabiliseInAir();
         if (Boosting) ApplyBoost(dt);
+        if (_hopPending)
+        {
+            _hopPending = false;
+            for (int i = 0; i < Pos.Length; i++) Prev[i].Y += 240f * dt;   // about 240 px/s upwards
+        }
 
         // Upside down and stopped: the car rocks itself back onto its wheels.
         float tilt = _input.Tilt;
-        if (_selfRighting && !Parked) tilt = -Mathf.Sign(PitchDegrees()) * 2.5f;
+        // If it stays stuck (wedged on its roof in a dip), the push grows until it rolls over.
+        if (_selfRighting && !Parked) tilt = -Mathf.Sign(PitchDegrees()) * Mathf.Min(8f, 2.5f + 2.2f * _rightingTime);
 
         if (!Mathf.IsZeroApprox(tilt))
         {
@@ -615,6 +637,10 @@ public partial class SoftVehicle : Node2D, IVehicle
         _upsideDownTime = upsideDown && Speed < 60f ? _upsideDownTime + delta : 0f;
         if (_upsideDownTime > 1.2f) _selfRighting = true;
         if (Mathf.Abs(PitchDegrees()) < 50f) _selfRighting = false;
+        float before = _rightingTime;
+        _rightingTime = _selfRighting ? _rightingTime + delta : 0f;
+        // Still stuck: every 1.5 s give it a little hop off the ground so the roll can start.
+        if (Mathf.FloorToInt(_rightingTime / 1.5f) > Mathf.FloorToInt(before / 1.5f)) _hopPending = true;
 
         _drillContactTime = Mathf.Max(0f, _drillContactTime - delta);
         Speed = (BodyCenter() - _centerAtTickStart).Length() / delta;

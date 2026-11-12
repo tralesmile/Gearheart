@@ -97,7 +97,7 @@ public partial class RoadsidePickups : Node2D
         float cx = (p.X + 0.5f) * Ts;
         return p.Kind == PickupKind.FuelCan
             ? new Rect2(cx - 8f, p.GroundY - 24f, 16f, 24f)
-            : new Rect2(cx - 14f, p.GroundY - 16f, 28f, 16f);
+            : new Rect2(cx - 15f, p.GroundY - 24f, 30f, 24f);
     }
 
     /// <summary>Pickups lying in the box (not yet taken).</summary>

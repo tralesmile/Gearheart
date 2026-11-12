@@ -2,6 +2,12 @@
 
 Newest first. One entry per big decision: what, why, and what would make us revisit it.
 
+## 2026-11-12 — Driving HUD is a dashboard; heaps have weight; self-righting escalates
+
+- **What:** Speed, fuel and damage moved from the top-right text line to a drawn dashboard (dial, gauges) at the bottom-left while driving; the top line keeps the biome and BOOST. Smashing a scrap heap on the ground costs 10% speed; chains within 2.5 s give "SMASH xN" and from x3 +1 Scrap each. Speed lines from 35 km/h sideways speed, wind sound from 30 km/h. Self-righting pushes harder the longer the car stays on its roof, with a small hop every 1.5 s.
+- **Why:** speed has to be seen and heard to be felt; a smash that does not touch the car feels weightless; a car stuck on its roof with no way out is the worst minute the game can have.
+- **Revisit when:** you play it — if the dashboard covers too much of the screen, or the slowdown makes heaps feel like a penalty, these are single constants (`HeapKeep`, `StreakWindow`, `SpeedLines.StartKmh`).
+
 ## 2026-11-12 — Roadside pickups: not saved, restock out of sight
 
 - **What:** Fuel cans and scrap heaps are placed on the surface outward from the garage on both sides, one every 40–76 tiles (10–19 m) starting about 17 m out; about 30% are fuel cans. The current world has about 42 of them. A can gives +18 fuel and is only taken if at least 6 fuel fits in the tank (so it is never wasted). A heap gives 1–3 Scrap plus a chance of one ore by biome (Iron 20% in the meadow, Copper 35% in The Wastes, Iron 35% in the Frozen North), fixed per spot. Hitting a heap faster than 15 km/h is a "SMASH" (junk spray, crunch, small shake); slower, or on foot, it is just picked up. Pickups are positioned from the world's surface but are not part of the world file: the list lives in memory for the game session (so a garage visit does not restock them) and a taken pickup comes back after 150 s, only when the player is more than about 22 m away.

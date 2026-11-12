@@ -33,6 +33,16 @@ public partial class WorldScene : Node2D
     private RoadsidePickups _pickups;
     private bool _canHinted;
     private int _cansTaken, _heapsTaken, _heapsSmashed;
+    private int _smashStreak, _bestStreak;
+    private float _lastSmashAt = -99f;
+    private bool _smashToast;
+    private const float StreakWindow = 2.5f;     // seconds between smashes that still chain
+    private Dashboard _dash;
+    private SpeedLines _lines;
+    private float _carDir = 1f, _dirCarX, _carVx;
+    private float _peakLines;
+    private bool _linesLogged, _wasRighting;
+    private int _rollOvers;
     private bool _glintHinted, _stashPlanted;
     private bool _crashDropped;
     private float _pickTimer;
@@ -297,6 +307,12 @@ public partial class WorldScene : Node2D
         _backdrop.Underground = under;
         (_backdrop.Desert, _backdrop.Frozen) = TileWorld.BiomeBlend(focus.X);
 
+        // Which way the car is travelling (for the wind streaks); ignore tiny jitters.
+        float moved = _car.CenterPosition.X - _dirCarX;
+        if (Mathf.Abs(moved) > 0.5f) _carDir = Mathf.Sign(moved);
+        if (dt > 0f) _carVx = Mathf.Lerp(_carVx, Mathf.Abs(moved) / dt, 1f - Mathf.Exp(-12f * dt));
+        _dirCarX = _car.CenterPosition.X;
+
         _crashFx.Enabled = _driving;
         _sfx.UpdateCar(_driving, _car.Speed, _car.Throttle, _car.IsDrilling && _car.DrillEnabled, _car.Boosting);
         _pickTimer -= dt;
@@ -396,16 +412,37 @@ public partial class WorldScene : Node2D
             string items = string.Join("   ", loot.ConvertAll(l => $"+{l.Amount} {l.Item}"));
             bool smash = kmh > 15f;
             Color scrap = new(0.72f, 0.75f, 0.8f);
+            float kmhAfter = kmh;
             if (smash)
             {
-                // Plough through at speed: junk flies, metal crunches, the camera kicks a little.
+                // Plough through at speed: junk flies, metal crunches, the camera kicks a little,
+                // and the car loses a bit of speed so the heap has weight.
                 _heapsSmashed++;
-                _sfx.Play("crunch", -11f, 0.1f, 1.35f);
-                _sfx.Play("pickup", -9f, 0.1f);
-                Burst(at.GetCenter(), scrap, 22, 120f + kmh * 4f, _car.Speed > 0f ? Mathf.Sign(_car.CenterPosition.X - _lastCarX) : 0f);
+                _smashStreak = _elapsed - _lastSmashAt <= StreakWindow ? _smashStreak + 1 : 1;
+                _lastSmashAt = _elapsed;
+                _bestStreak = Mathf.Max(_bestStreak, _smashStreak);
+                int bonus = _smashStreak >= 3 ? 1 : 0;   // a chain of three or more pays a little extra
+                if (bonus > 0)
+                {
+                    GameSession.Add("Scrap", bonus);
+                    items += $"   +{bonus} combo";
+                }
+                float rise = Mathf.Min(_smashStreak - 1, 5);
+                _sfx.Play("crunch", -11f + rise * 0.6f, 0.1f, 1.35f + 0.1f * rise);
+                _sfx.Play("pickup", -9f, 0.1f, 1f + 0.08f * rise);
+                Burst(at.GetCenter(), scrap, 22 + 4 * (int)rise, 120f + kmh * 4f, _car.Speed > 0f ? Mathf.Sign(_car.CenterPosition.X - _lastCarX) : 0f);
                 Burst(at.GetCenter(), new Color(0.3f, 0.3f, 0.34f), 8, 90f + kmh * 3f);
-                _crashFx.AddTrauma(0.12f + Mathf.Min(0.15f, kmh / 400f));
-                if (_toastTime < 1.2f) Toast($"SMASH!\n{items}");
+                _crashFx.AddTrauma(0.12f + Mathf.Min(0.15f, kmh / 400f) + 0.03f * rise);
+                if (!_car.Airborne)   // slowing a car in mid-air would wreck its jump
+                {
+                    _car.Slow(HeapKeep);
+                    kmhAfter = kmh * HeapKeep;
+                }
+                if (_toastTime < 1.2f || _smashToast)
+                {
+                    Toast(_smashStreak > 1 ? $"SMASH x{_smashStreak}!\n{items}" : $"SMASH!\n{items}");
+                    _smashToast = true;
+                }
             }
             else
             {
@@ -414,13 +451,16 @@ public partial class WorldScene : Node2D
                 if (_toastTime < 1.2f) Toast(items);
             }
             if (GameSession.AutoPlay)
-                GD.Print($"[pickup] scrap heap at x={p.X} {(smash ? "smashed" : "picked up")} at {kmh:0} km/h ({(_driving ? "car" : "on foot")}): {items} frame={Engine.GetFramesDrawn()} | " +
+                GD.Print($"[pickup] scrap heap at x={p.X} {(smash ? $"smashed (streak x{_smashStreak}, speed {kmh:0} -> {kmhAfter:0} km/h)" : "picked up")} at {kmh:0} km/h ({(_driving ? "car" : "on foot")}): {items} frame={Engine.GetFramesDrawn()} | " +
                          string.Join(" ", System.Array.ConvertAll(GameSession.Items, i => $"{i}={GameSession.Count(i)}")));
         }
         _lastCarX = _car.CenterPosition.X;
     }
 
     private float _lastCarX;
+
+    /// <summary>Share of its speed the car keeps when it ploughs through a scrap heap.</summary>
+    private const float HeapKeep = 0.9f;
 
     /// <summary>A one-shot spray of bits; <paramref name="forward"/> (-1, 0 or 1) throws them ahead of the car.</summary>
     private void Burst(Vector2 at, Color color, int amount, float speed, float forward = 0f)
@@ -525,6 +565,16 @@ public partial class WorldScene : Node2D
         var layer = new CanvasLayer();
         AddChild(layer);
 
+        // Wind streaks first, so every label is drawn over them.
+        _lines = new SpeedLines { Name = "SpeedLines" };
+        layer.AddChild(_lines);
+
+        // The car's dashboard, bottom-left (only while driving).
+        _dash = new Dashboard { Name = "Dashboard", Visible = false };
+        _dash.SetAnchorsPreset(Control.LayoutPreset.BottomLeft);
+        _dash.Position = new Vector2(16f, -16f - _dash.CustomMinimumSize.Y);
+        layer.AddChild(_dash);
+
         _hint = Outlined(new Label { Position = new Vector2(16f, 12f) }, 18);
         layer.AddChild(_hint);
 
@@ -585,6 +635,7 @@ public partial class WorldScene : Node2D
 
     private void Toast(string text)
     {
+        _smashToast = false;
         _toast.Text = text;
         _toastTime = 2f;
     }
@@ -605,11 +656,19 @@ public partial class WorldScene : Node2D
                          (_car.HasDrill ? $"   X: drill {(_car.DrillEnabled ? "ON" : "OFF")}" : "") +
                          (_car.HasBooster ? "   Shift: BOOST" : "") +
                          (NearGarage() ? "   G: garage   R: repair" : "");
-            bool lowFuel = _car.Fuel < _car.FuelCapacity * 0.2f;
-            _status.Text = $"{(_car.Boosting ? "BOOST!   " : "")}{BiomeName(_car.CenterPosition.X)}   {_car.Speed / PixelsPerMeter * 3.6f:0} km/h   " +
-                           $"{(lowFuel ? "LOW FUEL " : "Fuel ")}{_car.Fuel:0}/{_car.FuelCapacity:0}   Damage {_car.Damage:0}";
-            bool blink = lowFuel && Mathf.PosMod(_elapsed, 0.8f) < 0.4f;
-            _status.Modulate = blink ? new Color(1f, 0.45f, 0.35f) : _car.Boosting ? new Color(1f, 0.8f, 0.4f) : Colors.White;
+            // Speed, fuel and damage live on the dashboard now; the status line keeps where you are.
+            float kmh = _car.Speed / PixelsPerMeter * 3.6f;
+            _status.Text = $"{(_car.Boosting ? "BOOST!   " : "")}{BiomeName(_car.CenterPosition.X)}";
+            _status.Modulate = _car.Boosting ? new Color(1f, 0.8f, 0.4f) : Colors.White;
+            _dash.Visible = true;
+            _dash.Set(kmh, _car.Fuel, _car.FuelCapacity, _car.Damage, _car.Boosting);
+            _lines.Set(_carVx / PixelsPerMeter * 3.6f, _carDir, _car.Boosting);
+            _peakLines = Mathf.Max(_peakLines, _lines.Intensity);
+            if (GameSession.AutoPlay && !_linesLogged && _lines.Intensity > 0.6f)
+            {
+                _linesLogged = true;
+                GD.Print($"[speed] streaks at {_lines.Intensity:0.00} at {_carVx / PixelsPerMeter * 3.6f:0} km/h sideways, wind {_sfx.WindLevel:0.00}, boosting={_car.Boosting} frame={Engine.GetFramesDrawn()}");
+            }
         }
         else
         {
@@ -617,6 +676,8 @@ public partial class WorldScene : Node2D
             if (NearCar()) hint += "\nF: get in the car";
             if (NearGarage()) hint += "\nG: open the garage (build and upgrade your car)";
             _hint.Text = hint;
+            _dash.Visible = false;
+            _lines.Set(0f, _carDir, false);
             _status.Modulate = Colors.White;
             _status.Text = $"{BiomeName(_player.Position.X)}   Depth {Mathf.Max(0f, (_player.Position.Y / Ts - _world.SurfaceRow(Mathf.FloorToInt(_player.Position.X / Ts))) * 0.25f):0} m" +
                            (GameSession.StashesFound > 0 ? $"   Stashes found {GameSession.StashesFound}" : "");
@@ -635,8 +696,21 @@ public partial class WorldScene : Node2D
     private void TrackStunts(float dt)
     {
         if (_car.Boosting) _boostSeconds += dt;
+        if (_car.SelfRighting != _wasRighting)
+        {
+            _wasRighting = _car.SelfRighting;
+            if (!_wasRighting) _rollOvers++;
+            if (GameSession.AutoPlay)
+                GD.Print($"[stunt] {(_wasRighting ? "upside down: car starts rocking itself over" : "back on its wheels")} at x={_car.CenterPosition.X / Ts:0} pitch={_car.PitchDegrees():0}");
+        }
         _topSpeed = Mathf.Max(_topSpeed, _car.Speed);
 
+        // Lying on the roof also has no wheels on the ground: that is not air time worth a cheer.
+        if (_car.SelfRighting)
+        {
+            _airTime = 0f;
+            return;
+        }
         if (_car.Airborne)
         {
             if (_airTime == 0f) _airStartSpeed = _car.Speed;
@@ -712,7 +786,8 @@ public partial class WorldScene : Node2D
                  $"fuel={_car.Fuel:0} damage={_car.Damage:0} drilling={_car.IsDrilling} boosting={_car.Boosting} boostTotal={_boostSeconds:0.0}s " +
                  $"top={_topSpeed / PixelsPerMeter * 3.6f:0}km/h longestAir={_longestAir:0.0}s " +
                  $"crashes={_crashFx.Hits} hardest={_crashFx.HardestHit / PixelsPerMeter * 3.6f:0}km/h sparks={_crashFx.SparkBursts} " +
-                 $"cans={_cansTaken} heaps={_heapsTaken} smashed={_heapsSmashed} | " +
+                 $"cans={_cansTaken} heaps={_heapsTaken} smashed={_heapsSmashed} bestStreak={_bestStreak} " +
+                 $"dash={(_dash.Visible ? $"{_dash.ShownKmh:0}km/h" : "hidden")} lines={_lines.Intensity:0.00} peakLines={_peakLines:0.00} wind={_sfx.WindLevel:0.00} rollOvers={_rollOvers} | " +
                  string.Join(" ", System.Array.ConvertAll(GameSession.Items, i => $"{i}={GameSession.Count(i)}")));
     }
 }

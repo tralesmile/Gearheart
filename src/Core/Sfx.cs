@@ -9,12 +9,12 @@ namespace Gearheart.Core;
 /// </summary>
 public partial class Sfx : Node
 {
-    private const int LoopFrames = 22050;   // engine.wav, drill.wav and boost.wav are exactly one second
+    private const int LoopFrames = 22050;   // engine, drill, boost and wind loops are exactly one second
 
     private readonly Dictionary<string, AudioStream> _streams = new();
     private readonly List<AudioStreamPlayer> _voices = new();
     private readonly Dictionary<string, double> _lastPlayed = new();
-    private AudioStreamPlayer _engine, _drill, _boost;
+    private AudioStreamPlayer _engine, _drill, _boost, _wind;
     private int _nextVoice;
     private double _time;
 
@@ -33,6 +33,7 @@ public partial class Sfx : Node
         _engine = Loop("engine");
         _drill = Loop("drill");
         _boost = Loop("boost");
+        _wind = Loop("wind");
     }
 
     private AudioStreamPlayer Loop(string name)
@@ -75,7 +76,15 @@ public partial class Sfx : Node
         SetLoop(_boost, driving && boosting, -9f, 0.9f + Mathf.Min(0.4f, speed / 2500f));
         SetLoop(_engine, driving, -17f + 7f * Mathf.Abs(throttle), 0.75f + Mathf.Min(1.5f, speed / 380f) + 0.3f * Mathf.Abs(throttle));
         SetLoop(_drill, driving && drilling, -14f, 1f);
+
+        // Wind rushing past: silent below about 30 km/h, a loud whoosh near top speed.
+        float wind = Mathf.Clamp((speed / 64f * 3.6f - 30f) / 45f, 0f, 1f);
+        WindLevel = wind;
+        SetLoop(_wind, driving && wind > 0f, Mathf.LinearToDb(Mathf.Max(0.001f, wind)) - 9f, 0.8f + 0.5f * wind);
     }
+
+    /// <summary>How loud the wind is, 0..1 (for the bot log).</summary>
+    public float WindLevel { get; private set; }
 
     private static void SetLoop(AudioStreamPlayer player, bool on, float volumeDb, float pitch)
     {
