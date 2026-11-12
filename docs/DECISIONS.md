@@ -2,6 +2,14 @@
 
 Newest first. One entry per big decision: what, why, and what would make us revisit it.
 
+## 2026-11-12 — Dust devils: the first hazard is weather, and it is also a free jump
+
+- **What:** three stretches of The Wastes road (about 111–176, 178–242 and 244–309 m east of the pad) each grow a dust devil on hot afternoons (heat rises 10:30–11:30, falls 16:30–17:30 on the world clock). A devil wanders its stretch at 0.7–1.5 m/s, lives 25–45 s, then dies down and another forms 6–20 s later. Driving into one grips the car: its velocity is eased towards 14 m/s upwards, sideways towards half its own speed plus half the devil's drift, and its rotation towards 2.4 rad/s; the grip is strongest at the core and low down. After a real ride (held more than 0.12 s, or 1.6 s at most) the devil is spent and blows itself out in a burst of sand. On foot it lifts you and drops you a little way off. The push is a uniform velocity change plus a rigid turn (`SoftVehicle.Whirl`), so the soft body is never bent by it.
+- **Why:** nothing in the world could push back; the roadmap's "enemies and danger" was the one direction never started. A creature needs AI, health and art; a whirlwind needs none of that and still gives the road something to react to. It is a hazard (a rough landing or a crash if you let it spin you) and a reward (a 1–2 s jump anywhere, a chance at a flip for the starter car), so it never feels like a pure tax. Spending itself after one throw stops it from juggling the car.
+- **Afternoons only:** the game starts at 08:00 and devils need heat, so the first trip is calm, they arrive about a minute in, and every bot run that starts at 08:00 is untouched (all earlier evidence still holds). The midday CI runs use `--time=13`.
+- **Not done yet:** no score for a devil ride beyond the jump and landing it causes; no early warning further than the screen and the roar; parked cars are not lifted (only while you drive).
+- **Revisit when:** you have played (D1): too strong or too weak is `WhirlLiftSpeed`/`WhirlLiftRate` in `SoftVehicle.Whirl.cs` and `DevilSpin` in `WorldScene.DustDevils.cs`; too many or too few is `Zones`, `Life` and `Rest` in `DustDevils.cs`.
+
 ## 2026-11-12 — Birds: life in the world, never a target
 
 - **What:** flocks along the road (`Birds`, every 22–42 m, not on kickers; sparrows in the Home Meadow, crows drawn at 2x in The Wastes, snow buntings in the Frozen North) and three sparrows on the garage roof. They take off when the car comes within 140 px + 0.38 s of travel (about 6 m at 36 km/h, 12 m at 90 km/h), when the player walks within about 1.5 m, on a honk (H, about 12 m), an engine start (about 12 m), a crash (about 9 m) or digging next to them. They come back 75 s later, out of sight; the list is not saved.

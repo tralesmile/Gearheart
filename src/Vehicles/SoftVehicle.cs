@@ -757,6 +757,8 @@ public partial class SoftVehicle : Node2D, IVehicle
             }
         }
 
+        ApplyWhirl(dt);
+
         // Upside down and stopped: the car rocks itself back onto its wheels.
         float tilt = _input.Tilt;
         // Flying (no wheel down): rotation is stronger, so a full flip fits in a big jump.

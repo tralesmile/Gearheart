@@ -2,6 +2,45 @@
 
 Newest entry first. Each session: what was built and why, how it was verified, what is not verified, and what comes next.
 
+## 2026-11-12, about 20:20–21:30 UTC — Dust devils, the first hazard (PR #29)
+
+**Started by** checking for unfinished work: PR #28 (birds and a horn) was open with its last build green (run 43297658269); its `[birds]` lines and `birds_left_172.png` looked right, so I merged it (squash).
+
+**Built — dust devils in The Wastes** (`src/World/DustDevils.cs`, `src/Game/WorldScene.DustDevils.cs`, `src/Vehicles/SoftVehicle.Whirl.cs`, `devil` and `gust` sounds)
+
+- **When and where**: on hot afternoons (heat rises 10:30–11:30, falls 16:30–17:30 on the world clock; a new game reaches 10:30 about a minute in) three stretches of The Wastes road (about 111–176, 178–242 and 244–309 m east of the pad) each grow a whirlwind. It wanders its stretch at 0.7–1.5 m/s, lives 25–45 s, dies down, and another forms 6–20 s later. "MIDDAY HEAT / dust devils are dancing in The Wastes" when the heat comes up while you are east of the garage.
+- **What it does**: drive in and it grips the car (strongest at the core and low down): lifts it towards 14 m/s, slows it towards half its speed plus the devil's drift, and twists it towards 2.4 rad/s. After a real ride (more than 0.12 s, at most 1.6 s) it is spent and blows itself out in a burst of sand, so it never juggles you. "DUST DEVIL! / Q/E against the spin · land flat" the first time. The landing is judged like any jump (perfect landing kicks and flips count). On foot it lifts the player and drops them a little way off. Parked cars are left alone.
+- **Look and sound**: drawn by the game: a tapering funnel of dusty slices with ragged darker edges, light bands climbing it as it turns, a haze at its foot, sand grains sweeping round in front of and behind the car, bits of debris, sand kicked up. A swirling roar (`devil.wav`, heard from about 25 m, loudest inside) and a whoosh (`gust.wav`) on the grab and the blow-out.
+- **CI**: `[devil]` lines (stretches, formed / died down / collapsed / gone, caught with speed and strength, down with time held, air, height, turn, speed and damage), `devils=rides/throws/collapses bestDevilAir bestDevilHeight` on `[autoplay]`; two midday runs (`--time=13`, starter and rocket east) and a midday screenshot run (`devil_*.png`).
+
+**Why this** — Brainstorm in `docs/IDEAS.md` (twenty-first session). Twenty sessions made a rich toy, but nothing in the world could push back: the only danger was your own driving, and "enemies and danger" was the one roadmap direction never started. The Wastes is a long sandy road where the big moments only happen at kickers. A whirlwind gives that road a hazard you see coming and can choose to hit, and it is also a free jump anywhere (and a flip chance for the starter car); it needs no AI, health or art pack, so it fits one session. The last session was polish, the two before were features; this is a feature in a new direction.
+
+**How it got there (CI runs 43301263272 and 43304872499, both green; a third for these docs)**
+
+1. Run 1: the physics worked (the starter was thrown 1.77 s, 5.6 m up; the rocket 3 times), but the devil was nearly invisible on screen (`devil_caught_271.png`: a few faint dots of sand against sand), and the devils of a `--time=13` game only formed 5–8 s in, because they were set up before the clock.
+2. Run 2: a real funnel (slices, edges, bands, bigger and denser grains), checked first against a mock-up drawn over a real screenshot; set up after the clock.
+
+**Verified (run 43304872499)**
+
+- **Starter, 13:00, east**: three devils up at the start (148, 207, 272 m); caught by #0 at 136 m at 24 km/h, held 0.38 s, 1.42 s in the air, 4.9 m up, turned 29 degrees, came down with a PERFECT LANDING (the landing judge timed 1.53 s of air, 4 degrees off the slope, +16 km/h kick); the devil blew itself out. 40 s position 2173.2 vs 2209.3 at 08:00 (the ride cost about 9 m).
+- **Rocket, 13:00, east**: three rides at 85, 74 and 59 km/h: held 0.13–0.24 s, 0.73–1.94 s in the air, 3.1–9.7 m up, turned 35–68 degrees; damage 4–7, all landed on its wheels (rough). Each devil collapsed after its throw, and new ones formed 10–15 s later.
+- **Screenshots**: `devil_caught_284.png` (the funnel on the road ahead of the car), `devil_caught_288.png` / `_291.png` (the car inside the column, tipping, "DUST DEVIL!"), `devil_caught_294.png` (thrown high with the landing shadow far below), `devil_down_302.png` (down level on the next dune).
+- **Nothing else changed**: every 08:00 run ends exactly where it did on main (starter 2209.3, left 465.7, spiked 424.9, Crystal Drill 1480.1, rocket 2552.7, turbo 2302.1, flip test 2543.3, trip test 1629.2); Hill Climb 19.18 / 17.22 / 14.08 s. In the trip test the clock passes 10:30 at 56 s and devils form, but the bot never meets one. No errors.
+
+**Not verified / known issues**
+
+- Fun is my judgement (D1): whether devils feel like a fun surprise or a tax on every Wastes drive, and whether the twist is strong enough to matter (the bot turned only 29–68 degrees and never tried Q/E).
+- **Warning distance**: at the drive zoom the camera shows about 9 m ahead, so a devil comes on screen only about a second before you reach it at 25 km/h; the roar is the earlier warning. A dust plume on the horizon would fix it (IDEAS #134).
+- The on-foot lift and the MIDDAY HEAT call-out were not exercised by any bot (the bot drives from the pad at 13:00, or meets 10:30 only in the trip test while not near a devil). The sounds are tuned by numbers only.
+- All six devils in the logs spun clockwise (a coin flip each; maybe chance, worth a look).
+- No score or record for a devil ride itself yet (IDEAS #131).
+
+**Next**
+
+1. Devil rider records and a "Ride a dust devil" goal (S, #131), and a dust plume on the horizon so you see them from 30 m (S, part of #134).
+2. Devil loot (S, #133): a scrap heap or fuel can whirling in the column, caught if you drive through.
+3. Vultures over strongboxes (S, #123), overboost (S, #107), then a creature (M: crystal mites #65 or night eyes #118).
+
 ## 2026-11-12, about 19:20–20:30 UTC — Birds and a horn (PR #28, polish and life)
 
 **Started by** checking for unfinished work: no open pull requests; main's build after PR #27 (run 43288451869) was running.

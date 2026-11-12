@@ -58,6 +58,7 @@ jobs:
             grep "\[turbo\]" smoke.log | head -14
             grep "\[night\]" smoke.log | head -24
             grep "\[birds\]" smoke.log | head -14
+            grep "\[devil\]" smoke.log | head -30
             # "resources still in use at exit" is a shutdown notice about cached textures and sounds, not a fault.
             if grep -E "ERROR|Unhandled exception|SCRIPT ERROR|System\.[A-Za-z]*Exception" smoke.log | grep -v "still in use at exit" | grep .; then
               echo "::error::Smoke test failed: $name"
@@ -84,6 +85,8 @@ jobs:
           run "world: launch control, Turbo pickup (the launch charge spools the turbo), then a second sprint" res://scenes/world.tscn --quit-after 2700 -- --fresh --autoplay --launchtest --design=turbo
           run "world: dusk into night (clock from 19:00 at 3x), starter car east" res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --time=19 --clockrate=3 --design=starter
           run "world: night drive west (reversing lamp), from 22:00" res://scenes/world.tscn --quit-after 3600 -- --fresh --autoplay --left --time=22 --design=starter
+          run "world: dust devils (13:00, starter car east into The Wastes)" res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --time=13 --design=starter
+          run "world: dust devils (13:00, rocket car east)" res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --time=13 --design=rocket
           run "world: rocket booster car"             res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --design=rocket
           run "world: flip tricks, rocket car (tries a backflip, then a frontflip, ... off every kicker)" res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --fliptest --design=rocket
           run "world: flip tricks, starter car (no booster: are its jumps long enough?)" res://scenes/world.tscn --quit-after 3600 -- --fresh --autoplay --fliptest --design=starter
@@ -251,6 +254,21 @@ jobs:
             done
             grep "\[birds\]" shots/$run.log | head -10
           done
+          # Dust devils: a midday drive east into The Wastes; frames as the car meets a devil, in it, thrown, and down.
+          mkdir -p shots/devil
+          xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/devil/f.png --quit-after 400 res://scenes/world.tscn -- --fresh --autoplay --time=13 --design=starter > shots/devil.log 2>&1 || true
+          grep "\[devil\] caught" shots/devil.log | head -3 | sed -E 's/.*frame=([0-9]+).*/\1/' | while read n; do
+            for d in -10 -3 1 4 7; do
+              f=$(printf "shots/devil/f%08d.png" $((n + d))); [ -f "$f" ] && cp "$f" keep/devil_caught_$((n + d)).png
+            done
+          done
+          grep "\[devil\] down" shots/devil.log | head -3 | sed -E 's/.*frame=([0-9]+).*/\1/' | while read n; do
+            f=$(printf "shots/devil/f%08d.png" $((n + 1))); [ -f "$f" ] && cp "$f" keep/devil_down_$((n + 1)).png
+          done
+          for i in 150 200 250; do
+            f=$(printf "shots/devil/f%08d.png" $i); [ -f "$f" ] && cp "$f" keep/devil_$i.png
+          done
+          grep "\[devil\]" shots/devil.log | head -20
           # Crash frames: the frame of each of the first hits (from "[crash] ... frame=N") and the next two.
           for run in crash rocket; do
             grep "\[crash\] hit" shots/$run.log | head -4 | sed -E 's/.*frame=([0-9]+).*/\1/' | while read n; do
