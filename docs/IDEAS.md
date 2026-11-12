@@ -145,12 +145,32 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 135 | Lightning storm at night in the Frozen North: strikes hit tall things and the car if you sit on a ridge top | M | Open (new 2026-11-12; danger tied to the night and the terrain) |
 | 136 | Grappling hook on foot: E fires a hook toward the mouse; it bites rock and reels you in, hangs you there, and climbs you onto a ledge; chain hooks up a shaft or across a cavern | S | **Built 2026-11-12** (PR #30; twenty-second session) |
 | 137 | Hook the car: on foot, hook a stuck or flipped car and winch it upright or out of a hole | M | Open (new 2026-11-12; a rescue becomes a little scene; needs #136) |
-| 138 | Vein run: ore tiles touching the one you just mined ring with a rising "tink" and count up ("VEIN x5"), a combo for the pickaxe | S | Open (new 2026-11-12; Minecraft's vein joy, the pickaxe gets a streak like the smash streak) |
+| 138 | Vein run: ore tiles touching the one you just mined ring with a rising "tink" and count up ("VEIN x5"), a combo for the pickaxe | S | **Built 2026-11-12** (PR #31: 3 s / 3-tile chain, tink up a major scale, every 4th ore +1 bonus, the rest of the vein sparkles, ore amounts pop at the tile) |
 | 139 | Pickaxe tiers at the garage bench: Iron Pick (Iron 4) mines 1.6x faster, Crystal Pick mines slate like dirt | S | Open (new 2026-11-12; progression for the on-foot half, which has had none) |
 | 140 | Hook swing: hold the hook key to swing on a fixed rope (pendulum) instead of reeling in; let go at the bottom to fly | S | Open (new 2026-11-12; Worms' ninja rope / Spider-Man after #136; needs the owner's reaction to the reel-in first) |
 | 141 | Flares: throw a glowing flare that bounces down into a dark cavern and lights it for 20 s | S | Open (new 2026-11-12; look before you jump into the dark, a second on-foot tool) |
 | 142 | Old mine shafts: world generation leaves a few timbered shafts with ladders, a broken rail cart and a supply crate at the bottom | M | Open (new 2026-11-12; a discovery underground that is not a random tile) |
+| 143 | Ore flies home: a mined ore's icon arcs from the tile to its slot on the inventory bar, and the count there bumps and flashes | S | Open (new 2026-11-12, twenty-third session; the bar at the bottom never reacts to anything) |
+| 144 | Motherlode: one rare big vein (12–20 tiles of copper or iron) per biome, deep down, with a "MOTHERLODE!" banner when you break into it | S | Open (new 2026-11-12; a vein run's jackpot, a reason to dig in a new place) |
+| 145 | Hit feel for the pickaxe: a tiny hit-stop and a chip of the tile's colour on every swing, a crack sound that rises as the tile weakens | S | Open (new 2026-11-12; mining is the most-repeated action and has the least feedback) |
+| 146 | Geodes in the Deep: round hollow rocks that crack open in a burst of crystals | S | Open (new 2026-11-12; a big find underground that is not a stash) |
+| 147 | Best vein on the trip report and a "Mine a VEIN x5" trip goal | S | Open (new 2026-11-12; ties the on-foot combo to the car's trip loop; the goal shifts the bot's goal order) |
+| 148 | Lava floor: the world ends at ~48 m in a flat dark bedrock band (see `deep_120.png`); make the last rows a glowing lava sea with heat shimmer | M | Open (new 2026-11-12; folds #23/#56; the bottom of the world looks unfinished) |
 | 29 | Speedometer redline overdrive: holding the needle in the red for 3 s with the booster unlocks a "SONIC" call-out and a sonic-boom puff | S | Open (new 2026-11-12, cheap thrill) |
+
+## 2026-11-12 (twenty-third session — mining feel)
+
+Merged PR #30 (grappling hook) first: its docs run finished green, the `[hook]` lines matched the PR (out of the 12 m shaft in 2.23 s, 4 throws) and `hook_8.png` / `hook_50.png` looked right. Then looked at `world_25.png` and `deep_120.png` as a player. The hook fixed getting home; but **mining itself, the most repeated action in the game, gives almost nothing back**: hold the mouse, a tile vanishes, "+1 Iron" takes over the centre of the screen, and the inventory bar at the bottom never moves. Ore sits in little blobs, yet nothing tells you that breaking one is the start of something. The last two sessions were features (devils, hook), so this one is polish and feel.
+
+- **Vein run** (S, #138): ore mined close together and quickly chains "VEIN x2, x3...", with a tink that climbs a scale, every 4th ore +1 bonus, and the rest of the vein sparkling in a ripple so you follow it. Why fun: Minecraft's joy of a vein that keeps going, with a combo and a sound to chase; Hill Climb's coins-in-a-row ding. *Building this.*
+- **Ore flies home** (S, #143). Why fun: every find lands somewhere you can see; the bar comes alive.
+- **Motherlode** (S, #144). Why fun: the vein run's jackpot moment, a story to tell.
+- **Pickaxe hit feel** (S, #145). Why fun: each swing feels like it hits something.
+- **Geodes** (S, #146). Why fun: a crack-open surprise underground.
+- **Best vein on the trip report / vein goal** (S, #147). Why fun: ties the on-foot half to the trip loop.
+- **Lava floor** (M, #148). Why fun: the bottom of the world becomes a place, not a flat band.
+
+Best open picks for fun per effort now: #143 ore flies home (S), #145 pickaxe hit feel (S), #144 motherlode (S), #131 devil records (S), #139 pickaxe tiers (S), #123 vultures (S), then the first creature (#65 crystal mites, M).
 
 ## 2026-11-12 (twenty-second session — back on foot)
 

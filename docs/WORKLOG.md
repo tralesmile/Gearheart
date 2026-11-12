@@ -2,6 +2,48 @@
 
 Newest entry first. Each session: what was built and why, how it was verified, what is not verified, and what comes next.
 
+## 2026-11-12, about 22:24–23:55 UTC — Merged the grappling hook (PR #30), then vein runs (PR #31, polish and feel)
+
+**Started by** checking for unfinished work: PR #30 (grappling hook) was open, its docs run (43319246575) still going. I waited for it past the usual 10 minutes (it was already in the screenshot step and the code commit before it was green); it finished green at 22:39 with `[hook]` lines matching the PR (out of the 12.0 m shaft in 2.23 s with 4 throws, the miss, the fling) and `hook_8.png` / `hook_50.png` looking right, so I squash-merged it (72194a5).
+
+**Built — vein runs** (`src/Game/VeinRun.cs`, `src/Game/MiningPops.cs`, `src/Game/WorldScene.Veins.cs`, `vein` sound)
+
+- Ore (Scrap, Iron, Copper, Crystal) broken within **3 s** of the last ore and **no more than 3 tiles** from it continues a run: "VEIN x2, x3 ..." pops over the tile, and a glassy tink climbs a major scale with every ore.
+- **Every 4th ore of a run pays +1 bonus** of that ore ("+1 BONUS Iron" in gold, a quiet high fanfare).
+- Every ore pops its amount ("+1 Iron", "+2 Scrap") in a bright version of the ore's colour where it broke and drifts up, instead of replacing the centre call-out. Text is drawn at screen resolution (crisp) and the same size on foot and in the car.
+- The rest of the vein (ore touching the broken one, up to 6 steps, 24 tiles) **sparkles in a ripple**, nearest first, so you see which way it goes on.
+- A one-time "VEIN RUN! keep mining the ore next to it: every 4th pays a bonus" call-out. Works with the drill too.
+- Small HUD fix found on the way: centre call-outs wider than 400 px grew only to the right (every long toast sat off-centre, e.g. the hook's); they now grow both ways.
+- `vein.wav` from `tools/make_sounds.py`, deterministic (every older WAV byte-identical, checked with md5). No save or world-generation change.
+- **CI**: `--veintest` buries a 7-tile iron blob under the mechanic east of the pad; the bot mines the nearest ore until none is in reach, waits for the run to go cold, then mines a lone scrap tile (must be x1). `[vein]` lines for every ore broken in every run; `vein=… bestVein=… veinBonuses=… veinRuns=… ripples=… pops=…` on `[autoplay]`; `vein_*.png` screenshots.
+
+**Why this** — Brainstorm in `docs/IDEAS.md` (twenty-third session). The last two sessions were features (devils, hook), so this one is polish and feel, and it was the top of last session's "Next". Mining is the most repeated action in the game and gave the least back: a tile vanishes, "+1 Iron" takes over the centre of the screen. Ore already lies in blobs; a combo with a climbing sound turns "hold the mouse" into following a vein (Minecraft's vein joy, Hill Climb's coin ding), and the sparkle trail shows there is more. Felt in the first minute: the walk bot hits ore within seconds of spawning.
+
+**CI runs**: 43322687840, 43325159287, 43327542167 (all green), and one for this last docs edit.
+
+1. Run 1: everything worked, but the test vein ran 4 tiles down-right and the last two were out of the pickaxe's reach from the surface (the bot mined 5, x5, one bonus); "+1 Iron" in the iron tile's own brown was hard to read on dirt (`vein_13.png`).
+2. Run 2: a compact 7-tile blob and brighter pop colours (fine), but my first toast fix made long call-outs grow both ways around the box's left edge, so they sat 200 px left of centre (`vein_22.png`). Run 3 sets the box's offsets to -200..200 so it grows around the centre.
+
+**Verified (run 43325159287)**
+
+- **Vein test**: Iron 0 → chain 1, 2, 3, **4 BONUS +1** (Iron=5 after the 4th tile), 5, 6, **7** → **Iron=8 for 7 tiles**, dug out in 6.4 s; "run over: x7 (best 7, bonuses 1)" 3 s after the last ore; then the lone scrap tile started a new run at **chain=1** (Scrap=2). 6 ripples, 21 sparkles, 15 pops.
+- **Natural ore** (drill runs): runs up to **x6** happened by themselves (Scrap x4 BONUS at (1434,84), then two Iron = x6), and single tiles stayed x1. Crystal in the Deep chained x2 at most (the bot walks between clusters).
+- **Screenshots**: `vein_13.png` (+1 Iron over the first broken tile, sparkles on the six left), `vein_22.png` (VEIN x2, sparkles rippling over the rest), `vein_40.png` ("+1 BONUS Iron" in gold, "VEIN x4", "+1 Iron" in pale rust, stacked over the hole, sparkles on the last three; Iron 5 on the bar), `vein_66.png` (the last tile).
+- **Nothing else changed**: every 40 s position identical to main (starter 2209.3, drill 1414.8, Crystal Drill 1480.1, left 465.7, spiked 424.9, turbo 2302.1, devils 2173.2 / 2533.3, rocket 2552.7, flip 2543.3, trip 1629.2). No errors.
+
+**Not verified / known issues**
+
+- Fun is my judgement (D1): whether the pops and the tink make mining feel good or busy, and whether 3 s / 3 tiles is too strict or too loose.
+- The sound is tuned by numbers only; I cannot hear it.
+- The bonus also pays while drilling (a drill run past a big vein gets about +25%). Deliberate for now; see DECISIONS.
+- The toast centring fix is checked in run 3 (43327542167): `vein_22.png` shows "VEIN RUN!" and its long second line centred on the screen; the vein test and every 40 s position were unchanged in that run.
+
+**Next**
+
+1. Ore flies home (S, IDEAS #143): the ore icon arcs into its slot on the inventory bar and the count bumps — the bar never reacts today.
+2. Pickaxe hit feel (S, #145) and a motherlode (S, #144); best vein on the trip report (S, #147).
+3. Devil rider records (S, #131), pickaxe tiers (S, #139), then the first creature (M: crystal mites #65).
+
 ## 2026-11-12, about 21:25–22:55 UTC — Merged dust devils (PR #29), then the grappling hook (PR #30)
 
 **Started by** checking for unfinished work: PR #29 (dust devils) was open, its docs run (43307483856) still going; it finished green at 21:28 with `[devil]` lines matching the PR (starter caught at 24 km/h, 1.42 s air, 4.9 m up; rocket three rides 0.73–1.94 s), so I squash-merged it (5fecbbb).
