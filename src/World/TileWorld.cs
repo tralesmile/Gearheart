@@ -541,42 +541,50 @@ public sealed class TileWorld : ITerrainCollider, IMineable, ISurfaceInfo
                 int x0 = middle + dir * distance;
                 Biome biome = BiomeAt(x0);
                 int rise = biome == Biome.Meadow ? (distance < 200 ? 4 : 5) + (int)(rng.Randi() % 2) : 5 + (int)(rng.Randi() % 3);
-                if (x0 - 5 * rise - 60 < 8 || x0 + 5 * rise + 60 >= Width - 8) break;
+                if (x0 - 2 * rise - 130 < 8 || x0 + 2 * rise + 130 >= Width - 8) break;
 
-                // The run-up and the ramp itself need level ground, so the face is a clean slope.
-                int start = int.MinValue;
-                for (int shift = 0; shift <= 48 && start == int.MinValue; shift++)
+                // Prefer a level run-up, so the warning sign stands on flat ground and the face starts cleanly.
+                int start = x0;
+                for (int shift = 0; shift <= 24; shift++)
                 {
                     int s = x0 + dir * shift;
                     bool level = true;
-                    for (int k = -4; k < 2 * rise && level; k++) level = world._surface[s + dir * k] == world._surface[s];
-                    if (level) start = s;
-                }
-                if (start == int.MinValue)
-                {
-                    distance += 48;
-                    continue;
+                    for (int k = -6; k < 0 && level; k++) level = world._surface[s + dir * k] == world._surface[s - dir];
+                    if (!level) continue;
+                    start = s;
+                    break;
                 }
 
-                world.BuildKicker(new Kicker(start, dir, rise));
-                distance = Mathf.Abs(start - middle) + 5 * rise + 104 + (int)(rng.Randi() % 64);
+                Kicker built = world.BuildKicker(start, dir, rise);
+                distance = Mathf.Abs(built.End - middle) + 104 + (int)(rng.Randi() % 64);
             }
         }
     }
 
-    /// <summary>Raises the surface line into a kicker's shape (no tiles are written here).</summary>
-    private void BuildKicker(Kicker k)
+    /// <summary>
+    /// Raises the surface line into a kicker's shape (no tiles are written here). The face climbs
+    /// from the run-up's level; the back slope comes down one tile every three columns until it
+    /// meets the ground, however far below that is, so the drive home never meets a wall.
+    /// </summary>
+    private Kicker BuildKicker(int start, int dir, int rise)
     {
-        int baseRow = _surface[k.Start];
-        for (int i = 0; i < k.Length; i++)
+        int baseRow = _surface[start - dir];
+        int crestRow = baseRow - rise;
+        int length = 0;
+        for (int i = 0; i < 2 * rise + 80; i++)
         {
-            int x = k.Start + k.Dir * i;
-            int row = Mathf.Min(_surface[x], baseRow - k.HeightAt(i));
-            if (row == _surface[x]) continue;
+            int x = start + dir * i;
+            if (x < 2 || x >= Width - 2) break;
+            int line = i < 2 * rise ? baseRow - (i / 2 + 1) : crestRow + 1 + (i - 2 * rise) / 3;
+            if (i >= 2 * rise && line >= _surface[x]) break;   // back on the ground
+            length = i + 1;
+            if (line >= _surface[x]) continue;
             _natural[x] = _surface[x];
-            _surface[x] = row;
+            _surface[x] = line;
         }
-        _kickers.Add(k);
+        var kicker = new Kicker(start, dir, rise, length);
+        _kickers.Add(kicker);
+        return kicker;
     }
 
     /// <summary>
@@ -664,6 +672,7 @@ public sealed class TileWorld : ITerrainCollider, IMineable, ISurfaceInfo
             file.Store32((uint)k.Start);
             file.Store32((uint)(k.Dir + 1));
             file.Store32((uint)k.Rise);
+            file.Store32((uint)k.Length);
         }
         return true;
     }
@@ -682,8 +691,8 @@ public sealed class TileWorld : ITerrainCollider, IMineable, ISurfaceInfo
         int kickers = (int)file.Get32();
         for (int i = 0; i < kickers && i < 256; i++)
         {
-            int start = (int)file.Get32(), dir = (int)file.Get32() - 1, rise = (int)file.Get32();
-            world._kickers.Add(new Kicker(start, dir, rise));
+            int start = (int)file.Get32(), dir = (int)file.Get32() - 1, rise = (int)file.Get32(), length = (int)file.Get32();
+            world._kickers.Add(new Kicker(start, dir, rise, length));
         }
         world.IndexStashes();
         return world;
@@ -693,21 +702,19 @@ public sealed class TileWorld : ITerrainCollider, IMineable, ISurfaceInfo
 /// <summary>
 /// A jump kicker built into the surface. Columns are counted from Start in the direction Dir
 /// (away from the garage): a steep face of 2*Rise columns up to the crest, then a back slope of
-/// one tile every three columns down to the ground.
+/// one tile every three columns down to the ground (Length columns in all).
 /// </summary>
 public readonly struct Kicker
 {
-    public readonly int Start, Dir, Rise;
+    public readonly int Start, Dir, Rise, Length;
 
-    public Kicker(int start, int dir, int rise)
+    public Kicker(int start, int dir, int rise, int length)
     {
         Start = start;
         Dir = dir;
         Rise = rise;
+        Length = length;
     }
-
-    /// <summary>Columns from Start to the last raised column of the back slope.</summary>
-    public int Length => 5 * Rise - 3;
 
     /// <summary>The crest column: the last one of the steep face, where the car takes off.</summary>
     public int Crest => Start + Dir * (2 * Rise - 1);
@@ -721,9 +728,6 @@ public readonly struct Kicker
     /// <summary>The column the warning sign stands on, a few tiles before the face.</summary>
     public int SignColumn => Start - Dir * 4;
 
-    /// <summary>Tiles above the base at column index i (0 = Start).</summary>
-    public int HeightAt(int i) =>
-        i < 0 ? 0 : i < 2 * Rise ? i / 2 + 1 : i < Length ? Rise - 1 - (i - 2 * Rise) / 3 : 0;
-
+    /// <summary>Height of the face above the run-up, in metres.</summary>
     public float Meters => Rise * 0.25f;
 }
