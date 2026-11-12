@@ -55,7 +55,7 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 45 | Goal kinds tied to parts: "Cross the ice without sliding" or "Climb the north ridge" | S | Open (new 2026-11-12) |
 | 46 | Landing chain: perfect landings in a row stack the kick and a "PERFECT x3" call-out, like the smash streak | S | Open (new 2026-11-12, eighth session; cheapest follow-up to grades) |
 | 47 | Jump kickers by world generation: a dirt kicker every 60–90 m on the meadow road, dune lips in The Wastes, snow cornices in the north | S | **Built 2026-11-12** (PR #16: one every 26–42 m, 1–1.75 m tall, yellow warning sign, first one just past the gate) |
-| 48 | Flip tricks: a full backflip or frontflip in the air (Q/E) scores "BACKFLIP!" — only if you land it | S | Open (new 2026-11-12; Hill Climb's best trick, pairs with grades) |
+| 48 | Flip tricks: a full backflip or frontflip in the air (Q/E) scores "BACKFLIP!" — only if you land it | S | Open, **moved up** (PR #21 made Q/E tilt work at full strength away from x = 0; before, its sideways part was rounded away near the garage) |
 | 49 | Goal kind "Land 2 perfect landings" | S | Open (new 2026-11-12; tiny, but changes the trip-goal pool so bot goals shift) |
 | 50 | Wheelie meter: back wheel only for 2+ s scores "WHEELIE 2.3 s" | S | Open (new 2026-11-12) |
 | 51 | Suspension squash: wheels visibly compress and the body bobs on landing, with a creak | S | Open (new 2026-11-12; feel polish, cheap if the soft body already squashes) |
@@ -83,13 +83,35 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 73 | Hanging crystals and stalactites on cavern ceilings (a flipped tile variant) | S | Open (new 2026-11-12; the Deep's ceilings are bare, crystals all point up) |
 | 74 | Ice drift: holding a sideways slide on ice for 1.5 s+ scores "DRIFT 2.1 s" on the trip report | S | Open (new 2026-11-12; turns plain-tyre ice from a nuisance into a trick) |
 | 75 | Ghost of your best trip: a see-through car replaying your best trip's drive next to you | M | Open (new 2026-11-12; instant rival on the road, like #20 for Hill Climb) |
-| 76 | Gate sprint: a timed 50 m dash from the garage pad to the gate flag, best time on the status line ("SPRINT 3.42 s, best 3.20") | S | Open (new 2026-11-12, thirteenth session; gives launch control a number to beat, Hill Climb Racing's hook in 5 seconds) |
-| 77 | Garage "too weak" warning: the stats panel turns red and says "won't climb hills" when an engine is too weak for the car's weight | S | Open (new 2026-11-12; the Scrap 4 in the starter pickup cannot leave the pad: a trap, not a choice) |
+| 76 | Gate sprint: a timed 50 m dash from the garage pad to the gate flag, best time on the status line ("SPRINT 3.42 s, best 3.20") | S | **Built 2026-11-12** (PR #22: 20 m from any standing start on the pad, ticking timer, NEW BEST call-out, best on the status line while on the pad) |
+| 77 | Garage "too weak" warning: the stats panel turns red and says "won't climb hills" when an engine is too weak for the car's weight | S | Open, lower (the Scrap 4 trap was float precision, fixed in PR #21: it now does 6.5 m in 2 s; a warning is still useful for heavy builds) |
 | 78 | Burnout: holding a launch on the limiter for 2+ s spins the tyres, pours smoke and leaves black marks on the pad | S | Open (new 2026-11-12; pure show-off, makes waiting at the start fun) |
 | 79 | Falling star crate: now and then a glowing crate streaks down from the sky somewhere out in a biome, with a marker at the screen edge; first there gets the loot | M | Open (new 2026-11-12; a "go now!" event that turns an idle minute at the garage into a trip) |
 | 80 | Winch part: fire a cable at the ground ahead to drag the car out of a hole or up a ledge | M | Open (new 2026-11-12; turns "stuck" into a skill instead of a walk home) |
 | 81 | Rival truck: a slow bot truck drives the road; overtake it before the next kicker for "OVERTAKE" points | M | Open (new 2026-11-12; first moving thing on the road, NFS-lite without combat) |
+| 82 | Start-light gantry over the pad: red, red, red, GREEN; letting go on green scores a reaction time ("REACTION 0.21 s") on top of the sprint | S | Open (new 2026-11-12, fourteenth session; the drag-strip ritual, turns the launch into a duel with the lights) |
+| 83 | Sprint ghost: a see-through car of your best sprint launching beside you | S–M | Open (new 2026-11-12; you see exactly where you lose the tenths) |
+| 84 | Rock it free: stuck with the throttle held, Q/E rocks the car on its springs harder, with a "ROCK IT! (Q/E)" hint | S | Open (new 2026-11-12; the bot wedged in two caves this session, a player would walk home) |
+| 85 | Tunnel lanterns: the drill car drops a small glowing marker every 10 m of tunnel, so the way back is lit and you can see how far you dug | S | Open (new 2026-11-12; deep tunnels become a map you made) |
+| 86 | Cave ambience: drips, a low hum and echoing drill in caverns; wind and birds on the surface | S | Open (new 2026-11-12; underground is silent apart from the drill) |
+| 87 | Record board by the garage: a chalkboard on the pad showing best sprint, farthest trip, deepest dig and best trip score | S | Open (new 2026-11-12; records you can see in the world, a lighter #36 trophy shelf) |
+| 88 | Dyno readout in the garage: an estimated 20 m sprint time for the design as you build it | M | Open (new 2026-11-12; tuning gets a number, NFS-style) |
 | 29 | Speedometer redline overdrive: holding the needle in the red for 3 s with the booster unlocks a "SONIC" call-out and a sonic-boom puff | S | Open (new 2026-11-12, cheap thrill) |
+
+## 2026-11-12 (fourteenth session)
+
+Started by finishing PR #21 (car physics relative to a local origin). Looked at `launch_21.png`, `world_130.png`, `drill_280.png` and `crystaldrill_390.png`, and the launch log. Launch control works and feels like a skill, but a PERFECT START is gone as soon as it happens: the "+18 km/h" call-out fades and nothing remembers it, so there is no reason to try again. Need for Speed's drag races and Hill Climb Racing both hang the whole hook on a number to beat. The fix to float precision also showed that the sideways part of Q/E tilt was rounded away near the garage, so air control was weaker than designed; and the drill cars wedged themselves in caves.
+
+- **Gate sprint** (S): every standing start on the pad is timed over 20 m, ticking timer, NEW BEST call-out, best on the status line. Why fun: launch control gets a number to beat in three seconds, "one more go" without even leaving the garage. *Built.*
+- **Start-light gantry** (S): red-red-red-green lights over the pad and a reaction time. Why fun: the drag-strip ritual, and a second skill (timing the lights) on top of the rev window.
+- **Sprint ghost** (S–M): your best sprint as a see-through car beside you. Why fun: you see where you lose time.
+- **Rock it free** (S): a hint and stronger Q/E rocking when stuck. Why fun: being stuck becomes a little struggle you win, not a walk home.
+- **Tunnel lanterns** (S): glowing markers along your tunnel. Why fun: your dig becomes a lit map, and the way home is visible.
+- **Cave ambience** (S): drips, hum, echo. Why fun: the Deep should sound like a place.
+- **Record board** (S): your records on a chalkboard by the garage. Why fun: progress you can see standing at the pad.
+- **Dyno readout** (M): a sprint estimate in the garage. Why fun: building gets a number to chase.
+
+Best open picks for fun per effort right now: #48 flip tricks (S, now that tilt is full strength), #82 start lights (S), #84 rock it free (S), #64 Crystal Lamp (S), #46 perfect chain (S), #68 surface lift (S–M), #79 falling star crate (M), then #65 deep critters and #56 lava (M).
 
 ## 2026-11-12 (thirteenth session)
 
