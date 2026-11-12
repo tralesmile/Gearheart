@@ -44,7 +44,7 @@ public sealed class TileWorld : ITerrainCollider, IMineable, ISurfaceInfo
     public const int Height = 192;
     public const int BaseSurface = 64;       // surface row at the spawn pad
     public const int PadFrom = 1258, PadTo = 1302;   // flat ground for the garage (tile columns)
-    private const uint SaveMagic = 0x38574847;   // "GHW8": bump when generation changes
+    private const uint SaveMagic = 0x39574847;   // "GHW9": bump when generation or the save layout changes
 
     private readonly byte[] _tiles = new byte[Width * Height];
     private readonly int[] _surface = new int[Width];
@@ -52,6 +52,7 @@ public sealed class TileWorld : ITerrainCollider, IMineable, ISurfaceInfo
     private readonly List<Vector2I> _stashes = new();
     private readonly List<Kicker> _kickers = new();
     private readonly Dictionary<int, int> _natural = new();   // column -> surface row before its kicker was built
+    private readonly Dictionary<int, float> _jumpBest = new();   // kicker start column -> longest landed jump (m)
 
     /// <summary>The jump kickers on the road (dirt ramps, dune lips, snow cornices), in no particular order.</summary>
     public IReadOnlyList<Kicker> Kickers => _kickers;
@@ -63,6 +64,12 @@ public sealed class TileWorld : ITerrainCollider, IMineable, ISurfaceInfo
             if (x >= k.Min - margin && x <= k.Max + margin) return k;
         return null;
     }
+
+    /// <summary>The longest jump landed off this kicker so far, in metres past the crest (0 = none yet).</summary>
+    public float JumpBest(Kicker k) => _jumpBest.GetValueOrDefault(k.Start);
+
+    /// <summary>Stores a new longest jump for this kicker (saved with the world).</summary>
+    public void SetJumpBest(Kicker k, float meters) => _jumpBest[k.Start] = meters;
 
     /// <summary>Where buried stashes were placed (some may have been dug up since; check the tile).</summary>
     public IReadOnlyList<Vector2I> Stashes => _stashes;
@@ -683,6 +690,7 @@ public sealed class TileWorld : ITerrainCollider, IMineable, ISurfaceInfo
             file.Store32((uint)(k.Dir + 1));
             file.Store32((uint)k.Rise);
             file.Store32((uint)k.Length);
+            file.StoreFloat(JumpBest(k));
         }
         return true;
     }
@@ -702,7 +710,10 @@ public sealed class TileWorld : ITerrainCollider, IMineable, ISurfaceInfo
         for (int i = 0; i < kickers && i < 256; i++)
         {
             int start = (int)file.Get32(), dir = (int)file.Get32() - 1, rise = (int)file.Get32(), length = (int)file.Get32();
-            world._kickers.Add(new Kicker(start, dir, rise, length));
+            float best = file.GetFloat();
+            var kicker = new Kicker(start, dir, rise, length);
+            world._kickers.Add(kicker);
+            if (best > 0f && best < 1000f) world._jumpBest[start] = best;
         }
         world.IndexStashes();
         return world;

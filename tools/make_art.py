@@ -620,11 +620,32 @@ def decor_kicker_sign(rng):
     return outline(img)
 
 
+def decor_record_flag():
+    """The long-jump record flag: a chequered flag on a white-and-red striped pole with a gold knob,
+    flying to the right (mirrored for the west side). It marks the longest landed jump off a kicker.
+    The pole stands in the middle of the cell so the game can plant it exactly on the landing spot."""
+    img = Image.new("RGBA", (DW, DH), (0, 0, 0, 0)); d = ImageDraw.Draw(img)
+    px = DW // 2 - 1                                               # pole: x = 23..24
+    for y in range(16, DH):
+        c = (236, 236, 240) if (y // 5) % 2 == 0 else (210, 52, 52)
+        d.rectangle([px, y, px + 1, y], fill=c)
+    d.rectangle([px - 3, DH - 2, px + 4, DH - 1], fill=(90, 90, 96))   # foot
+    d.ellipse([px - 2, 12, px + 3, 17], fill=(250, 204, 40)); d.point((px, 13), fill=(255, 240, 160))
+    fx, fy, cw, rows, cols = px + 2, 18, 3, 4, 6                    # flag: 6 x 4 checks of 3 px, a slight wave
+    for r in range(rows):
+        for c in range(cols):
+            wave = 1 if c in (2, 3) else 0
+            col = (24, 24, 28) if (r + c) % 2 == 0 else (248, 248, 250)
+            d.rectangle([fx + c * cw, fy + r * cw + wave, fx + c * cw + cw - 1, fy + r * cw + cw - 1 + wave], fill=col)
+    return outline(img)
+
+
 def make_decor():
     rng = random.Random(99)
     sign = decor_kicker_sign(rng)
+    flag = decor_record_flag()
     cells = [decor_oak(rng), decor_pine(rng), decor_cactus(rng), decor_bush(rng), decor_flowers(rng), decor_grass(rng), decor_desert_rock(rng), decor_snow_rock(rng),
-             sign, sign.transpose(Image.FLIP_LEFT_RIGHT)]
+             sign, sign.transpose(Image.FLIP_LEFT_RIGHT), flag, flag.transpose(Image.FLIP_LEFT_RIGHT)]
     sheet = Image.new("RGBA", (DW * len(cells), DH), (0, 0, 0, 0))
     for i, c in enumerate(cells):
         sheet.paste(c, (i * DW, 0))

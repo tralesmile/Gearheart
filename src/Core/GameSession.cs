@@ -78,6 +78,8 @@ public static class GameSession
     public static bool TripTest => UserArgs.Contains("--triptest");
     /// <summary>Bot only: lay a long strip of ice east of the garage and drive across it at full throttle.</summary>
     public static bool IceTest => UserArgs.Contains("--icetest");
+    /// <summary>Bot only: plant long-jump record flags past the kickers before driving (one to beat, the rest out of reach).</summary>
+    public static bool JumpTest => UserArgs.Contains("--jumptest");
     private static bool FreshStart => UserArgs.Contains("--fresh");
 
     public static void ApplyCommandLine()

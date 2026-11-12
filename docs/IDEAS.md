@@ -60,12 +60,31 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 50 | Wheelie meter: back wheel only for 2+ s scores "WHEELIE 2.3 s" | S | Open (new 2026-11-12) |
 | 51 | Suspension squash: wheels visibly compress and the body bobs on landing, with a creak | S | Open (new 2026-11-12; feel polish, cheap if the soft body already squashes) |
 | 52 | Kicker gap: some kickers get a ditch or a scrap-heap pile after the crest, so a slow run-up lands in it | S | Open (new 2026-11-12, ninth session; risk on purpose) |
-| 53 | Landing-zone target: a painted landing mark past each kicker; land beyond it for "LONG JUMP 9.4 m" and a per-kicker record | S | Open (new 2026-11-12; Hill Climb's distance hook, per jump) |
+| 53 | Landing-zone target: a painted landing mark past each kicker; land beyond it for "LONG JUMP 9.4 m" and a per-kicker record | S | **Built 2026-11-12** (PR #17: a chequered record flag where your longest landed jump came down, distance over it, NEW RECORD call-out; botched landings don't count) |
 | 54 | Engine sounds per engine part + gear-change whine (the drive's soundscape is one loop) | S | Open (new 2026-11-12; same as #34, re-ranked up: sound is the roughest sense right now) |
 | 55 | Night falls on long trips: the sky darkens after a few minutes away, headlights matter, glowing ore and stash glints shine | M | Open (new 2026-11-12; roadmap day/night, first step = visual only) |
 | 56 | Lava seam deep underground (below ~30 m): glowing orange rock that heats and damages the car, with a rich ore reward behind it | M | Open (new 2026-11-12; roadmap deep underground, first danger) |
 | 57 | Garage "next part" card: when you come back, the report ends with "2 Iron short of Spiked Tyres" | S | Open (new 2026-11-12; folds #42 into the trip report, the one-more-trip nudge) |
+| 58 | Trip goal "Beat a kicker record" / "Jump 8 m off a kicker" | S | Open (new 2026-11-12, tenth session; ties the flags into trips; shifts the bot's goal order) |
+| 59 | Slow-motion beat: 0.3 s at 0.6x speed at the peak of a big jump or a new record, with a camera nudge | S | Open (new 2026-11-12; makes the best moment of a trip feel like one) |
+| 60 | Record ghost: a faint dotted arc of your record jump past each kicker, so you can see the line to beat | S–M | Open (new 2026-11-12; Trials' ghost, per kicker) |
+| 61 | Air smash: scrap heaps placed just past some kickers' landings, smashed on touchdown for "AIR SMASH" | S | Open (new 2026-11-12; links two loops, smash + jump) |
+| 62 | Glow caves: a layer 15–30 m down with glowing mushrooms or crystals that light the tunnel and drop a new material | M | Open (new 2026-11-12; underground is one grey in drill_330.png) |
+| 63 | Jump records on the trip report: "2 kicker records" scoring a bonus | S | Open (new 2026-11-12; small, but the card's value column is full; needs a row or a layout tweak) |
 | 29 | Speedometer redline overdrive: holding the needle in the red for 3 s with the booster unlocks a "SONIC" call-out and a sonic-boom puff | S | Open (new 2026-11-12, cheap thrill) |
+
+## 2026-11-12 (tenth session)
+
+Looked at `kicker_world_169.png`, `kicker_rocket_249.png`, `kicker_left_363.png` and `drill_330.png`, and the kicker log. Kickers are now on the road and the bot takes off from 4 of them per run, but every jump ends the same way: the toast says "rough" or nothing, and the next kicker is just the next bump. Nothing about a jump is remembered, so there is no reason to come back to a kicker and hit it faster. Hill Climb Racing's whole hook is a distance number to beat; Trials puts a flag where your best was. The most boring second is the one after a jump lands. Underground is still one grey (drill_330), but that is a bigger job.
+
+- **Record flag per kicker** (S): a chequered flag planted where your longest landed jump off each kicker came down, the distance over it, "LONG JUMP 7.4 m · NEW RECORD! (+1.2 m)" on landing; roof landings measure but don't count. Why fun: you see your mark on the approach and want to clear it, so every trip has a dozen tiny personal races. *Built.*
+- **Kicker trip goal** (S): "Beat a kicker record". Why fun: points the trip at the flags.
+- **Slow-motion beat** (S): a split second of slow motion at the peak of a big jump or a record. Why fun: the best moment of a trip gets a beat to land.
+- **Record ghost arc** (S–M): a faint dotted line of your record jump. Why fun: you can see the line you need, like Trials' ghost.
+- **Air smash** (S): heaps just past some kicker landings. Why fun: aim the jump, not just the speed.
+- **Glow caves** (M): a lit cave layer with a new material. Why fun: digging gets a "whoa" moment and underground stops being one grey.
+
+Best open picks for fun per effort right now: #46 perfect chain (S), #58 kicker-record trip goal (S), #59 slow-motion beat (S), #54 engine sound per part (S), #41 Wastes part (S–M), then #62 glow caves and #56 lava (M) for the underground.
 
 ## 2026-11-12 (ninth session)
 
