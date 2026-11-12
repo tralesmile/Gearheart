@@ -2,6 +2,45 @@
 
 Newest entry first. Each session: what was built and why, how it was verified, what is not verified, and what comes next.
 
+## 2026-11-12, about 11:25–12:35 UTC — Engine feel: a sound per engine, gear shifts, exhaust pops (PR #19, polish session)
+
+**Started by** checking for unfinished work: no open pull requests; the last main build (after PR #18) was running and later green. The branch `polish/dashboard-speed-smash` still exists but was merged long ago as PR #11 (left alone).
+
+**Built**
+
+- **A sound per engine** (`tools/make_sounds.py`, own random stream; every older sound byte-identical, checked by md5): `engine_e4.wav` for the Scrap 4-Cylinder (64 Hz buzzy, square-ish pulses with uneven firings and a tappet rattle), the old `engine.wav` stays the V6, `engine_v8.wav` for the V8 (40 Hz uneven "cross-plane" lope, deep rumble). Each firing pulse rings under the next two, so the loops have no click (loop seam jump 0.010 / 0.007, centroid 1.5 kHz buzzy vs 0.4 kHz deep). Engine parts carry `gears` and `sound` in `data/parts/parts.json` (4 / 5 / 6 gears).
+- **A pretend gearbox** (`src/Vehicles/Gearbox.cs`): sound and dashboard only, it never touches the physics. Revs follow the road speed in the current gear (plus a little for real wheelspin), climb, drop at a shift (0.16 s dip) and climb again. Gears are picked from the smoothed road speed with at least 0.6 s between shifts; gear k tops out at 0.85·(k/n)^0.8 of the engine's top speed (V6: 16, 27, 38, 48, 57 km/h). In the air the gear holds and the revs climb towards the limiter with the throttle open (and sag off it). The limiter stutter (pitch and volume chop every 70 ms) only happens in the air or flat out in top gear.
+- **Exhaust pops**: a flame-and-smoke puff out of the rear block on every upshift at more than half throttle and when lifting off above 70% revs (at most every 0.6 s), with a new `pop.wav`; a `shift.wav` clunk on every shift (quieter on downshifts).
+- **Starter**: getting in plays `start.wav` (starter cranking, the engine catches, revs once, settles) pitched per engine, and the engine loop fades in after the catch.
+- **Dashboard**: a gear number (flashes on a change, red on the limiter) over a 10-segment rev bar (green, amber, red; the red tip blinks on the limiter). The panel grew from 300 to 336 px.
+- **CI**: `[engine]` lines (start with engine, gears and loop; the first 14 shifts with speed, revs and pitch; the first 6 pops), `gear= revs= enginePitch= shifts= topGear= limiter= pops=` on `[autoplay]`, two short runs with the starter's engine swapped (`--design=v8`, `--design=scrap4`), and `shift_world_*` / `pop_world_*` screenshots.
+
+**Why this** — Brainstorm in `docs/IDEAS.md` (twelfth session): three feature sessions in a row, so a feel session was due. The game looks busy now but sounded like one sound: every car, from a scrap four to a V8, played one 55 Hz loop whose pitch slid up with speed. Driving is what a player does most in the first minute, and in Need for Speed and Hill Climb Racing the climb and drop of a gear change is what makes speed feel like effort. Buying a V8 should be heard. Ideas #34/#54 were the top polish items.
+
+**Verified (CI runs 43209812792, 43211773012, 43213219136 and the final run on the PR, all green)**
+
+- **No gameplay change**: 40 s positions identical to main in all three runs (starter 2189.5, drill 1473.5/97.2, Crystal Drill 1475.0/105.5, left 603.2, spiked 300.1, rocket 2155.9), trip reports 259 and 443, Hill Climb 18.97 s / 15.25 s. No errors.
+- **Run 1 (gears from wheel spin)**: the starter hunted between 4th and 5th all the way: 17 up / 14 down in 40 s. The wheels in this physics spin near their top almost all the time (the tyres slip; the car cruises at about half that), and every bump changed it.
+- **Run 2 (gears from smoothed road speed, revs from wheel spin)**: no hunting (2/0) but stuck in 3rd with the revs on the limiter: limiter in a third of all driving log lines.
+- **Run 3 (revs and gears from road speed, shorter ratios)**: the starter goes 1→5 at 21/40/42/53 km/h and then holds: **4 up / 0 down in 40 s**; rocket car 7/4 (downshifts after jumps and slow climbs); drill cars change down to 1st while tunnelling (revs 0.26 at 3 km/h). V8 swap: 6 gears, `engine_v8` loop, 2 upshifts in its 10 s drive. Scrap 4 swap: 4 gears, `engine_e4` loop. Pops: 3–8 per 40 s drive. Limiter still in 62 of 186 driving log lines (mostly a moment before each upshift and in the air), so the final change keeps the stutter to the air and top gear only.
+- **Screenshots** (`screenshots` branch): `shift_world_108.png` (gear "2" with the rev bar dropped into the amber after the shift, orange exhaust puff behind the car), `pop_world_114.png` (gear "3" in red on the limiter just before the shift, the puff), `shift_world_128.png`.
+
+**Not verified / known issues**
+
+- **I cannot hear anything.** The sounds are checked by numbers (spectrum peaks at 64 / 55 / 40 Hz, loop seams, no clipping) and waveform plots only. Whether the V8 sounds like a V8 or a motorboat, and whether the shift clunk is too loud, needs your ears (D1).
+- **The Scrap 4-Cylinder cannot move the starter pickup**: in the `--design=scrap4` run the car sits at 0 km/h for 10 s with full throttle (wheels barely turn). Not caused by this change (no physics touched), but it means a player who swaps in the cheaper engine gets a car that does not drive. Next session should look at it (torque 26000 vs the V6's 48000).
+- The exhaust puff is small at 10 fps screenshots and drifts back quickly; it may be too subtle in play.
+- The Hill Climb / Free Drive test scenes still have no engine sound at all (they never had one).
+- Speeds printed on shift lines are the body's total speed (vertical included), so some look odd (an upshift "at 14 km/h" right after a landing).
+
+**Next**
+
+1. Fix the Scrap 4-Cylinder so a car built with it drives (S) — a trap in the garage right now.
+2. Launch control at a standstill: handbrake + throttle, release for a PERFECT START (S, IDEAS #70) — uses the new revs.
+3. Crystal Lamp part (S, #64) and the surface lift (S–M, #68) for the Deep.
+4. Engine cough and smoke at high damage (S, #28) — cheap now that each engine has its own sound.
+5. Perfect chain "PERFECT x3" (S, #46) and the kicker-record trip goal (S, #58).
+
 ## 2026-11-12, about 10:20–11:15 UTC — The Deep: glow crystal caverns, Crystal Drill, depth record (PR #18)
 
 **Started by** checking for unfinished work: no open pull requests, last main build green.

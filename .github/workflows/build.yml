@@ -49,6 +49,7 @@ jobs:
             grep "\[deep\]" smoke.log | head -30
             grep "\[landing\]" smoke.log | head -30
             grep "\[kicker\]" smoke.log | head -24
+            grep "\[engine\]" smoke.log | head -24
             # "resources still in use at exit" is a shutdown notice about cached textures and sounds, not a fault.
             if grep -E "ERROR|Unhandled exception|SCRIPT ERROR|System\.[A-Za-z]*Exception" smoke.log | grep -v "still in use at exit" | grep .; then
               echo "::error::Smoke test failed: $name"
@@ -62,6 +63,8 @@ jobs:
           run "world: the Deep (on foot in a crystal cavern, dig out crystals)" res://scenes/world.tscn --quit-after 3600 -- --fresh --autoplay --deeptest --design=starter
           run "world: drive left to the Frozen North"  res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --left --design=starter
           run "world: drive left to the Frozen North on Spiked Tyres" res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --left --design=spiked
+          run "world: V8 swap (engine sound and gearbox, 6 gears)" res://scenes/world.tscn --quit-after 2400 -- --fresh --autoplay --design=v8
+          run "world: Scrap 4-Cylinder swap (4 gears)" res://scenes/world.tscn --quit-after 2400 -- --fresh --autoplay --design=scrap4
           run "world: rocket booster car"             res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --design=rocket
           run "world: crash test (15 m drop, then drive)" res://scenes/world.tscn --quit-after 2400 -- --fresh --autoplay --crashtest --design=starter
           run "world: buried stash test (dig up planted stashes)" res://scenes/world.tscn --quit-after 1800 -- --fresh --autoplay --stashtest --design=starter
@@ -98,6 +101,14 @@ jobs:
           xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/deep/f.png --quit-after 260 res://scenes/world.tscn -- --fresh --autoplay --deeptest --design=starter > shots/deep.log 2>&1 || true
           xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/crystal/f.png --quit-after 400 res://scenes/world.tscn -- --fresh --autoplay --design=crystal > shots/crystal.log 2>&1 || true
           xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/garage/f.png --quit-after 12 res://scenes/garage.tscn > shots/garage.log 2>&1 || true
+          # Engine: the frame just after each of the first upshifts (gear box flash on the dashboard) and the first exhaust pop.
+          grep "\[engine\] upshift" shots/world.log | head -3 | sed -E 's/.*frame=([0-9]+).*/\1/' | while read n; do
+            f=$(printf "shots/world/f%08d.png" $((n + 1))); [ -f "$f" ] && cp "$f" keep/shift_world_$((n + 1)).png
+          done
+          grep "\[engine\] backfire" shots/world.log | head -2 | sed -E 's/.*frame=([0-9]+).*/\1/' | while read n; do
+            f=$(printf "shots/world/f%08d.png" $((n + 1))); [ -f "$f" ] && cp "$f" keep/pop_world_$((n + 1)).png
+          done
+          grep "\[engine\]" shots/world.log | head -12
           # The Deep: the cavern the bot is placed in, the THE DEEP card, digging crystals, and the first crystal mined.
           for i in 6 12 30 60 120 200 250; do
             f=$(printf "shots/deep/f%08d.png" $i); [ -f "$f" ] && cp "$f" keep/deep_$i.png

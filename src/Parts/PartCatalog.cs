@@ -44,6 +44,10 @@ public sealed class PartDefinition
     public float Torque { get; set; }
     public float MaxSpin { get; set; }
     public float FuelUse { get; set; }                // fuel units per second at full throttle
+    /// <summary>Gears in the pretend gearbox (sound and dashboard only; the physics has none).</summary>
+    public int Gears { get; set; } = 5;
+    /// <summary>Engine loop in assets/audio (without .wav).</summary>
+    public string Sound { get; set; } = "engine";
 
     // Drill: mining work per second while the tip presses on ore
     public float DrillPower { get; set; }

@@ -4,7 +4,7 @@ namespace Gearheart.Game;
 
 /// <summary>
 /// The car's dashboard in the bottom-left corner while driving: a speedometer dial with a needle,
-/// a big speed number, a fuel gauge that turns amber and then blinking red, and a damage meter.
+/// a big speed number, a gear indicator over a rev bar (green, amber, red; it flashes at the limiter), a fuel gauge that turns amber and then blinking red, and a damage meter.
 /// Drawn in code (no art), so it scales cleanly. Feed it every frame with <see cref="Set"/>.
 /// </summary>
 public partial class Dashboard : Control
@@ -14,7 +14,9 @@ public partial class Dashboard : Control
     private const float StartDeg = 150f, SweepDeg = 240f;   // needle sweeps clockwise from lower-left to lower-right
 
     private float _kmh, _shownKmh, _fuel, _fuelCap = 1f, _damage, _time;
-    private bool _boosting;
+    private bool _boosting, _limiter;
+    private int _gear = 1, _lastGear = 1;
+    private float _rpm, _shiftFlash;
     private StyleBoxFlat _panel;
 
     /// <summary>The needle's current reading (it chases the real speed with a little lag, like a real gauge).</summary>
@@ -22,7 +24,7 @@ public partial class Dashboard : Control
 
     public Dashboard()
     {
-        CustomMinimumSize = new Vector2(300f, 122f);
+        CustomMinimumSize = new Vector2(336f, 122f);
         Size = CustomMinimumSize;
         MouseFilter = MouseFilterEnum.Ignore;
     }
@@ -36,10 +38,21 @@ public partial class Dashboard : Control
         _boosting = boosting;
     }
 
+    /// <summary>Gear (1-based), engine revs (0..1 of the redline) and whether the revs sit on the limiter.</summary>
+    public void SetEngine(int gear, float rpm, bool limiter)
+    {
+        _gear = gear;
+        _rpm = rpm;
+        _limiter = limiter;
+    }
+
     public override void _Process(double delta)
     {
         float dt = (float)delta;
         _time += dt;
+        if (_gear != _lastGear) _shiftFlash = 1f;
+        _lastGear = _gear;
+        _shiftFlash = Mathf.Max(0f, _shiftFlash - dt * 4f);
         _shownKmh = Mathf.Lerp(_shownKmh, _kmh, 1f - Mathf.Exp(-10f * dt));
         QueueRedraw();
     }
@@ -84,8 +97,31 @@ public partial class Dashboard : Control
         DrawOutlined(font, new Vector2(c.X - 40f, c.Y + 34f), speed, 80f, 26, Colors.White, HorizontalAlignment.Center);
         DrawOutlined(font, new Vector2(c.X - 40f, c.Y + 50f), "km/h", 80f, 13, new Color(1f, 1f, 1f, 0.7f), HorizontalAlignment.Center);
 
+        // ---- Gear and revs -------------------------------------------------------------------------
+        // A gear number in a box, a white flash when it changes, over a rev bar that fills upward:
+        // green, then amber, then red; the red tip blinks while the revs bounce off the limiter.
+        var gearBox = new Rect2(122f, 10f, 28f, 30f);
+        DrawRect(gearBox.Grow(2f), new Color(0f, 0f, 0f, 0.6f));
+        DrawRect(gearBox, new Color(1f, 1f, 1f, 0.08f + 0.5f * _shiftFlash));
+        DrawOutlined(font, new Vector2(gearBox.Position.X, gearBox.End.Y - 6f), $"{_gear}", gearBox.Size.X, 24,
+                     _limiter ? new Color(1f, 0.35f, 0.3f) : Colors.White, HorizontalAlignment.Center);
+        const int Segments = 10;
+        var revs = new Rect2(126f, 48f, 20f, 64f);
+        DrawRect(revs.Grow(2f), new Color(0f, 0f, 0f, 0.6f));
+        bool blinkOn = Mathf.PosMod(_time, 0.12f) < 0.06f;
+        float segH = revs.Size.Y / Segments;
+        for (int i = 0; i < Segments; i++)
+        {
+            float t = (i + 1f) / Segments;
+            Color on = t > 0.85f ? new Color(1f, 0.3f, 0.25f) : t > 0.65f ? new Color(1f, 0.75f, 0.2f) : new Color(0.45f, 0.9f, 0.4f);
+            bool lit = _rpm >= t - 0.5f / Segments;
+            if (_limiter && t > 0.85f) lit = blinkOn;
+            var seg = new Rect2(revs.Position.X, revs.End.Y - (i + 1) * segH + 1f, revs.Size.X, segH - 2f);
+            DrawRect(seg, lit ? on : new Color(1f, 1f, 1f, 0.08f));
+        }
+
         // ---- Fuel ---------------------------------------------------------------------------------
-        float x = 132f, w = Size.X - x - 16f;
+        float x = 164f, w = Size.X - x - 16f;
         float fuel = Mathf.Clamp(_fuel / _fuelCap, 0f, 1f);
         bool low = fuel < 0.2f;
         bool blinkOff = low && Mathf.PosMod(_time, 0.8f) >= 0.4f;

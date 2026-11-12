@@ -253,6 +253,24 @@ public sealed class VehicleDesign
         return d;
     }
 
+    /// <summary>The starter car with the V8 in place of the V6 (for the engine sound and gearbox test).</summary>
+    public static VehicleDesign V8()
+    {
+        var d = Default();
+        d.Name = "V8 Pickup";
+        d.SetBlock(7, 3, "engine_v8");
+        return d;
+    }
+
+    /// <summary>The starter car with the Scrap 4-Cylinder in place of the V6.</summary>
+    public static VehicleDesign Scrap4()
+    {
+        var d = Default();
+        d.Name = "Scrap Pickup";
+        d.SetBlock(7, 3, "engine_scrap4");
+        return d;
+    }
+
     /// <summary>The starter car with a rocket booster on the tail.</summary>
     public static VehicleDesign Rocket()
     {

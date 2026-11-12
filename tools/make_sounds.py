@@ -201,6 +201,96 @@ def land():
     return s
 
 
+# ---- Engines by part, gear shifts and the starter (own random stream: older sounds stay byte-identical) ----
+
+def pulse_train(t, rate, gains, ring, decay, noise, body=0.0):
+    """Exhaust pulses: each firing is a short damped ring (frequency `ring`) with a puff of noise.
+    `rate` is pulses per second (a whole number, so a one-second loop wraps cleanly) and `gains`
+    a repeating pattern of pulse strengths (its length must divide `rate`). Each pulse rings on
+    under the next two, so there is no click where one pulse hands over to the next."""
+    phase = t * rate
+    s = np.zeros_like(t)
+    for back in range(3):
+        idx = np.floor(phase).astype(int) - back
+        tau = (phase - np.floor(phase) + back) / rate          # seconds since that pulse fired
+        g = np.asarray(gains)[idx % len(gains)]
+        env = np.exp(-tau * decay) * (1 - np.exp(-tau * 3000))
+        s += g * env * (np.sin(2 * np.pi * ring * tau) + body * np.sin(2 * np.pi * ring * 0.5 * tau) + noise)
+    return s
+
+
+def loop_noise_own(n, k):
+    """Like loop_noise, from the engine stream: noise that wraps around seamlessly, band-limited to bin k."""
+    spectrum = np.fft.rfft(engine_rng.standard_normal(n))
+    spectrum[k:] = 0
+    x = np.fft.irfft(spectrum, n)
+    return x / (np.std(x) + 1e-9)
+
+
+def engine_e4():
+    """The Scrap 4-Cylinder: a thin, buzzy, rattly little motor, like a lawnmower that wants to be a car."""
+    t = np.arange(SR) / SR
+    rate = 64
+    jitter = 0.8 + 0.4 * engine_rng.random(rate)                 # every firing is a bit different
+    s = pulse_train(t, rate, jitter, 300.0, 70.0, 0.35 * loop_noise_own(SR, 2500))
+    s += 0.25 * sum(np.sin(2 * np.pi * rate * k * t) / k for k in range(1, 12, 2))   # buzzy, square-ish
+    rattle = loop_noise_own(SR, 5000) * (np.mod(t * 128, 1.0) < 0.1)                  # loose tappets
+    s += 0.12 * rattle
+    return s
+
+
+def engine_v8():
+    """The V8: a deep, lumpy burble with uneven pulses (the cross-plane lope) and a low rumble."""
+    t = np.arange(SR) / SR
+    lope = [1.0, 0.62, 0.92, 0.55, 1.0, 0.7, 0.85, 0.5]           # eight firings per two turns, 40 per second
+    s = pulse_train(t, 40, lope, 92.0, 24.0, 0.5 * loop_noise_own(SR, 700), body=0.8)
+    s += 0.35 * sum(np.sin(2 * np.pi * 40 * k * t + k * 0.7) / k for k in range(1, 6))
+    s += 0.25 * loop_noise_own(SR, 250)                             # low rumble
+    return s
+
+
+def shift():
+    """A gear change: a dull gearbox clunk, then an exhaust pop."""
+    n = int(SR * 0.32); t = np.arange(n) / SR
+    s = 0.9 * np.sin(2 * np.pi * 120 * t) * np.exp(-t * 45) + 0.5 * lowpass(engine_rng.standard_normal(n), 6) * np.exp(-t * 90)
+    start = int(SR * 0.05); tt = t[: n - start]
+    pop = lowpass(engine_rng.standard_normal(n - start), 9) / 0.3 * np.exp(-tt * 38) + 0.9 * np.sin(2 * np.pi * (85 + 60 * np.exp(-tt * 40)) * tt) * np.exp(-tt * 28)
+    s[start:] += 0.8 * pop
+    return s
+
+
+def pop():
+    """An exhaust pop when you lift off at high revs: a short dull bang with a crackle."""
+    n = int(SR * 0.25); t = np.arange(n) / SR
+    s = lowpass(engine_rng.standard_normal(n), 7) / 0.3 * np.exp(-t * 32)
+    s += np.sin(2 * np.pi * (75 + 70 * np.exp(-t * 45)) * t) * np.exp(-t * 24)
+    crackle = engine_rng.standard_normal(n) * (engine_rng.random(n) < 0.03)
+    s += 0.8 * lowpass(crackle, 2) * np.exp(-t * 14) * (t > 0.03)
+    return s
+
+
+def start():
+    """Getting in: the starter motor cranks (rr-rr-rr), the engine catches, revs once and settles."""
+    n = int(SR * 1.35); t = np.arange(n) / SR
+    crank_end = 0.55
+    crank = (t < crank_end)
+    motor = np.sign(np.sin(2 * np.pi * (170 + 30 * t) * t)) * 0.3 + lowpass(engine_rng.standard_normal(n), 4) * 0.4
+    strokes = 0.35 + 0.65 * np.abs(np.sin(2 * np.pi * 3.6 * t)) ** 2       # compression strokes slow it down
+    s = lowpass(motor, 5) * strokes * crank * (1 - np.exp(-t * 60))
+    # The catch: pulses whose rate jumps to a rev and falls back to idle.
+    tt = np.maximum(t - crank_end, 0)
+    rate = 26 + 46 * np.exp(-((tt - 0.18) / 0.12) ** 2) + 6 * np.exp(-tt * 3)
+    phase = np.cumsum(rate) / SR
+    tau = (phase - np.floor(phase)) / rate
+    pulses = np.exp(-tau * 30) * np.sin(2 * np.pi * 140 * tau) + 0.6 * lowpass(engine_rng.standard_normal(n), 8) * np.exp(-tau * 40)
+    swell = (t >= crank_end) * (1 - np.exp(-tt * 40)) * (0.55 + 0.45 * np.exp(-((tt - 0.18) / 0.16) ** 2))
+    s += 1.1 * pulses * swell * np.exp(-np.maximum(tt - 0.5, 0) * 2.5)
+    return s
+
+
+engine_rng = np.random.default_rng(113)   # own stream for the engine sounds, shift and starter
+
+
 wind_rng = np.random.default_rng(57)    # own stream, so adding wind leaves every other sound byte-identical
 crash_rng = np.random.default_rng(31)   # separate stream: adding sounds never changes the older ones
 land_rng = np.random.default_rng(91)    # own stream for the perfect-landing whoosh
@@ -224,4 +314,9 @@ if __name__ == "__main__":
     save("tally", tail_fade(tally(), 20), 0.5)     # deterministic: uses no random stream
     save("record", tail_fade(record(), 120), 0.6)
     save("land", tail_fade(land(), 80), 0.6)
+    save("engine_e4", engine_e4(), 0.6)            # Scrap 4-Cylinder ("engine" is the V6)
+    save("engine_v8", engine_v8(), 0.75)
+    save("shift", tail_fade(shift(), 40), 0.7)
+    save("start", tail_fade(start(), 120), 0.6)
+    save("pop", tail_fade(pop(), 30), 0.7)
     print("sounds written to", os.path.abspath(OUT))

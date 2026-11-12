@@ -46,7 +46,7 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 31 | Tow home: out of fuel far away? Pay Scrap for a tow, and the trip report stamps it TOWED (score kept, haul taxed) | S | Open (new 2026-11-12) |
 | 32 | Launch ramp at the garage gate, so every trip starts with a jump | S | **Built 2026-11-12** as #47: the first kicker on each side is about 23–25 m out, just past the gate |
 | 33 | Best-moment snapshot on the trip card (frame of the biggest air or crash) | M | Open (new 2026-11-12) |
-| 34 | Engine sound follows the engine part (small engine buzzes, big V8 rumbles) | S | Open (new 2026-11-12) |
+| 34 | Engine sound follows the engine part (small engine buzzes, big V8 rumbles) | S | **Built 2026-11-12** (PR #19, with #54) |
 | 40 | Frozen lake: one long flat sheet of ice in the Frozen North with a jump at the end; plain tyres pirouette, spikes fly | S | Open (new 2026-11-12, seventh session) |
 | 41 | Desert part: Sand Paddles or a big-bore engine from Wastes copper, so each biome has its own part | S–M | Open (new 2026-11-12) |
 | 42 | Garage "part of the day" glow: the garage list marks parts you can afford now and parts one trip away | S | Open (new 2026-11-12) |
@@ -61,7 +61,7 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 51 | Suspension squash: wheels visibly compress and the body bobs on landing, with a creak | S | Open (new 2026-11-12; feel polish, cheap if the soft body already squashes) |
 | 52 | Kicker gap: some kickers get a ditch or a scrap-heap pile after the crest, so a slow run-up lands in it | S | Open (new 2026-11-12, ninth session; risk on purpose) |
 | 53 | Landing-zone target: a painted landing mark past each kicker; land beyond it for "LONG JUMP 9.4 m" and a per-kicker record | S | **Built 2026-11-12** (PR #17: a chequered record flag where your longest landed jump came down, distance over it, NEW RECORD call-out; botched landings don't count) |
-| 54 | Engine sounds per engine part + gear-change whine (the drive's soundscape is one loop) | S | Open (new 2026-11-12; same as #34, re-ranked up: sound is the roughest sense right now) |
+| 54 | Engine sounds per engine part + gear-change whine (the drive's soundscape is one loop) | S | **Built 2026-11-12** (PR #19: a loop per engine, a pretend gearbox with shifts, exhaust pops, starter crank, gear + rev bar on the dashboard) |
 | 55 | Night falls on long trips: the sky darkens after a few minutes away, headlights matter, glowing ore and stash glints shine | M | Open (new 2026-11-12; roadmap day/night, first step = visual only) |
 | 56 | Lava seam deep underground (below ~30 m): glowing orange rock that heats and damages the car, with a rich ore reward behind it | M | Open (new 2026-11-12; roadmap deep underground, first danger) |
 | 57 | Garage "next part" card: when you come back, the report ends with "2 Iron short of Spiked Tyres" | S | Open (new 2026-11-12; folds #42 into the trip report, the one-more-trip nudge) |
@@ -77,7 +77,28 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 67 | Depth gauge on the dashboard: a vertical bar with your record notch, so diving in the car feels like the speedometer | S | Open (new 2026-11-12; polish, ties depth to the car) |
 | 68 | Surface lift: a rope/elevator block you place in your shaft to ride back up, so deep trips don't end in a tedious climb | S–M | Open (new 2026-11-12; removes the most boring minute underground: coming back up) |
 | 69 | Crystal echo: a struck crystal rings with a chime whose pitch says how many more crystals are within 10 m | S | Open (new 2026-11-12; pure audio, a hot/cold hunt like the metal detector #9) |
+| 70 | Launch control: at a standstill hold handbrake + throttle, the revs sit on the limiter, let go at the green for a "PERFECT START" speed burst | S | Open (new 2026-11-12, twelfth session; top pick: a skill moment at the start of every trip, built on the new revs) |
+| 71 | Garage rev test: placing an engine in the garage revs it once, so you hear the V8 before you pay for it | S | Open (new 2026-11-12; makes buying an engine a moment) |
+| 72 | Turbo part (copper + iron): a whistle that spools with the revs and a pssh on every upshift, extra torque above half revs | S–M | Open (new 2026-11-12; a part you hear and feel) |
+| 73 | Hanging crystals and stalactites on cavern ceilings (a flipped tile variant) | S | Open (new 2026-11-12; the Deep's ceilings are bare, crystals all point up) |
+| 74 | Ice drift: holding a sideways slide on ice for 1.5 s+ scores "DRIFT 2.1 s" on the trip report | S | Open (new 2026-11-12; turns plain-tyre ice from a nuisance into a trick) |
+| 75 | Ghost of your best trip: a see-through car replaying your best trip's drive next to you | M | Open (new 2026-11-12; instant rival on the road, like #20 for Hill Climb) |
 | 29 | Speedometer redline overdrive: holding the needle in the red for 3 s with the booster unlocks a "SONIC" call-out and a sonic-boom puff | S | Open (new 2026-11-12, cheap thrill) |
+
+## 2026-11-12 (twelfth session — polish)
+
+Looked at `world_230.png`, `stash_60.png` and `deep_250.png`, and the last playtest lines. Three feature sessions in a row (kickers, flags, the Deep), so this is a feel session. The game *looks* busy now, but it *sounds* like one sound: every car, from a scrap four to a V8, played the same 55 Hz loop whose pitch slid up with speed and never came down. Driving is what a player does most in the first minute, and Need for Speed and Hill Climb Racing both lean hard on engine sound: the climb and drop of a gear change is what makes speed feel like effort. Buying a V8 should be *heard*. The most boring sense right now is hearing.
+
+- **A sound per engine + a gearbox for the ears** (S): each engine its own loop, revs that climb, drop at a shift and climb again, limiter stutter in the air. Why fun: every car sounds like itself and acceleration feels like work. *Built.*
+- **Exhaust pops and a starter crank** (S): flame puff on full-throttle upshifts and when lifting off; rr-rr-VROOM when you get in. Why fun: small, cheeky rewards for flooring it and for getting in.
+- **Launch control** (S): hold handbrake + throttle, release on the green for a PERFECT START burst. Why fun: a skill moment at the start of every trip, using the revs.
+- **Garage rev test** (S): placing an engine revs it. Why fun: you hear the upgrade before you pay.
+- **Turbo part** (S–M): spool whistle and a pssh on upshifts, torque at high revs. Why fun: a part you hear and feel.
+- **Hanging crystals** (S): the Deep's ceilings get crystals and stalactites. Why fun: caverns look like caverns.
+- **Ice drift** (S): a slide on ice held long enough scores DRIFT. Why fun: turns the ice nuisance into a trick.
+- **Ghost of your best trip** (M): race your own best trip. Why fun: a rival without AI.
+
+Best open picks for fun per effort right now: #70 launch control (S), #64 Crystal Lamp (S), #46 perfect chain (S), #68 surface lift (S–M), #58 kicker-record goal (S), #28 engine cough and smoke at high damage (S, now cheap on top of the per-engine sound), then #65 deep critters and #56 lava (M).
 
 ## 2026-11-12 (eleventh session)
 
