@@ -80,6 +80,9 @@ public static class GameSession
     public static bool IceTest => UserArgs.Contains("--icetest");
     /// <summary>Bot only: plant long-jump record flags past the kickers before driving (one to beat, the rest out of reach).</summary>
     public static bool JumpTest => UserArgs.Contains("--jumptest");
+
+    /// <summary>--deeptest: the bot starts on foot in a glowing cavern of the Deep and digs out crystals.</summary>
+    public static bool DeepTest => UserArgs.Contains("--deeptest");
     private static bool FreshStart => UserArgs.Contains("--fresh");
 
     public static void ApplyCommandLine()
@@ -90,6 +93,7 @@ public static class GameSession
         if (UserArgs.Contains("--design=rocket")) CurrentDesign = VehicleDesign.Rocket();
         if (UserArgs.Contains("--design=starter")) CurrentDesign = VehicleDesign.Default();
         if (UserArgs.Contains("--design=spiked")) CurrentDesign = VehicleDesign.Spiked();
+        if (UserArgs.Contains("--design=crystal")) CurrentDesign = VehicleDesign.CrystalDriller();
     }
 
     private static string[] UserArgs => OS.GetCmdlineUserArgs();
@@ -103,11 +107,12 @@ public static class GameSession
         public List<RaceRecord> Records { get; set; } = new();
         public int StashesFound { get; set; }
         public TripBest BestTrip { get; set; }
+        public float DeepestDig { get; set; }
     }
 
     private static Progress Data => _progress ??= LoadProgress();
 
-    public static readonly string[] Items = { "Dirt", "Stone", "Scrap", "Iron", "Copper" };
+    public static readonly string[] Items = { "Dirt", "Stone", "Scrap", "Iron", "Copper", "Crystal" };
 
     /// <summary>Buried stashes dug up so far (all worlds).</summary>
     public static int StashesFound
@@ -116,6 +121,17 @@ public static class GameSession
         set
         {
             Data.StashesFound = value;
+            _dirty = true;
+        }
+    }
+
+    /// <summary>The deepest point reached below the surface, in metres (all worlds).</summary>
+    public static float DeepestDig
+    {
+        get => Data.DeepestDig;
+        set
+        {
+            Data.DeepestDig = value;
             _dirty = true;
         }
     }

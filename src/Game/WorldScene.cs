@@ -36,6 +36,10 @@ public partial class WorldScene : Node2D
     private float _iceEnterAt = -1f, _iceNextLog;
     private bool _iceDone;
     private StashGlints _glints;
+    private CrystalGlow _crystals;
+    private bool _deepHinted, _deepPlaced;
+    private float _depthAnnounced, _deepestThisRun;
+    private int _crystalsMined, _depthRecords;
     private RoadsidePickups _pickups;
     private bool _canHinted;
     private int _cansTaken, _heapsTaken, _heapsSmashed;
@@ -179,6 +183,13 @@ public partial class WorldScene : Node2D
         AddChild(glintLayer);
         _glints = new StashGlints { Name = "StashGlints", World = _world, Focus = _player.Position };
         glintLayer.AddChild(_glints);
+        _crystals = new CrystalGlow { Name = "CrystalGlow", World = _world, Focus = _player.Position };
+        glintLayer.AddChild(_crystals);
+        glintLayer.MoveChild(_crystals, 0);   // under the stash glints
+        _depthAnnounced = GameSession.DeepestDig;
+        if (GameSession.AutoPlay)
+            GD.Print($"[deep] world: slate={_world.CountTiles(Tile.Slate)} crystals={_world.CountTiles(Tile.Crystal)} deepRow at garage={_world.DeepRow((TileWorld.PadFrom + TileWorld.PadTo) / 2)} " +
+                     $"({(_world.DeepRow((TileWorld.PadFrom + TileWorld.PadTo) / 2) - TileWorld.BaseSurface) * 0.25f:0.0} m down) record={GameSession.DeepestDig:0.0}m");
 
         _sfx = new Sfx { Name = "Sfx" };
         AddChild(_sfx);
@@ -373,6 +384,9 @@ public partial class WorldScene : Node2D
         _lamp.Energy = under * 1.15f;
         _lamp.TextureScale = _driving ? 1.6f : 1.1f;
         _glints.Focus = focus;
+        _crystals.Focus = focus;
+        _crystals.Darkness = under;
+        UpdateDepth(focus);
         _marks.Focus = focus;
         if (!_glintHinted && _glints.Nearest < 230f && _toastTime <= 0f)
         {
@@ -401,6 +415,38 @@ public partial class WorldScene : Node2D
         UpdateHud(dt);
     }
 
+    // ---- The Deep and the depth record --------------------------------------------------------
+
+    private void UpdateDepth(Vector2 focus)
+    {
+        int tx = Mathf.FloorToInt(focus.X / Ts), ty = Mathf.FloorToInt(focus.Y / Ts);
+        float meters = Mathf.Max(0f, (focus.Y / Ts - _world.SurfaceRow(tx)) * 0.25f);
+        _deepestThisRun = Mathf.Max(_deepestThisRun, meters);
+
+        // First time down in the Deep (this session): a title card, so arriving feels like an event.
+        if (!_deepHinted && ty >= _world.DeepRow(tx) && _toastTime < 1.2f && !_card.Showing)
+        {
+            _deepHinted = true;
+            _toast.Text = "THE DEEP\nglow crystals grow on the cavern walls: dig them out";
+            _toastTime = 3.5f;
+            _smashToast = _goalToast = false;
+            _sfx?.Play("record", -9f, 0.5f, 0.75f);
+            if (GameSession.AutoPlay) GD.Print($"[deep] entered the Deep at depth={meters:0.0}m tile=({tx},{ty}) deepRow={_world.DeepRow(tx)} {(_driving ? "driving" : "on foot")} frame={Engine.GetFramesDrawn()}");
+        }
+
+        // Depth record: kept across worlds; called out every 2.5 m past the old record.
+        if (meters <= GameSession.DeepestDig) return;
+        GameSession.DeepestDig = meters;
+        if (meters >= 5f && meters - _depthAnnounced >= 2.5f && _toastTime < 1.2f && !_card.Showing)
+        {
+            _depthAnnounced = meters;
+            _depthRecords++;
+            Toast($"NEW DEPTH RECORD\n{meters:0} m down");
+            _sfx?.Play("record", -10f, 0.5f, 1.1f);
+            if (GameSession.AutoPlay) GD.Print($"[deep] depth record {meters:0.0}m {(_driving ? "driving" : "on foot")} frame={Engine.GetFramesDrawn()}");
+        }
+    }
+
     // ---- Mining results ---------------------------------------------------------------------
 
     private void OnTileBroken(int x, int y, Tile tile)
@@ -417,7 +463,13 @@ public partial class WorldScene : Node2D
         if (item == null) return;
         if (item != "Dirt" && item != "Stone") _sfx?.Play("pickup", -8f, 0.1f);
         GameSession.Add(item, amount);
-        if (item != "Dirt" && item != "Stone") Toast($"+{amount} {item}");
+        if (item == "Crystal")
+        {
+            _crystalsMined += amount;
+            Toast($"+{amount} Crystal   ({GameSession.Count("Crystal")})" + (GameSession.Count("Crystal") == 4 ? "\nenough for a Crystal Drill (garage)" : ""));
+            if (GameSession.AutoPlay) GD.Print($"[deep] crystal mined at ({x},{y}) total={GameSession.Count("Crystal")} {(_driving ? "by the car" : "on foot")} frame={Engine.GetFramesDrawn()}");
+        }
+        else if (item != "Dirt" && item != "Stone") Toast($"+{amount} {item}");
         if (GameSession.AutoPlay && item != "Dirt" && item != "Stone") GD.Print($"[mining] +{amount} {item} at ({x},{y})");
     }
 
@@ -636,6 +688,8 @@ public partial class WorldScene : Node2D
             Tile.IronOre => new Color(0.71f, 0.4f, 0.29f),
             Tile.CopperOre => new Color(0.91f, 0.55f, 0.24f),
             Tile.StashSmall or Tile.StashMid or Tile.StashBig => new Color(0.95f, 0.8f, 0.35f),
+            Tile.Slate => new Color(0.27f, 0.31f, 0.42f),
+            Tile.Crystal => new Color(0.45f, 0.95f, 1f),
             _ => new Color(0.47f, 0.49f, 0.52f),
         };
 
@@ -752,7 +806,7 @@ public partial class WorldScene : Node2D
                          (NearGarage() ? "   G: garage   R: repair" : "");
             // Speed, fuel and damage live on the dashboard now; the status line keeps where you are.
             float kmh = _car.Speed / PixelsPerMeter * 3.6f;
-            _status.Text = $"{(_car.Boosting ? "BOOST!   " : "")}{BiomeName(_car.CenterPosition.X)}{TripStatus()}";
+            _status.Text = $"{(_car.Boosting ? "BOOST!   " : "")}{BiomeName(_car.CenterPosition.X)}{TripStatus()}{DepthStatus(_car.CenterPosition)}";
             _status.Modulate = _car.Boosting ? new Color(1f, 0.8f, 0.4f) : Colors.White;
             _dash.Visible = true;
             _dash.Set(kmh, _car.Fuel, _car.FuelCapacity, _car.Damage, _car.Boosting);
@@ -773,7 +827,7 @@ public partial class WorldScene : Node2D
             _dash.Visible = false;
             _lines.Set(0f, _carDir, false);
             _status.Modulate = Colors.White;
-            _status.Text = $"{BiomeName(_player.Position.X)}{TripStatus()}   Depth {Mathf.Max(0f, (_player.Position.Y / Ts - _world.SurfaceRow(Mathf.FloorToInt(_player.Position.X / Ts))) * 0.25f):0} m" +
+            _status.Text = $"{BiomeName(_player.Position.X)}{TripStatus()}{DepthStatus(_player.Position)}" +
                            (GameSession.StashesFound > 0 ? $"   Stashes found {GameSession.StashesFound}" : "");
         }
 
@@ -790,6 +844,16 @@ public partial class WorldScene : Node2D
 
     /// <summary>Metres from the middle of the garage pad (negative = west).</summary>
     private float MetersFromGarage(float worldX) => (worldX - TileWorld.PadCenter.X) / Ts * 0.25f;
+
+    /// <summary>"   Depth 9 m (best 14 m)" once below 1 m; "The Deep" in the slate layer.</summary>
+    private string DepthStatus(Vector2 at)
+    {
+        int tx = Mathf.FloorToInt(at.X / Ts);
+        float meters = (at.Y / Ts - _world.SurfaceRow(tx)) * 0.25f;
+        if (meters < 1f) return "";
+        string where = at.Y / Ts >= _world.DeepRow(tx) ? "   THE DEEP" : "";
+        return $"{where}   Depth {meters:0} m" + (GameSession.DeepestDig >= 2f ? $" (best {GameSession.DeepestDig:0} m)" : "");
+    }
 
     private string TripStatus()
     {
@@ -1318,6 +1382,82 @@ public partial class WorldScene : Node2D
         }
     }
 
+    /// <summary>
+    /// --deeptest: put the player on the floor of a real cavern in the Deep next to a cluster of glow
+    /// crystals (the nearest one to the garage that has room to stand), then dig out every crystal in reach,
+    /// walking to the next cluster when none is left. Checks generation, the glow and the Crystal drop.
+    /// </summary>
+    private void RunDeepBot()
+    {
+        if (!_deepPlaced)
+        {
+            if (_elapsed < 0.3f) return;
+            _deepPlaced = true;
+            int mid = (TileWorld.PadFrom + TileWorld.PadTo) / 2;
+            for (int d = 0; d < 900; d++)
+            {
+                int x = mid + ((d & 1) == 0 ? d / 2 : -(d / 2 + 1));
+                for (int y = _world.DeepRow(x); y < TileWorld.Height - 3; y++)
+                {
+                    // Room to stand: three open rows above solid ground, and a crystal within reach.
+                    if (_world.Solid(x, y) || _world.Solid(x, y - 1) || _world.Solid(x, y - 2) || !_world.Solid(x, y + 1)) continue;
+                    var at = new Vector2((x + 0.5f) * Ts, (y + 1) * Ts - Player.HalfHeight - 0.5f);
+                    if (_player.Blocked(at.X, at.Y) || NearestCrystal(at, 70f) == null) continue;
+                    _player.Position = at;
+                    _player.Velocity = Vector2.Zero;
+                    _camera.Position = at;
+                    _camera.ResetSmoothing();
+                    GD.Print($"[deep] test: player placed in a cavern at tile ({x},{y}) depth={(y - _world.SurfaceRow(x)) * 0.25f:0.0}m " +
+                             $"{(x - mid) * 0.25f:0} m from the garage, biome={TileWorld.BiomeAt(x)} frame={Engine.GetFramesDrawn()}");
+                    return;
+                }
+            }
+            GD.Print("[deep] test: NO cavern with crystals and room to stand found");
+            return;
+        }
+
+        Vector2 me = _player.Position;
+        Vector2I? target = NearestCrystal(me, 88f);
+        if (target is Vector2I t)
+        {
+            _player.Override = new PlayerInput { Mine = true, Aim = new Vector2((t.X + 0.5f) * Ts, (t.Y + 0.5f) * Ts) };
+        }
+        else if (NearestCrystal(me, 260f) is Vector2I far)
+        {
+            float dir = Mathf.Sign((far.X + 0.5f) * Ts - me.X);
+            _player.Override = new PlayerInput { Move = dir, Jump = Mathf.Abs(_player.Velocity.X) < 5f, Aim = me };
+        }
+        else
+        {
+            _player.Override = new PlayerInput();
+        }
+
+        if (_elapsed >= _nextLog)
+            GD.Print($"[deep] t={_elapsed:0}s mined={_crystalsMined} crystalsHeld={GameSession.Count("Crystal")} glowOpen={_crystals.ShownOpen} glowBuried={_crystals.ShownBuried} " +
+                     $"darkness={_crystals.Darkness:0.00} depthRecord={GameSession.DeepestDig:0.0}m records={_depthRecords} player=({me.X / Ts:0.0},{me.Y / Ts:0.0}) frame={Engine.GetFramesDrawn()}");
+    }
+
+    /// <summary>The closest crystal tile within a distance (pixels) of a point, if any.</summary>
+    private Vector2I? NearestCrystal(Vector2 from, float within)
+    {
+        int r = Mathf.CeilToInt(within / Ts) + 1;
+        int cx = Mathf.FloorToInt(from.X / Ts), cy = Mathf.FloorToInt(from.Y / Ts);
+        Vector2I? best = null;
+        float bestD = within;
+        for (int y = cy - r; y <= cy + r; y++)
+            for (int x = cx - r; x <= cx + r; x++)
+            {
+                if (_world.Get(x, y) != Tile.Crystal) continue;
+                float d = new Vector2((x + 0.5f) * Ts, (y + 0.5f) * Ts).DistanceTo(from);
+                if (d <= bestD)
+                {
+                    bestD = d;
+                    best = new Vector2I(x, y);
+                }
+            }
+        return best;
+    }
+
     private void Leg(int leg, string what)
     {
         _tripLeg = leg;
@@ -1338,8 +1478,9 @@ public partial class WorldScene : Node2D
 
         if (GameSession.TripTest) RunTripBot();
         if (GameSession.IceTest) RunIceBot();
+        if (GameSession.DeepTest) RunDeepBot();
 
-        if (!_driving && !GameSession.CrashTest && !GameSession.TripTest && !GameSession.IceTest)
+        if (!_driving && !GameSession.CrashTest && !GameSession.TripTest && !GameSession.IceTest && !GameSession.DeepTest)
         {
             Vector2 feet = _player.Position + new Vector2(0f, Player.HalfHeight);
             // --stashtest: once the bot starts digging, bury a toolbox and a strongbox under its feet
@@ -1384,7 +1525,7 @@ public partial class WorldScene : Node2D
                  $"top={_topSpeed / PixelsPerMeter * 3.6f:0}km/h longestAir={_longestAir:0.0}s landings={_perfectLandings}/{_cleanLandings}/{_roughLandings}/{_flops} kickers={_kickerJumps}/{_kickerLaunches} longJumps={_longJumps}/{_jumpRecords}/{_longestJump:0.0}m " +
                  $"crashes={_crashFx.Hits} hardest={_crashFx.HardestHit / PixelsPerMeter * 3.6f:0}km/h sparks={_crashFx.SparkBursts} " +
                  $"cans={_cansTaken} heaps={_heapsTaken} smashed={_heapsSmashed} bestStreak={_bestStreak} " +
-                 $"dash={(_dash.Visible ? $"{_dash.ShownKmh:0}km/h" : "hidden")} lines={_lines.Intensity:0.00} peakLines={_peakLines:0.00} wind={_sfx.WindLevel:0.00} rollOvers={_rollOvers} ice={_spray.IceSeconds:0.0}s slip={_spray.SlipSeconds:0.0}s bite={_spray.BiteSeconds:0.0}s trip={tripNow} reports={_tripsReported} card={(_card.Showing ? _card.ShownScore.ToString() : "hidden")} | " +
+                 $"dash={(_dash.Visible ? $"{_dash.ShownKmh:0}km/h" : "hidden")} lines={_lines.Intensity:0.00} peakLines={_peakLines:0.00} wind={_sfx.WindLevel:0.00} rollOvers={_rollOvers} ice={_spray.IceSeconds:0.0}s slip={_spray.SlipSeconds:0.0}s bite={_spray.BiteSeconds:0.0}s trip={tripNow} reports={_tripsReported} deepest={_deepestThisRun:0.0}m crystalsMined={_crystalsMined} card={(_card.Showing ? _card.ShownScore.ToString() : "hidden")} | " +
                  string.Join(" ", System.Array.ConvertAll(GameSession.Items, i => $"{i}={GameSession.Count(i)}")));
     }
 }

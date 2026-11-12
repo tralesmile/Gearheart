@@ -46,6 +46,7 @@ jobs:
             echo "=== $name"
             timeout 300 godot --headless --path . --fixed-fps 120 "$@" > smoke.log 2>&1
             grep -E "\[(world|autoplay|drive|race|mining|autodrive|stunt|crash|stash|pickup|speed|trip|ice)\]" smoke.log | tail -60
+            grep "\[deep\]" smoke.log | head -30
             grep "\[landing\]" smoke.log | head -30
             grep "\[kicker\]" smoke.log | head -24
             # "resources still in use at exit" is a shutdown notice about cached textures and sounds, not a fault.
@@ -57,6 +58,8 @@ jobs:
           }
           run "world: walk, mine, place, then drive 30 s" res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --design=starter
           run "world: drill car tunnelling"            res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --design=driller
+          run "world: Crystal Drill car tunnelling (same route as the drill car)" res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --design=crystal
+          run "world: the Deep (on foot in a crystal cavern, dig out crystals)" res://scenes/world.tscn --quit-after 3600 -- --fresh --autoplay --deeptest --design=starter
           run "world: drive left to the Frozen North"  res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --left --design=starter
           run "world: drive left to the Frozen North on Spiked Tyres" res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --left --design=spiked
           run "world: rocket booster car"             res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --design=rocket
@@ -78,7 +81,7 @@ jobs:
         run: |
           sudo apt-get update -qq > /dev/null 2>&1 || true
           sudo apt-get install -y -qq xvfb libgl1-mesa-dri > /dev/null 2>&1 || true
-          mkdir -p shots/world shots/left shots/drill shots/rocket shots/crash shots/stash shots/trip shots/garage shots/iceplain shots/icespiked shots/jump keep
+          mkdir -p shots/world shots/left shots/drill shots/rocket shots/crash shots/stash shots/trip shots/garage shots/iceplain shots/icespiked shots/jump shots/deep shots/crystal keep
           # Keep Godot from importing (and exporting) the thousands of movie frames: they slowed every
           # later run, bloated the game builds and flooded the job log past the playtest lines.
           touch shots/.gdignore keep/.gdignore
@@ -92,7 +95,20 @@ jobs:
           xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/iceplain/f.png --quit-after 220 res://scenes/world.tscn -- --fresh --autoplay --icetest --design=starter > shots/iceplain.log 2>&1 || true
           xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/icespiked/f.png --quit-after 220 res://scenes/world.tscn -- --fresh --autoplay --icetest --design=spiked > shots/icespiked.log 2>&1 || true
           xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/jump/f.png --quit-after 400 res://scenes/world.tscn -- --fresh --autoplay --jumptest --design=starter > shots/jump.log 2>&1 || true
+          xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/deep/f.png --quit-after 260 res://scenes/world.tscn -- --fresh --autoplay --deeptest --design=starter > shots/deep.log 2>&1 || true
+          xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/crystal/f.png --quit-after 400 res://scenes/world.tscn -- --fresh --autoplay --design=crystal > shots/crystal.log 2>&1 || true
           xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/garage/f.png --quit-after 12 res://scenes/garage.tscn > shots/garage.log 2>&1 || true
+          # The Deep: the cavern the bot is placed in, the THE DEEP card, digging crystals, and the first crystal mined.
+          for i in 6 12 30 60 120 200 250; do
+            f=$(printf "shots/deep/f%08d.png" $i); [ -f "$f" ] && cp "$f" keep/deep_$i.png
+          done
+          grep "\[deep\] crystal mined" shots/deep.log | head -1 | sed -E 's/.*frame=([0-9]+).*/\1/' | while read n; do
+            f=$(printf "shots/deep/f%08d.png" $((n + 2))); [ -f "$f" ] && cp "$f" keep/deep_crystal_$((n + 2)).png
+          done
+          grep "\[deep\]" shots/deep.log | head -20
+          for i in 280 330 390; do
+            f=$(printf "shots/crystal/f%08d.png" $i); [ -f "$f" ] && cp "$f" keep/crystaldrill_$i.png
+          done
           for run in world left drill rocket; do
             for i in 25 98 130 180 230 280 330 390; do
               f=$(printf "shots/$run/f%08d.png" $i); [ -f "$f" ] && cp "$f" keep/${run}_$i.png

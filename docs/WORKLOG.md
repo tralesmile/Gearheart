@@ -2,6 +2,46 @@
 
 Newest entry first. Each session: what was built and why, how it was verified, what is not verified, and what comes next.
 
+## 2026-11-12, about 10:20–11:15 UTC — The Deep: glow crystal caverns, Crystal Drill, depth record (PR #18)
+
+**Started by** checking for unfinished work: no open pull requests, last main build green.
+
+**Built**
+
+- **The Deep** (`TileWorld.Generate`, `GrowCrystals`): about 12 m under the natural ground (48 rows, ±6 by noise; 12.5 m under the garage) stone turns into dark blue **Slate** (harder: 36 vs 28) and caves open wider. Slate walls of the caverns grow clusters of **glow crystals**; rare crystal seams sit inside the rock. World save **GHWA** (the first slate row per column is saved; old worlds regenerate).
+- **Crystal glow** (`src/World/CrystalGlow.cs`): crystals are redrawn above the underground darkness at full brightness with a breathing additive cyan halo and the odd sparkle; buried crystals glow at a third so a seam shows through the rock. Ore inside slate is tinted cool and dark so its grey background no longer glares.
+- **Crystal** material: new HUD slot and icon, "+1 Crystal (n)" call-out (at 4: "enough for a Crystal Drill (garage)"), cyan dust puff, counts on the trip report's haul like Copper.
+- **Crystal Drill** (`data/parts/parts.json`, `drill_crystal`): 3 Iron + 4 Crystal, drill power 150 (plain drill 60), dark housing with a crystal ring and a cyan cone (`tools/make_art.py`, parts cell 12; `SoftVehicle` draws the cone cyan for power over 100).
+- **Depth record** (`GameSession.DeepestDig`, saved in progress.json): "NEW DEPTH RECORD / 9 m down" at 5 m and every 2.5 m past the last call-out; the status line shows "Depth 9 m (best 14 m)" on foot *and* in the car, plus "THE DEEP" while in slate; a "THE DEEP" title card with a low fanfare the first time you get there in a session.
+- **Art** (`tools/make_art.py`): tiles.png grows to 10 rows: slate (4), crystals on slate (4), slate back wall (2), clear crystal overlays (4), crystal icon. All older cells are byte-identical (checked).
+- **CI**: `[deep]` lines (world counts, entering the Deep, depth records, each crystal mined, glow counts), a `--deeptest` run (puts the player on the floor of the nearest real crystal cavern with room to stand and digs out every crystal in reach) headless and as screenshots, `--design=crystal` (driller with the Crystal Drill) headless and as screenshots, `deep_*`, `deep_crystal_*` and `crystaldrill_*` screenshots, and `deepest=`/`crystalsMined=` on `[autoplay]` lines.
+
+**Why this** — Brainstorm in `docs/IDEAS.md` (eleventh session): six sessions in a row made the surface drive better, and the drive now has records, goals, jumps and pickups. Mining, half of the core loop, had not changed since stashes: one grey rock at every depth, so the most boring minute was digging down. Terraria's and Minecraft's best underground moments are breaking into a layer that looks different and pays differently. Glow caves (#62) were in the "best open picks" and the roadmap's "deep underground" direction; a crystal part closes the loop (the Deep gives you a faster way into the Deep).
+
+**Verified (CI runs 43200975199 and 43203187495, both green)**
+
+- World: 149,823 slate tiles and 8,497 crystals on this seed; slate starts 12.5 m under the garage.
+- Deep test: player placed in a cavern at tile (1279,185), 30 m down right under the garage; THE DEEP card shown on arrival; **13 crystals mined in 12 s** on foot (all in reach, then it ran out of reachable ones and stood still — a bot limit); 96–127 crystals glowing within ±52×32 tiles, darkness 1.00.
+- Drill cars, same route: plain drill ends at row 97.2 (8.8 m down) at 40 s; **Crystal Drill at row 105.5 (10.9 m down)**, +2 m in the bot's 10 s nose-down dig; depth record call-outs at 5.0/7.6 m (plain) and 5.1/7.7/10.2 m (crystal).
+- Nothing else changed: 40 s positions identical to main (starter 2189.5, drill 1473.5/97.2, left 603.2, spiked 300.1, rocket 2155.9), trip reports 259 and 443, ice strip 7.0 s / 4.7 s, Hill Climb 18.97 s / 15.25 s. No errors (only the known "resources still in use at exit" notice).
+- Screenshots: `deep_6.png` (THE DEEP card, a cavern lit by cyan crystal clusters, HUD with the crystal slot), `deep_crystal_11.png` ("+1 Crystal (1)" with cyan dust), `crystaldrill_390.png` (cyan cone drill tunnelling; the glowing caverns of the Deep visible below the tunnel — a nice teaser for a player digging down). Run 2 checked the cooler ore tint in slate.
+
+**Not verified / known issues**
+
+- Fun is my judgement. Whether the Deep feels like a discovery, whether crystals are too common (a hundred in view in a deep cavern) and whether 12 m is too deep on foot needs you to play (D1).
+- The garage was not driven by the bot: the Crystal Drill was tested as a preset design (`--design=crystal`), not built from mined crystals. Its garage row comes from the same JSON as every other part.
+- Crystals all point up, even on cavern ceilings. Hanging crystals would need a flipped tile variant.
+- Getting back up from 12 m+ on foot is a long climb (you can place dirt blocks to build steps). That may be the next most boring minute (IDEAS #68).
+- No new sounds; the THE DEEP card and depth records reuse the `record` fanfare at other pitches. I cannot listen to check them.
+
+**Next**
+
+1. Crystal Lamp part: a headlight cone from crystals (S, IDEAS #64) — a second use for crystals and makes the dark something you equip against.
+2. Surface lift / rope block to ride a shaft back up (S–M, #68).
+3. Deep critters or a lava seam below the Deep (M, #65 / #56) — the first underground danger.
+4. Perfect chain "PERFECT x3" (S, #46) and the kicker-record trip goal (S, #58).
+5. Engine sound per engine part (S, #54).
+
 ## 2026-11-12, about 09:20–09:50 UTC — Long-jump record flags (PR #17)
 
 **Started by** merging PR #16 (jump kickers) left open by the last run: its final build (run 43189928768) was green, the `[kicker]` lines matched its description and the screenshots showed the signs and kickers.

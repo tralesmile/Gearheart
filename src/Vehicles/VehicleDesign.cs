@@ -234,6 +234,15 @@ public sealed class VehicleDesign
         return d;
     }
 
+    /// <summary>The driller with the Crystal Drill from the Deep.</summary>
+    public static VehicleDesign CrystalDriller()
+    {
+        var d = Default();
+        d.Name = "Crystal Driller";
+        d.SetBlock(9, 3, "drill_crystal");
+        return d;
+    }
+
     /// <summary>The starter car on Spiked Tyres, for snow and ice.</summary>
     public static VehicleDesign Spiked()
     {

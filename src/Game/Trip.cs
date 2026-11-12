@@ -43,7 +43,7 @@ public sealed class Trip
     public readonly Dictionary<string, int> Haul = new();
     public float Seconds;
 
-    public static readonly string[] HaulItems = { "Scrap", "Iron", "Copper" };
+    public static readonly string[] HaulItems = { "Scrap", "Iron", "Copper", "Crystal" };
 
     public void NoteSpeed(float kmh) => TopKmh = Mathf.Max(TopKmh, kmh);
     public void NoteAir(float seconds) => LongestAir = Mathf.Max(LongestAir, seconds);
@@ -66,6 +66,7 @@ public sealed class Trip
     {
         "Iron" => PerIron,
         "Copper" => PerCopper,
+        "Crystal" => PerCopper,
         _ => PerScrap,
     };
 

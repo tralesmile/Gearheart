@@ -42,6 +42,7 @@ public static class Art
         "Stone" => TileCell(1, 6),
         "Scrap" => TileCell(2, 6),
         "Iron" => TileCell(3, 6),
+        "Crystal" => TileCell(7, 6),
         _ => TileCell(4, 6),
     };
 }

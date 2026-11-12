@@ -69,9 +69,30 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 59 | Slow-motion beat: 0.3 s at 0.6x speed at the peak of a big jump or a new record, with a camera nudge | S | Open (new 2026-11-12; makes the best moment of a trip feel like one) |
 | 60 | Record ghost: a faint dotted arc of your record jump past each kicker, so you can see the line to beat | S–M | Open (new 2026-11-12; Trials' ghost, per kicker) |
 | 61 | Air smash: scrap heaps placed just past some kickers' landings, smashed on touchdown for "AIR SMASH" | S | Open (new 2026-11-12; links two loops, smash + jump) |
-| 62 | Glow caves: a layer 15–30 m down with glowing mushrooms or crystals that light the tunnel and drop a new material | M | Open (new 2026-11-12; underground is one grey in drill_330.png) |
+| 62 | Glow caves: a layer 15–30 m down with glowing mushrooms or crystals that light the tunnel and drop a new material | M | **Built 2026-11-12** (PR #18, step 1: slate layer from ~12 m, wider caverns, glow crystals on the walls, Crystal material, Crystal Drill, depth record) |
 | 63 | Jump records on the trip report: "2 kicker records" scoring a bonus | S | Open (new 2026-11-12; small, but the card's value column is full; needs a row or a layout tweak) |
+| 64 | Crystal Lamp part: a headlight block made of crystal that lights a wide cone ahead of the car underground (and later at night) | S | Open (new 2026-11-12, eleventh session; second Crystal use, makes the dark a choice) |
+| 65 | Deep critters: crystal mites that skitter out of crystal clusters when you mine them and nibble the car until squashed | M | Open (new 2026-11-12; first underground danger, small and readable) |
+| 66 | Cave-in: mining slate under a wide cavern roof drops a few loose tiles with a rumble and dust | S–M | Open (new 2026-11-12; risk and drama while digging, no full physics) |
+| 67 | Depth gauge on the dashboard: a vertical bar with your record notch, so diving in the car feels like the speedometer | S | Open (new 2026-11-12; polish, ties depth to the car) |
+| 68 | Surface lift: a rope/elevator block you place in your shaft to ride back up, so deep trips don't end in a tedious climb | S–M | Open (new 2026-11-12; removes the most boring minute underground: coming back up) |
+| 69 | Crystal echo: a struck crystal rings with a chime whose pitch says how many more crystals are within 10 m | S | Open (new 2026-11-12; pure audio, a hot/cold hunt like the metal detector #9) |
 | 29 | Speedometer redline overdrive: holding the needle in the red for 3 s with the booster unlocks a "SONIC" call-out and a sonic-boom puff | S | Open (new 2026-11-12, cheap thrill) |
+
+## 2026-11-12 (eleventh session)
+
+Looked at `drill_330.png`, `longjump_jump_181.png` and the last playtest lines. The last six sessions all made driving on the surface better (pickups, trip report, goals, ice, landings, kickers, records), and it shows: the surface drive is busy and readable. But half the core loop is *mining*, and underground has not changed since the stash session: one grey stone at every depth, dark, with nothing that says "deeper is different". The most boring minute is now digging down: hold the mouse, watch "Depth 6 m", the same rock forever. Terraria's best moment is breaking into a new layer (the glowing mushroom biome, the underworld), Minecraft's is the first diamond glint by torchlight. Both say: the deep is a place, not a number.
+
+- **Glow crystal caverns** (M, step 1 now): below ~12 m slate replaces stone, caverns open up, cyan crystals line the walls and shine through the dark; a new material. Why fun: a "whoa" when you break through, and a visible reason to go deeper. *Built (step 1).*
+- **Crystal Drill** (S): the first part made from the Deep, 2.5x drill power. Why fun: the Deep pays you back with a faster way into the Deep — a loop.
+- **Depth record** (S): "NEW DEPTH RECORD 9 m" every 2.5 m past your best, best depth on the status line. Why fun: the drive has distance records; digging deserved its own number to beat.
+- **Crystal Lamp** (S): a headlight part from crystals. Why fun: the dark becomes something you equip against.
+- **Deep critters** (M): crystal mites that pour out of a cluster you crack. Why fun: first danger underground, and a reason to dig carefully.
+- **Cave-in** (S–M): mining under a wide roof drops loose slate. Why fun: tension while tunnelling.
+- **Surface lift** (S–M): a placeable lift block to ride your shaft back up. Why fun: kills the dullest minute of a deep dig (the climb home).
+- **Crystal echo** (S): a chime that tells you how many crystals are near. Why fun: hot/cold hunting with your ears.
+
+Best open picks for fun per effort right now: #64 Crystal Lamp (S), #46 perfect chain (S), #58 kicker-record goal (S), #68 surface lift (S–M), #54 engine sound per part (S), then #65 deep critters and #56 lava below the Deep (M).
 
 ## 2026-11-12 (tenth session)
 

@@ -172,7 +172,7 @@ def ice(rng):
 
 def make_tiles():
     rng = random.Random(1234)
-    sheet = Image.new("RGBA", (8 * T, 8 * T), (0, 0, 0, 0))
+    sheet = Image.new("RGBA", (8 * T, 10 * T), (0, 0, 0, 0))
     def put(img, col, row): sheet.paste(img, (col * T, row * T))
     for i in range(4):
         put(dirt(rng), i, 0); put(stone(rng), i, 1); put(grass(rng), i, 2); put(crack(rng, i), i, 4)
@@ -195,7 +195,68 @@ def make_tiles():
         put(stash_toolbox(srng, STONE), i, 7)
         put(stash_crate(srng, STONE), 2 + i, 7)
         put(stash_strongbox(srng, STONE), 4 + i, 7)
+    # The Deep (rows 8-9 and the last icon), own random stream so everything above stays identical.
+    drng = random.Random(4242)
+    for i in range(4):
+        put(slate(drng), i, 8)
+        put(crystal(drng, i), 4 + i, 8)
+    for i in range(2):
+        put(wall(drng, SLATE), i, 9)
+    for i in range(4):
+        put(crystal_shapes(Image.new("RGBA", (T, T), (0, 0, 0, 0)), i), 4 + i, 9)
+    put(crystal_icon(), 7, 6)
     sheet.save(os.path.join(OUT, "tiles.png"))
+
+
+SLATE = [(66, 74, 98), (56, 63, 86), (78, 87, 112), (48, 54, 74)]
+GLOW = [(120, 250, 240), (70, 210, 230), (200, 255, 250), (40, 150, 190)]   # light, mid, highlight, dark
+
+
+def slate(rng):
+    """Dark blue-grey rock in thin layers, harder-looking than stone."""
+    img = noise_tile(rng, SLATE, [16, 3, 3, 2])
+    px = img.load()
+    for y0 in (4, 10):                               # slanted cleavage lines
+        for x in range(T):
+            y = (y0 + x // 6 + rng.choice([0, 0, 1])) % T
+            px[x, y] = (40, 45, 62, 255)
+            if rng.random() < 0.4: px[x, (y + 1) % T] = (90, 100, 128, 255)
+    return img
+
+
+CRYSTAL_SPOTS = [[(4, 13, 5, 9), (9, 14, 6, 11), (13, 12, 3, 6)],
+                 [(3, 12, 4, 7), (8, 14, 5, 12), (12, 13, 4, 8)],
+                 [(5, 14, 5, 10), (11, 11, 5, 8), (2, 6, 3, 5)],
+                 [(7, 13, 6, 12), (12, 9, 3, 6), (3, 8, 3, 6)]]
+
+
+def crystal_shapes(img, variant):
+    """Each crystal: a pointed prism with a lit face and a bright spine."""
+    d = ImageDraw.Draw(img)
+    for cx, base, w, h in CRYSTAL_SPOTS[variant]:
+        top = base - h
+        poly = [(cx - w // 2, base), (cx - w // 2, top + 2), (cx, top), (cx + w // 2, top + 2), (cx + w // 2, base)]
+        d.polygon(poly, fill=GLOW[1], outline=GLOW[3])
+        d.line([(cx - w // 2 + 1, base - 1), (cx - w // 2 + 1, top + 2), (cx, top + 1)], fill=GLOW[0])
+        d.line([(cx, top + 2), (cx, base - 2)], fill=GLOW[2])
+    return img
+
+
+def crystal(rng, variant):
+    """A cluster of glowing cyan crystals growing out of slate (row 8); the same crystals alone on
+    a clear background (row 9) are drawn over the darkness by the game, so they shine in the dark."""
+    return crystal_shapes(slate(rng), variant)
+
+
+def crystal_icon():
+    img = Image.new("RGBA", (T, T), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    for cx, base, w, h in [(5, 14, 5, 9), (10, 14, 6, 12)]:
+        top = base - h
+        poly = [(cx - w // 2, base), (cx - w // 2, top + 2), (cx, top), (cx + w // 2, top + 2), (cx + w // 2, base)]
+        d.polygon(poly, fill=GLOW[1], outline=GLOW[3])
+        d.line([(cx, top + 2), (cx, base - 2)], fill=GLOW[2])
+    return img
 
 
 # Buried stashes: a box sitting in a dark pocket of rock, so it reads as "something hidden here".
@@ -422,6 +483,15 @@ def part_drill():
     return img
 
 
+def part_crystal_drill():
+    # Dark steel drill housing with a glowing crystal ring (the crystal-tipped cone is drawn by the game).
+    img, d = panel((60, 70, 96), (96, 108, 140), (34, 40, 58))
+    d.ellipse([4, 4, 17, 17], fill=(40, 150, 190), outline=(20, 26, 40))
+    d.ellipse([7, 7, 14, 14], fill=(120, 250, 240))
+    d.ellipse([9, 9, 12, 12], fill=(220, 255, 252))
+    return img
+
+
 def part_cab():
     img, d = panel((206, 62, 44), (240, 110, 84), (150, 40, 32))
     d.rectangle([3, 3, P - 3, 14], fill=(140, 208, 232), outline=(40, 44, 54))
@@ -489,7 +559,7 @@ def make_parts():
     parts = [part_frame_light(), part_steel(), part_heavy(),
              part_engine((150, 96, 60), (190, 150, 110), 2), part_engine((190, 60, 44), (220, 220, 226), 3),
              part_engine((224, 44, 30), (250, 210, 60), 4),
-             part_armor(), part_bumper(), part_fuel(), part_drill(), part_cab(), part_booster()]
+             part_armor(), part_bumper(), part_fuel(), part_drill(), part_cab(), part_booster(), part_crystal_drill()]
     sheet = Image.new("RGBA", (P * len(parts), P), (0, 0, 0, 0))
     for i, p in enumerate(parts):
         sheet.paste(p, (i * P, 0))
