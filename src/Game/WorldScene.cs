@@ -356,6 +356,7 @@ public partial class WorldScene : Node2D
         _status.SetAnchorsPreset(Control.LayoutPreset.TopRight);
         _status.Position += new Vector2(-436f, 12f);
         _status.CustomMinimumSize = new Vector2(420f, 0f);
+        _status.GrowHorizontal = Control.GrowDirection.Begin;   // long driving status grows left, never off screen
         layer.AddChild(_status);
 
         _toast = Outlined(new Label { HorizontalAlignment = HorizontalAlignment.Center }, 28);
