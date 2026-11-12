@@ -110,15 +110,16 @@ public partial class SoftPhysicsWorld : Node
     {
         var edges = shape.BoundaryEdges;
         Vector2[] sp = shape.Pos;
-        Rect2 shapeBounds = shape.Bounds();
+        Rect2 shapeBounds = shape.LocalBounds();
+        Vector2 toShape = mover.Origin - shape.Origin;   // each car keeps its nodes relative to its own origin
 
         for (int i = 0; i < mover.Pos.Length; i++)
         {
-            Vector2 p = mover.Pos[i];
+            Vector2 p = mover.Pos[i] + toShape;
             float radius = mover.RadiusOf(i);
             if (!shapeBounds.Grow(radius).HasPoint(p)) continue;
 
-            bool inside = shape.ContainsPoint(p);
+            bool inside = shape.ContainsLocalPoint(p);
 
             // Closest outside edge of the other body.
             float bestDistance = float.MaxValue;
@@ -180,7 +181,7 @@ public partial class SoftPhysicsWorld : Node
         {
             foreach (int hb in b.HubNodes)
             {
-                Vector2 d = b.Pos[hb] - a.Pos[ha];
+                Vector2 d = b.Pos[hb] - a.Pos[ha] + (b.Origin - a.Origin);
                 float distance = d.Length();
                 float minDistance = a.RadiusOf(ha) + b.RadiusOf(hb);
                 if (distance >= minDistance || distance < 1e-4f) continue;
@@ -257,12 +258,13 @@ public partial class SoftPhysicsWorld : Node
     private static void ResolveNodeVsObject(SoftVehicle body, int i, LooseObject obj, float dt)
     {
         float radius = body.RadiusOf(i);
-        Vector2 p = body.Pos[i];
+        Vector2 origin = body.Origin;   // the car's nodes are relative to its origin; loose objects are in world pixels
+        Vector2 p = body.Pos[i] + origin;
 
         if (!ContactWithObject(p, radius, obj, out Vector2 normal, out float depth)) return;
 
         // Velocity is measured before the push-out, so the correction itself never reads as motion.
-        Vector2 nodeVelocity = (p - body.Prev[i]) / dt;
+        Vector2 nodeVelocity = (body.Pos[i] - body.Prev[i]) / dt;
         float invNode = body.InvMass[i];
 
         // Positional: the node takes its mass share of the overlap. The rest is handed to the object
@@ -270,7 +272,7 @@ public partial class SoftPhysicsWorld : Node
         float nodeShare = invNode / (invNode + obj.InvMass);
         Vector2 push = normal * depth * nodeShare;
         p += push;
-        body.Pos[i] = p;
+        body.Pos[i] += push;
         body.Prev[i] += push;
 
         // Velocity: an impulse along the normal that stops the approach and works off the remaining overlap,
@@ -288,7 +290,7 @@ public partial class SoftPhysicsWorld : Node
         float j = target / (invNode + obj.InvMass + rCrossN * rCrossN * obj.InvInertia);
 
         nodeVelocity += normal * (j * invNode);
-        body.Prev[i] = p - nodeVelocity * dt;
+        body.Prev[i] = body.Pos[i] - nodeVelocity * dt;
 
         Vector2 objectImpulse = -normal * j;
         obj.Velocity += objectImpulse * obj.InvMass;
