@@ -150,13 +150,31 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 140 | Hook swing: hold the hook key to swing on a fixed rope (pendulum) instead of reeling in; let go at the bottom to fly | S | Open (new 2026-11-12; Worms' ninja rope / Spider-Man after #136; needs the owner's reaction to the reel-in first) |
 | 141 | Flares: throw a glowing flare that bounces down into a dark cavern and lights it for 20 s | S | Open (new 2026-11-12; look before you jump into the dark, a second on-foot tool) |
 | 142 | Old mine shafts: world generation leaves a few timbered shafts with ladders, a broken rail cart and a supply crate at the bottom | M | Open (new 2026-11-12; a discovery underground that is not a random tile) |
-| 143 | Ore flies home: a mined ore's icon arcs from the tile to its slot on the inventory bar, and the count there bumps and flashes | S | Open (new 2026-11-12, twenty-third session; the bar at the bottom never reacts to anything) |
+| 143 | Ore flies home: a mined ore's icon arcs from the tile to its slot on the inventory bar, and the count there bumps and flashes | S | **Built 2026-11-12** (PR #32: every mined tile, stash and smashed heap flies its icons home in an arc; the slot's number goes up on landing, the slot swells, rings and flashes in the ore's colour, a tick per ore; drill dirt and stone just count up) |
 | 144 | Motherlode: one rare big vein (12–20 tiles of copper or iron) per biome, deep down, with a "MOTHERLODE!" banner when you break into it | S | Open (new 2026-11-12; a vein run's jackpot, a reason to dig in a new place) |
 | 145 | Hit feel for the pickaxe: a tiny hit-stop and a chip of the tile's colour on every swing, a crack sound that rises as the tile weakens | S | Open (new 2026-11-12; mining is the most-repeated action and has the least feedback) |
 | 146 | Geodes in the Deep: round hollow rocks that crack open in a burst of crystals | S | Open (new 2026-11-12; a big find underground that is not a stash) |
 | 147 | Best vein on the trip report and a "Mine a VEIN x5" trip goal | S | Open (new 2026-11-12; ties the on-foot combo to the car's trip loop; the goal shifts the bot's goal order) |
 | 148 | Lava floor: the world ends at ~48 m in a flat dark bedrock band (see `deep_120.png`); make the last rows a glowing lava sea with heat shimmer | M | Open (new 2026-11-12; folds #23/#56; the bottom of the world looks unfinished) |
+| 149 | Haul tally at the garage: parking with ore aboard tips the trip's haul into a bin with a counting tick per piece, then the total ("HAUL: 14 Iron, 3 Copper") | S | Open (new 2026-11-12, twenty-fourth session; the payoff moment at the end of a trip, Hill Climb's coin count) |
+| 150 | Recipe nudge: when a slot reaches what a part you have not built needs, the slot glows and says "Rocket Booster ready at the garage" | S | Open (new 2026-11-12; turns a number into a goal, "one more ore" pull) |
+| 151 | Lucky strike: about 1 ore tile in 60 is a gleaming variant that pays 3x with a flash, a chime and a bigger flight home | S | Open (new 2026-11-12; a slot-machine jackpot inside ordinary mining) |
+| 152 | Cave-ins: mining out stone under a wide unsupported ceiling in the Deep sometimes drops a few loose rocks after a rumble and a dust trickle warning | M | Open (new 2026-11-12; first danger underground, read the warning and jump clear) |
+| 153 | Ore voices: each ore lands in its slot with its own tick (scrap clatters, iron clinks, copper rings, crystal chimes) | S | Open (new 2026-11-12; you hear what you got without looking) |
 | 29 | Speedometer redline overdrive: holding the needle in the red for 3 s with the booster unlocks a "SONIC" call-out and a sonic-boom puff | S | Open (new 2026-11-12, cheap thrill) |
+
+## 2026-11-12 (twenty-fourth session — where the ore goes)
+
+Merged PR #31 (vein runs) first (green, `[vein]` lines matched, the centred call-out checked in `vein_22.png`). Then looked at `vein_22.png` and `vein_40.png` as a player. Vein runs made breaking ore loud; but **the ore then vanishes**: "+1 Iron" floats up and fades over the tile, and the inventory bar at the bottom, the only place your wealth lives, changes a digit nobody is looking at. Getting rich has no picture. The best games make collecting physical (Terraria's items flying to you, Hill Climb's coins zipping to the counter, Diablo's gold sound). This was the top of last session's "Next".
+
+- **Ore flies home** (S, #143): every mined ore, dug-up stash and smashed heap sends its icons arcing into their slot; the slot's number goes up only when they land, and the slot swells, rings and flashes in the ore's colour with a tick. Why fun: every find lands somewhere you can see; the bar comes alive and a full vein becomes a stream of icons. *Building this.*
+- **Haul tally** (S, #149). Why fun: the end of a trip pays off on screen, a reason for "one more trip".
+- **Recipe nudge** (S, #150). Why fun: the bar tells you when you can build something new.
+- **Lucky strike** (S, #151). Why fun: a jackpot in the most ordinary action.
+- **Cave-ins** (M, #152). Why fun: the Deep gets its first real danger, with a warning you can read.
+- **Ore voices** (S, #153). Why fun: you hear what you got.
+
+Best open picks for fun per effort now: #150 recipe nudge (S), #151 lucky strike (S), #145 pickaxe hit feel (S), #144 motherlode (S), #139 pickaxe tiers (S), #131 devil records (S), then the first creature (#65 crystal mites, M) or cave-ins (#152, M).
 
 ## 2026-11-12 (twenty-third session — mining feel)
 
