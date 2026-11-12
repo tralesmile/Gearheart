@@ -32,6 +32,15 @@ public partial class WorldScene
         glintLayer.AddChild(_pops);
     }
 
+    /// <summary>Bright versions of the ore colours: the tile colours vanish against dirt and slate.</summary>
+    private static Color PopColor(Tile t) => t switch
+    {
+        Tile.IronOre => new Color(1f, 0.68f, 0.55f),
+        Tile.CopperOre => new Color(1f, 0.74f, 0.35f),
+        Tile.Crystal => new Color(0.55f, 1f, 1f),
+        _ => new Color(0.92f, 0.95f, 1f),    // scrap
+    };
+
     private static bool IsOre(Tile t) => t is Tile.ScrapOre or Tile.IronOre or Tile.CopperOre or Tile.Crystal;
 
     /// <summary>
@@ -42,7 +51,7 @@ public partial class WorldScene
     {
         var (chain, bonus) = _vein.Add(new Vector2I(x, y));
         var at = new Vector2((x + 0.5f) * Ts, (y + 0.5f) * Ts);
-        Color color = TileColor(tile).Lightened(0.25f);
+        Color color = PopColor(tile);
 
         _pops.Show(at, $"+{amount} {item}", color, 10f, 1.0f, 22f);
         if (chain >= 2)
@@ -130,9 +139,10 @@ public partial class WorldScene
             _player.Velocity = Vector2.Zero;
             _camera.Position = at;
             _airCam.Snap(at);
-            var shape = new[] { (0, 1), (1, 1), (1, 2), (2, 2), (2, 3), (3, 3), (3, 4) };
+            // A compact blob running down and to the right, every tile within the pickaxe's reach from the surface.
+            var shape = new[] { (0, 1), (1, 1), (0, 2), (1, 2), (2, 2), (1, 3), (2, 3) };
             foreach (var (dx, dy) in shape) _world.Set(_veinX + dx, _veinY + dy, Tile.IronOre);
-            GD.Print($"[vein] test: buried a {shape.Length}-tile iron vein at ({_veinX},{_veinY + 1})..({_veinX + 3},{_veinY + 4}), " +
+            GD.Print($"[vein] test: buried a {shape.Length}-tile iron vein at ({_veinX},{_veinY + 1})..({_veinX + 2},{_veinY + 3}), " +
                      $"Iron={GameSession.Count("Iron")} frame={Engine.GetFramesDrawn()}");
             return;
         }

@@ -961,6 +961,7 @@ public partial class WorldScene : Node2D
         _toast.SetAnchorsPreset(Control.LayoutPreset.CenterTop);
         _toast.Position += new Vector2(-200f, 110f);
         _toast.CustomMinimumSize = new Vector2(400f, 0f);
+        _toast.GrowHorizontal = Control.GrowDirection.Both;   // a long line grows both ways and stays centred
         layer.AddChild(_toast);
 
         // The trip report, centred; it pops up when you get back to the garage.

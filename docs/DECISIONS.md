@@ -2,6 +2,14 @@
 
 Newest first. One entry per big decision: what, why, and what would make us revisit it.
 
+## 2026-11-12 — Vein runs: a combo for ore, with a small bonus
+
+- **What:** an ore tile (Scrap, Iron, Copper or Crystal) broken within 3 s (`VeinRun.Window`) of the last one and no more than 3 tiles from it (`VeinRun.Reach`, counted as the larger of the two axis distances) continues a run; anything else starts a new one at x1. Every 4th ore of a run (`BonusEvery`) pays +1 of that ore. Any ore kind continues a run (blobs of different ores often touch). The drill counts too.
+- **Why:** mining is the most repeated action and gave almost no feedback; ore already lies in blobs, so the combo rewards doing what a player already does, but with attention (follow the vein, don't wander off). The bonus is small on purpose (about +25% on a long vein, nothing on single tiles) so the economy barely moves; the sound and the sparkle trail are the real reward.
+- **Feedback moved off the call-out line:** "+1 Iron" used to replace whatever centre call-out was showing; ore amounts now pop at the tile instead (Crystal keeps its call-out, which says when you have enough for the Crystal Drill).
+- **Not saved:** the best run is kept for the session only, so the save format is unchanged.
+- **Revisit when:** you have played (D1). If runs feel too strict, raise `Window` or `Reach`; if the bonus feels too generous with the drill, make it pickaxe-only.
+
 ## 2026-11-12 — Grappling hook: a free tool on foot, reel-in style
 
 - **What:** E (or middle mouse; the right shoulder on a gamepad, aimed with the left stick) throws a hook toward the cursor. It flies 4 m (`HookRange` 256 px) at 1500 px/s and bites the first solid tile; a miss snaps back. A bite reels the mechanic in at 640 px/s with no gravity, then they **hang** (no gravity, can mine), or, if the tile it bit has three open tiles above it, **climb onto it** (moved by hand over the lip, no collision on the way). Space jumps off (mid reel-in a fling: the rope's sideways speed is kept, plus an upward kick capped at 1.4 jumps), S lets go, E again throws to the next hold while the old one still holds. Mining away the held tile drops you. The camera leans 35% of the way toward the hook.
