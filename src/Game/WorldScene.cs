@@ -1311,12 +1311,14 @@ public partial class WorldScene : Node2D
         }
         _topSpeed = Mathf.Max(_topSpeed, _car.Speed);
         TrackKickers();
+        TrackRotation(dt, _car.Airborne && !_bodyDown && !_car.SelfRighting);
 
         // Lying on the roof also has no wheels on the ground: that is not air time worth a cheer.
         if (_car.SelfRighting)
         {
             _airTime = 0f;
             _judge.Cancel();
+            ResetRotation();
             return;
         }
 
@@ -1337,7 +1339,11 @@ public partial class WorldScene : Node2D
             return;
         }
         _bodyDown = false;
-        if (_airTime > 0f) LongJumpTouchdown(_airTime);
+        if (_airTime > 0f)
+        {
+            TouchdownRotation();
+            LongJumpTouchdown(_airTime);
+        }
         if (_airTime > 0.3f) _trip?.NoteAir(_airTime);
         if (_airTime > 0.9f) _longestAir = Mathf.Max(_longestAir, _airTime);
         if (_airTime >= LandingJudge.MinAir)
@@ -1482,10 +1488,12 @@ public partial class WorldScene : Node2D
         float kick = 0f;
         string jump = _elapsed - _jumpLineAt < 1.5f ? _jumpLine : null;   // a long jump off a kicker, told with the grade
         _jumpLine = null;
+        float flipKick = 0f;
+        string flip = LandedFlip(l, ref flipKick);   // "BACKFLIP" if the jump turned the car over and it came down on its wheels
         switch (l.Grade)
         {
             case LandingGrade.Perfect:
-                kick = LandingJudge.KickFor(l.Air);
+                kick = LandingJudge.KickFor(l.Air) + flipKick;
                 _car.Kick(kick);
                 _kickGlow = 0.8f;
                 _kickCheckAt = _elapsed + 0.5f;
@@ -1517,6 +1525,19 @@ public partial class WorldScene : Node2D
                     _sfx.Play("pickup", -6f);
                 }
                 break;
+        }
+        if (flip != null)
+        {
+            if (l.Grade != LandingGrade.Perfect)
+            {
+                kick = flipKick;
+                _car.Kick(kick);
+                _kickGlow = 0.8f;
+                _kickCheckAt = _elapsed + 0.5f;
+                _kickKmhBefore = kmh;
+            }
+            string grade = l.Grade == LandingGrade.Perfect ? "perfect landing" : l.Grade == LandingGrade.Clean ? "clean landing" : "landed it";
+            if (mayToast) Toast($"{flip}!  +{kick / PixelsPerMeter * 3.6f:0} km/h\n{jump ?? grade}");
         }
         NoteKickerJump(l.Grade.ToString().ToLowerInvariant(), l.Air);
         if (GameSession.AutoPlay)
@@ -1550,8 +1571,9 @@ public partial class WorldScene : Node2D
         _airTime = 0f;
         _bodyDown = true;
         LongJump? jump = MeasureLongJump(air, flop: true);
+        string flipNote = CrashedFlip(what);   // "\nBACKFLIP, but it doesn't count"
         if (!_goalToast || _toastTime < 1.2f)
-            Toast(jump is LongJump j ? $"{what}!\n{j.Meters:0.0} m, but it doesn't count" : $"{what}!\n{air:0.0} s of air");
+            Toast((jump is LongJump j ? $"{what}!\n{j.Meters:0.0} m, but it doesn't count" : $"{what}!\n{air:0.0} s of air") + flipNote);
         NoteKickerJump(what.ToLowerInvariant(), air);
         if (GameSession.AutoPlay)
             GD.Print($"[landing] flop: {what.ToLowerInvariant()} after air={air:0.00}s pitch={pitch:0} hit={e.Strength / PixelsPerMeter * 3.6f:0}km/h " +
@@ -1814,10 +1836,11 @@ public partial class WorldScene : Node2D
         if (GameSession.DeepTest) RunDeepBot();
         if (GameSession.LaunchTest) RunLaunchBot();
         if (GameSession.RockTest) RunRockBot();
+        if (GameSession.FlipTest) RunFlipBot();
         UpdateWatch();
         LogStall();
 
-        if (!_driving && !GameSession.CrashTest && !GameSession.TripTest && !GameSession.IceTest && !GameSession.DeepTest && !GameSession.LaunchTest && !GameSession.RockTest)
+        if (!_driving && !GameSession.CrashTest && !GameSession.TripTest && !GameSession.IceTest && !GameSession.DeepTest && !GameSession.LaunchTest && !GameSession.RockTest && !GameSession.FlipTest)
         {
             Vector2 feet = _player.Position + new Vector2(0f, Player.HalfHeight);
             // --stashtest: once the bot starts digging, bury a toolbox and a strongbox under its feet
@@ -1866,7 +1889,7 @@ public partial class WorldScene : Node2D
                  $"top={_topSpeed / PixelsPerMeter * 3.6f:0}km/h longestAir={_longestAir:0.0}s landings={_perfectLandings}/{_cleanLandings}/{_roughLandings}/{_flops} kickers={_kickerJumps}/{_kickerLaunches} longJumps={_longJumps}/{_jumpRecords}/{_longestJump:0.0}m " +
                  $"crashes={_crashFx.Hits} hardest={_crashFx.HardestHit / PixelsPerMeter * 3.6f:0}km/h sparks={_crashFx.SparkBursts} " +
                  $"cans={_cansTaken} heaps={_heapsTaken} smashed={_heapsSmashed} bestStreak={_bestStreak} " +
-                 $"dash={(_dash.Visible ? $"{_dash.ShownKmh:0}km/h" : "hidden")} lines={_lines.Intensity:0.00} peakLines={_peakLines:0.00} wind={_sfx.WindLevel:0.00} gear={_car.Gearbox.Gear}/{_car.Gearbox.Gears} revs={_car.Gearbox.Rpm:0.00} enginePitch={_sfx.LastEnginePitch:0.00} shifts={_car.Gearbox.Upshifts}/{_car.Gearbox.Downshifts} topGear={_car.Gearbox.TopGear} limiter={_car.Gearbox.Limiter} pops={_car.Backfires} starts={_perfectStarts}/{_goodStarts}/{_boggedStarts} sprints={_sprintsRun} sprintBest={GameSession.SprintBest:0.00} stuck={_stuckCount} rocks={_car.RockPulses} rockedFree={_rockFrees} longestStuck={_longestStuck:0.0}s rollOvers={_rollOvers} ice={_spray.IceSeconds:0.0}s slip={_spray.SlipSeconds:0.0}s bite={_spray.BiteSeconds:0.0}s trip={tripNow} reports={_tripsReported} deepest={_deepestThisRun:0.0}m crystalsMined={_crystalsMined} card={(_card.Showing ? _card.ShownScore.ToString() : "hidden")} | " +
+                 $"dash={(_dash.Visible ? $"{_dash.ShownKmh:0}km/h" : "hidden")} lines={_lines.Intensity:0.00} peakLines={_peakLines:0.00} wind={_sfx.WindLevel:0.00} gear={_car.Gearbox.Gear}/{_car.Gearbox.Gears} revs={_car.Gearbox.Rpm:0.00} enginePitch={_sfx.LastEnginePitch:0.00} shifts={_car.Gearbox.Upshifts}/{_car.Gearbox.Downshifts} topGear={_car.Gearbox.TopGear} limiter={_car.Gearbox.Limiter} pops={_car.Backfires} starts={_perfectStarts}/{_goodStarts}/{_boggedStarts} sprints={_sprintsRun} sprintBest={GameSession.SprintBest:0.00} stuck={_stuckCount} rocks={_car.RockPulses} rockedFree={_rockFrees} longestStuck={_longestStuck:0.0}s flips={_backflips}/{_frontflips}/{_flipsCrashed} maxAirRot={_maxAirRot:0} rollOvers={_rollOvers} ice={_spray.IceSeconds:0.0}s slip={_spray.SlipSeconds:0.0}s bite={_spray.BiteSeconds:0.0}s trip={tripNow} reports={_tripsReported} deepest={_deepestThisRun:0.0}m crystalsMined={_crystalsMined} card={(_card.Showing ? _card.ShownScore.ToString() : "hidden")} | " +
                  string.Join(" ", System.Array.ConvertAll(GameSession.Items, i => $"{i}={GameSession.Count(i)}")));
     }
 }

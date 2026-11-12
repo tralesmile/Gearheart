@@ -91,6 +91,9 @@ public static class GameSession
     /// (--norock: the control run, no rocking). --rockdepth=N sets the trench depth in tiles (default 3).</summary>
     public static bool RockTest => UserArgs.Contains("--rocktest");
     public static bool NoRock => UserArgs.Contains("--norock");
+
+    /// <summary>--fliptest: straight into the car and east; the bot tries a flip off every kicker (see WorldScene.RunFlipBot).</summary>
+    public static bool FlipTest => UserArgs.Contains("--fliptest");
     public static int RockDepth
     {
         get

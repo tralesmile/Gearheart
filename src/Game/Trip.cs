@@ -16,7 +16,7 @@ public sealed class Trip
     // Points per thing. Tuned so a 30 s drive to The Wastes scores a few hundred and every
     // kind of fun (distance, speed, air, smashing, digging, crashing) is worth chasing.
     public const int PerMeter = 2, PerHeap = 10, PerStreakStep = 15, PerAirTenth = 4, PerStash = 100, PerCrash = 5, PerCan = 5;
-    public const int PerPerfectLanding = 30, PerCleanLanding = 10;
+    public const int PerPerfectLanding = 30, PerCleanLanding = 10, PerFlip = 60;
     public const int PerScrap = 2, PerIron = 5, PerCopper = 8;
 
     public float StartedAt;
@@ -27,6 +27,7 @@ public sealed class Trip
     public float LongestAir;
     public int BestStreak;
     public int PerfectLandings, CleanLandings;   // counted as they happen (see LandingJudge)
+    public int Flips;                            // full turns landed on the wheels (backflips and frontflips)
     public float Deepest;           // metres below the surface
     public float FarthestEast, FarthestWest;   // metres out on each side
     public bool ReachedWastes, ReachedNorth;
@@ -90,7 +91,7 @@ public sealed class Trip
         {
             new("Farthest", $"{Farthest:0} m {side}" + (Deepest >= 2f ? $", {Deepest:0} m deep" : ""), Mathf.RoundToInt(Farthest) * PerMeter, best != null && Farthest > best.Farthest + 0.5f),
             new("Top speed", $"{TopKmh:0} km/h", Mathf.RoundToInt(TopKmh), best != null && TopKmh > best.TopKmh + 0.5f),
-            new("Jumps", JumpText(), Mathf.RoundToInt(LongestAir * 10f) * PerAirTenth + PerfectLandings * PerPerfectLanding + CleanLandings * PerCleanLanding,
+            new("Jumps", JumpText(), Mathf.RoundToInt(LongestAir * 10f) * PerAirTenth + PerfectLandings * PerPerfectLanding + CleanLandings * PerCleanLanding + Flips * PerFlip,
                 best != null && LongestAir > best.LongestAir + 0.05f),
             new("Scrap heaps", $"{Heaps}{streak}", Heaps * PerHeap + Mathf.Max(0, BestStreak - 1) * PerStreakStep, best != null && BestStreak > best.BestStreak),
             new("Fuel cans", $"{Cans}", Cans * PerCan, false),
@@ -110,6 +111,7 @@ public sealed class Trip
     {
         string air = LongestAir > 0f ? $"{LongestAir:0.0} s" : "no air";
         var landings = new List<string>();
+        if (Flips > 0) landings.Add(Flips == 1 ? "1 flip" : $"{Flips} flips");
         if (PerfectLandings > 0) landings.Add($"{PerfectLandings} perfect");
         if (CleanLandings > 0) landings.Add($"{CleanLandings} clean");
         return landings.Count == 0 ? air : $"{air}, {string.Join(" + ", landings)}";

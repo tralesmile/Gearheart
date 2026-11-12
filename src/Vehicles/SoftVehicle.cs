@@ -84,6 +84,9 @@ public partial class SoftVehicle : Node2D, IVehicle
     private const float RockChainWindow = 0.9f;   // seconds between taps that still build the chain
     private const float RockMinGap = 0.16f;       // seconds between two rocks
     private const float RockTiltBoost = 2.5f;     // ground tilt strength while stuck
+    /// <summary>Tilt strength with every wheel off the ground: 9 rad/s² x 1.5 turns a controlled backflip into
+    /// about 1.35 s of air (at 1x it needed 1.7 s, longer than nearly every jump). See docs/DECISIONS.md.</summary>
+    public const float AirFlipBoost = 1.5f;
     private const float RockBuffer = 0.4f;        // seconds a tap made in the air waits for touchdown
     public const int RockChainMax = 5;
     private const float RockFreeDistance = 96f;   // px sideways from the stuck point (1.5 m)
@@ -730,6 +733,8 @@ public partial class SoftVehicle : Node2D, IVehicle
         // Upside down and stopped: the car rocks itself back onto its wheels.
         float tilt = _input.Tilt;
         if (Stuck && !_selfRighting) tilt *= RockTiltBoost;
+        // Flying (no wheel down): rotation is stronger, so a full flip fits in a big jump.
+        else if (!_selfRighting && Airborne) tilt *= AirFlipBoost;
         // If it stays stuck (wedged on its roof in a dip), the push grows until it rolls over.
         if (_selfRighting && !Parked) tilt = -Mathf.Sign(PitchDegrees()) * Mathf.Min(8f, 2.5f + 2.2f * _rightingTime);
 

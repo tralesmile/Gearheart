@@ -55,7 +55,7 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 45 | Goal kinds tied to parts: "Cross the ice without sliding" or "Climb the north ridge" | S | Open (new 2026-11-12) |
 | 46 | Landing chain: perfect landings in a row stack the kick and a "PERFECT x3" call-out, like the smash streak | S | Open (new 2026-11-12, eighth session; cheapest follow-up to grades) |
 | 47 | Jump kickers by world generation: a dirt kicker every 60–90 m on the meadow road, dune lips in The Wastes, snow cornices in the north | S | **Built 2026-11-12** (PR #16: one every 26–42 m, 1–1.75 m tall, yellow warning sign, first one just past the gate) |
-| 48 | Flip tricks: a full backflip or frontflip in the air (Q/E) scores "BACKFLIP!" — only if you land it | S | Open, **moved up** (PR #21 made Q/E tilt work at full strength away from x = 0; before, its sideways part was rounded away near the garage) |
+| 48 | Flip tricks: a full backflip or frontflip in the air (Q/E) scores "BACKFLIP!" — only if you land it | S | **Built 2026-11-12** (PR #24: rotation counted in the air, a tick at every full turn, BACKFLIP! / FRONTFLIP! / DOUBLE … on a wheels-down landing with a speed kick, flips on the trip report; air rotation 1.5x stronger so a flip fits in a big jump) |
 | 49 | Goal kind "Land 2 perfect landings" | S | Open (new 2026-11-12; tiny, but changes the trip-goal pool so bot goals shift) |
 | 50 | Wheelie meter: back wheel only for 2+ s scores "WHEELIE 2.3 s" | S | Open (new 2026-11-12) |
 | 51 | Suspension squash: wheels visibly compress and the body bobs on landing, with a creak | S | Open (new 2026-11-12; feel polish, cheap if the soft body already squashes) |
@@ -101,7 +101,27 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 91 | Horn (H) and birds: a honk per engine, birds on the road and on the garage roof that scatter when you honk or drive at them | S | Open (new 2026-11-12; tiny joy, life in the world) |
 | 92 | Tumbleweeds in The Wastes: they roll with the wind across the road, smash for the streak, bounce off the bonnet | S | Open (new 2026-11-12; moving things on the road, biome flavour) |
 | 93 | Rescue stats on the trip report: "rocked free x2", "walked home" as a cheeky line (no points lost) | S | Open (new 2026-11-12; makes a bad moment a story) |
+| 94 | Gyro part (Crystal + Copper): stronger air rotation, so flips and landings get easier with a part you earn | S | Open (new 2026-11-12, sixteenth session; a part that changes how the car flies, a second Crystal use) |
+| 95 | Mega kicker: one rare 3 m ramp per biome with a red sign, built for flips and long flags | S | Open (new 2026-11-12; gives flips a place made for them) |
+| 96 | Trick goals: "Land a backflip", "Land a flip off a kicker" in the trip-goal pool | S | Open (new 2026-11-12; shifts the bot's goal order, needs a check of every goal-dependent test) |
+| 97 | Air cam: the camera eases out a little during long jumps so you can see where you will land | S | Open (new 2026-11-12; clarity — at 1280x720 a big jump hides the landing) |
+| 98 | Trick combo: flip + long-jump record + perfect landing in one jump multiply ("COMBO x3") on the trip report | S | Open (new 2026-11-12; rewards stacking skills in one moment) |
+| 99 | Wreck scrap: a really hard crash sheds a few scrap bits you can collect (cheap repair material from your own disasters) | S | Open (new 2026-11-12; makes a spectacular crash pay a little, Hill Climb's "the crash is part of the fun") |
 | 29 | Speedometer redline overdrive: holding the needle in the red for 3 s with the booster unlocks a "SONIC" call-out and a sonic-boom puff | S | Open (new 2026-11-12, cheap thrill) |
+
+## 2026-11-12 (sixteenth session)
+
+Merged PR #23 (rock it free) first. Looked at `rock_free_97.png` and `world_230.png`: the car looks good and reads well, the kickers are everywhere, and the bot lands roughly most of the time. What is missing is something to *do* in the air: Q/E only levels the car, and since PR #21 tilt works at full strength, but nothing rewards using it boldly. Hill Climb Racing's whole economy hangs on flips, Trials makes its best moments out of them. The best moment I can add cheaply is "I went for a backflip off that kicker and landed it." With 9 rad/s² of air control a backflip needs about 1.7 s of air (1.2 s if you land still spinning), more than nearly any jump, so the rotation in the air also needs a push.
+
+- **Flip tricks** (S, #48): count rotation in the air, tick at each full turn, BACKFLIP! on a wheels-down landing with a speed kick and trip points. Why fun: a risky skill move on every kicker, "one more try". *Built.*
+- **Gyro part** (S, #94): earn better air control. Why fun: a part you feel in the air.
+- **Mega kicker** (S, #95): a rare huge ramp per biome. Why fun: a spot you drive to on purpose, for a double flip.
+- **Trick goals** (S, #96): flips in the goal pool. Why fun: a trip with a stunt purpose.
+- **Air cam** (S, #97): ease the camera out during long jumps. Why fun: you see the landing you are aiming for.
+- **Trick combo** (S, #98): stack flip + record + perfect. Why fun: rewards a perfect run, big number moments.
+- **Wreck scrap** (S, #99): crashes shed scrap. Why fun: a spectacular crash is a small win, not just a loss.
+
+Best open picks for fun per effort now: #97 air cam (S), #82 start lights (S), #94 Gyro part (S), #89 hydraulics (S–M), #64 Crystal Lamp (S), #90 mud pits (S–M), #68 surface lift (S–M), then #65 deep critters and #56 lava (M).
 
 ## 2026-11-12 (fifteenth session — feel)
 
