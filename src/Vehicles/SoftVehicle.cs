@@ -827,11 +827,18 @@ public partial class SoftVehicle : Node2D, IVehicle
     /// </summary>
     private void UpdateGearbox(float delta)
     {
-        float spin = 0f;
+        float spin = 0f, radius = 0f;
+        int attached = 0;
         foreach (var w in _wheels)
-            if (w.Attached) spin = Mathf.Max(spin, Mathf.Abs(w.Spin));
+        {
+            if (!w.Attached) continue;
+            spin = Mathf.Max(spin, Mathf.Abs(w.Spin));
+            radius += w.Radius;
+            attached++;
+        }
         float throttle = Mathf.Abs(Throttle);
-        Gearbox.Update(delta, _engineMaxSpin > 0f ? spin / _engineMaxSpin : 0f, throttle, Airborne);
+        float topSpeed = attached > 0 ? _engineMaxSpin * radius / attached : 0f;   // px/s at the tyre
+        Gearbox.Update(delta, _engineMaxSpin > 0f ? spin / _engineMaxSpin : 0f, topSpeed > 0f ? Speed / topSpeed : 0f, throttle, Airborne);
 
         _popCooldown = Mathf.Max(0f, _popCooldown - delta);
         if (_lastThrottle > 0.6f && throttle < 0.1f && Gearbox.Rpm > 0.7f) Backfire(true);
