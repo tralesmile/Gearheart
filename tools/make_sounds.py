@@ -142,6 +142,20 @@ def fuel():
     return s
 
 
+def wind():
+    """Wind rushing past the car: band-limited noise with slow gusts and a soft whistle, one second, loops cleanly."""
+    n = SR; t = np.arange(n) / SR
+    spectrum = np.fft.rfft(wind_rng.standard_normal(n))
+    f = np.fft.rfftfreq(n, 1 / SR)
+    spectrum *= np.exp(-((f - 700) / 650) ** 2) + 0.35 * np.exp(-((f - 2400) / 900) ** 2)   # airy hiss, no rumble
+    s = np.fft.irfft(spectrum, n)
+    s /= np.max(np.abs(s)) + 1e-9
+    s *= 0.72 + 0.18 * np.sin(2 * np.pi * 2 * t) + 0.1 * np.sin(2 * np.pi * 5 * t + 1.3)     # gusts (whole cycles)
+    s += 0.05 * np.sin(2 * np.pi * 1320 * t) * (0.5 + 0.5 * np.sin(2 * np.pi * 3 * t))     # faint whistle
+    return s
+
+
+wind_rng = np.random.default_rng(57)    # own stream, so adding wind leaves every other sound byte-identical
 crash_rng = np.random.default_rng(31)   # separate stream: adding sounds never changes the older ones
 
 
@@ -159,4 +173,5 @@ if __name__ == "__main__":
     save("snap", tail_fade(snap()), 0.6)
     save("treasure", tail_fade(treasure(), 80), 0.6)
     save("fuel", tail_fade(fuel(), 60), 0.6)
+    save("wind", wind(), 0.6)
     print("sounds written to", os.path.abspath(OUT))

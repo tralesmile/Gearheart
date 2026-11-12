@@ -607,24 +607,31 @@ def pickup_fuel_can(rng):
 
 
 def pickup_scrap_heap(rng, tint=None, snow=False):
-    """A pile of junk: plates, a pipe, a tyre and bolts. tint shifts it to rust (desert); snow caps it."""
+    """A big pile of junk filling most of the cell (readable at driving zoom): plates, a door panel, a pipe,
+    a tyre, a bent rod and bolts. tint shifts it to rust (desert); snow caps it."""
     img = Image.new("RGBA", (PW, PH), (0, 0, 0, 0)); d = ImageDraw.Draw(img)
     metal = [(150, 156, 166), (124, 130, 142), (176, 182, 192), (104, 108, 120)]
     if tint:
         metal = [tuple(int(c * 0.55 + t * 0.45) for c, t in zip(m, tint)) for m in metal]
-    d.polygon([(2, PH - 1), (7, PH - 9), (13, PH - 14), (20, PH - 13), (26, PH - 8), (30, PH - 1)], fill=metal[1])
-    for _ in range(9):                                                                     # plates and panels
-        x, y = rng.randrange(5, 24), rng.randrange(PH - 13, PH - 3)
-        w, h = rng.randrange(3, 7), rng.randrange(2, 4)
+    d.polygon([(0, PH - 1), (4, PH - 10), (10, PH - 18), (17, PH - 21), (24, PH - 17), (29, PH - 9), (31, PH - 1)], fill=metal[1])
+    d.polygon([(4, PH - 10), (10, PH - 18), (17, PH - 21), (15, PH - 12)], fill=metal[3])               # shadowed flank
+    for _ in range(12):                                                                    # plates and panels
+        x, y = rng.randrange(4, 25), rng.randrange(PH - 17, PH - 3)
+        w, h = rng.randrange(3, 8), rng.randrange(2, 4)
         d.rectangle([x, y, x + w, y + h], fill=rng.choice(metal))
         d.line([(x, y), (x + w, y)], fill=metal[2])
-    d.ellipse([3, PH - 11, 13, PH - 1], fill=(44, 44, 50)); d.ellipse([6, PH - 8, 10, PH - 4], fill=metal[2])  # tyre
-    d.line([(15, PH - 15), (27, PH - 6)], fill=(196, 120, 60), width=2)                    # copper pipe
-    d.line([(14, PH - 16), (17, PH - 19)], fill=metal[0], width=2)                          # bent rod sticking out
-    for x, y in ((19, PH - 5), (24, PH - 4), (17, PH - 9)):
-        d.point((x, y), fill=(232, 236, 240))                                               # bright bolts
+    d.polygon([(17, PH - 21), (25, PH - 25), (28, PH - 19), (21, PH - 16)], fill=metal[2])             # door panel sticking up
+    d.line([(17, PH - 21), (25, PH - 25)], fill=(232, 236, 240))
+    d.rectangle([22, PH - 22, 24, PH - 21], fill=(60, 66, 80))                                          # its window hole
+    d.ellipse([1, PH - 14, 14, PH - 1], fill=(44, 44, 50)); d.ellipse([5, PH - 10, 10, PH - 5], fill=metal[2])  # tyre
+    d.arc([1, PH - 14, 14, PH - 1], 200, 290, fill=(84, 84, 92))
+    d.line([(13, PH - 19), (29, PH - 7)], fill=(196, 120, 60), width=2)                    # copper pipe
+    d.line([(9, PH - 18), (6, PH - 25)], fill=metal[0], width=2)                            # bent rod sticking out
+    d.line([(6, PH - 25), (9, PH - 28)], fill=metal[0], width=2)
+    for x, y in ((19, PH - 5), (25, PH - 4), (17, PH - 11), (22, PH - 9)):
+        d.point((x, y), fill=(240, 242, 246))                                               # bright bolts
     if snow:
-        d.polygon([(7, PH - 9), (13, PH - 15), (20, PH - 14), (26, PH - 8), (20, PH - 10), (12, PH - 10)], fill=(240, 246, 252))
+        d.polygon([(5, PH - 11), (10, PH - 19), (17, PH - 22), (25, PH - 26), (28, PH - 20), (29, PH - 10), (22, PH - 14), (12, PH - 14)], fill=(240, 246, 252))
     return outline(img)
 
 

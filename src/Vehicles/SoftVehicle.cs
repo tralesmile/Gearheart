@@ -420,6 +420,17 @@ public partial class SoftVehicle : Node2D, IVehicle
 
     public void Refuel() => Fuel = FuelCapacity;
 
+    /// <summary>
+    /// Takes away part of the car's speed at once (ploughing through junk): every node keeps
+    /// <paramref name="keep"/> of its velocity, so the car slows without turning or bending.
+    /// </summary>
+    public void Slow(float keep)
+    {
+        keep = Mathf.Clamp(keep, 0f, 1f);
+        for (int i = 0; i < Pos.Length; i++) Prev[i] = Pos[i] - (Pos[i] - Prev[i]) * keep;
+        foreach (var wheel in _wheels) wheel.Spin *= keep;   // or the tyres would spin it straight back up
+    }
+
     /// <summary>Adds fuel (a can picked up on the road), up to the tank size.</summary>
     public void AddFuel(float amount) => Fuel = Mathf.Min(FuelCapacity, Fuel + amount);
 
