@@ -112,7 +112,14 @@ public partial class SoftVehicle : Node2D, IVehicle
     {
         _kickPending += speed;
         _kickRate = _kickPending / KickTime;
+        // Overdrive: the engine may spin past its normal top speed by the kick for a moment,
+        // or it would stop pushing and the kick would bleed away at once.
+        _overdrive = Mathf.Max(_overdrive, speed);
     }
+
+    /// <summary>Extra top speed (px/s at the tyre) the engine is allowed right now after a kick; fades in about 1.5 s.</summary>
+    public float Overdrive => _overdrive;
+    private const float OverdriveFade = 180f;   // px/s lost per second
 
     public const float KickTime = 0.3f;
 
@@ -197,7 +204,7 @@ public partial class SoftVehicle : Node2D, IVehicle
     private bool _selfRighting;
     private float _rightingTime;
     private bool _hopPending;
-    private float _kickPending, _kickRate;
+    private float _kickPending, _kickRate, _overdrive;
     private const float AirSpinDamping = 0.003f;   // share of spin removed per substep while airborne
     private float _autoStuckTime, _autoReverseTime;
     private int _rearHub = -1, _frontHub = -1;
@@ -739,6 +746,7 @@ public partial class SoftVehicle : Node2D, IVehicle
 
     public void EndTick(float delta)
     {
+        _overdrive = Mathf.Max(0f, _overdrive - OverdriveFade * delta);
         // Self-righting kicks in after lying upside down, nearly still, for a moment.
         bool upsideDown = Mathf.Abs(PitchDegrees()) > 110f;
         _upsideDownTime = upsideDown && Speed < 60f ? _upsideDownTime + delta : 0f;
@@ -855,7 +863,7 @@ public partial class SoftVehicle : Node2D, IVehicle
             }
             else if (drive && attachedWheels > 0 && (wheel.Grounded || drivenWheels == 0))
             {
-                bool belowTopSpeed = Mathf.Abs(wheel.Spin) < _engineMaxSpin || Mathf.Sign(wheel.Spin) != Mathf.Sign(_input.Throttle);
+                bool belowTopSpeed = Mathf.Abs(wheel.Spin) < _engineMaxSpin + _overdrive / wheel.Radius || Mathf.Sign(wheel.Spin) != Mathf.Sign(_input.Throttle);
                 float share = drivenWheels > 0 ? drivenWheels : attachedWheels;
                 float torque = _engineTorque / share * _input.Throttle;
                 if (belowTopSpeed) wheel.Spin += torque / inertia * dt;

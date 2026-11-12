@@ -955,7 +955,7 @@ public partial class WorldScene : Node2D
         {
             _kickCheckAt = -1f;
             if (GameSession.AutoPlay)
-                GD.Print($"[landing] kick result: {_kickKmhBefore:0} km/h at the landing -> {_car.Speed / PixelsPerMeter * 3.6f:0} km/h half a second later");
+                GD.Print($"[landing] kick result: {_kickKmhBefore:0} km/h at the landing -> {_car.Speed / PixelsPerMeter * 3.6f:0} km/h half a second later (overdrive left {_car.Overdrive / PixelsPerMeter * 3.6f:0} km/h)");
         }
         if (_judge.Update(_car, dt) is Landing landing) Landed(landing);
 
