@@ -143,7 +143,28 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 133 | Devil loot: a devil sometimes carries a scrap heap or a fuel can round and round; drive through to catch it | S | Open (new 2026-11-12; a reason to drive into one on purpose, a moving pickup) |
 | 134 | Heat haze over The Wastes at midday (a wobble on the far dunes) and a "forecast" line on the status bar at the garage ("dust devils from 10:30") | S | Open (new 2026-11-12; the clock gets a reason to look at it before a trip) |
 | 135 | Lightning storm at night in the Frozen North: strikes hit tall things and the car if you sit on a ridge top | M | Open (new 2026-11-12; danger tied to the night and the terrain) |
+| 136 | Grappling hook on foot: E fires a hook toward the mouse; it bites rock and reels you in, hangs you there, and climbs you onto a ledge; chain hooks up a shaft or across a cavern | S | **Built 2026-11-12** (PR #30; twenty-second session) |
+| 137 | Hook the car: on foot, hook a stuck or flipped car and winch it upright or out of a hole | M | Open (new 2026-11-12; a rescue becomes a little scene; needs #136) |
+| 138 | Vein run: ore tiles touching the one you just mined ring with a rising "tink" and count up ("VEIN x5"), a combo for the pickaxe | S | Open (new 2026-11-12; Minecraft's vein joy, the pickaxe gets a streak like the smash streak) |
+| 139 | Pickaxe tiers at the garage bench: Iron Pick (Iron 4) mines 1.6x faster, Crystal Pick mines slate like dirt | S | Open (new 2026-11-12; progression for the on-foot half, which has had none) |
+| 140 | Hook swing: hold the hook key to swing on a fixed rope (pendulum) instead of reeling in; let go at the bottom to fly | S | Open (new 2026-11-12; Worms' ninja rope / Spider-Man after #136; needs the owner's reaction to the reel-in first) |
+| 141 | Flares: throw a glowing flare that bounces down into a dark cavern and lights it for 20 s | S | Open (new 2026-11-12; look before you jump into the dark, a second on-foot tool) |
+| 142 | Old mine shafts: world generation leaves a few timbered shafts with ladders, a broken rail cart and a supply crate at the bottom | M | Open (new 2026-11-12; a discovery underground that is not a random tile) |
 | 29 | Speedometer redline overdrive: holding the needle in the red for 3 s with the booster unlocks a "SONIC" call-out and a sonic-boom puff | S | Open (new 2026-11-12, cheap thrill) |
+
+## 2026-11-12 (twenty-second session — back on foot)
+
+Merged PR #29 (dust devils) first: its last run was green and the `[devil]` lines matched the PR. Then looked at `deep_250.png` (the mechanic 30 m down in a crystal cavern) and `world_180.png`, and reread the core loop. Twenty-one sessions went into the car; the on-foot half (mine, explore, get home) is exactly as it was on day one: walk, jump 1.2 m, hold the mouse. **The most boring minute of the game is climbing back out of a hole you dug**: you pillar up block by block or dig a staircase, 30 m of it from the Deep. Nothing on foot is spectacular.
+
+- **Grappling hook** (S, #136): E fires a hook at the mouse; it bites the rock and reels you in fast, you hang there (and can mine from the rope), and if it bit a ledge you climb onto it. Chain three or four hooks to get out of a 12 m shaft in a few seconds, or zip across a cavern to the crystals on the far wall. Why fun: the dullest minute becomes the most physical one; the on-foot half gets its first new verb (Terraria's hook, Spelunky's rope). *Building this.*
+- **Hook the car** (M, #137). Why fun: rescuing your own wreck is a story.
+- **Vein run** (S, #138). Why fun: the pickaxe gets a combo and a sound to chase.
+- **Pickaxe tiers** (S, #139). Why fun: on-foot progression, a reason to spend Iron on yourself.
+- **Hook swing** (S, #140). Why fun: momentum and flying, once the reel-in is liked.
+- **Flares** (S, #141). Why fun: peek into the dark before committing.
+- **Old mine shafts** (M, #142). Why fun: a real find underground, with a ladder home.
+
+Best open picks for fun per effort now: #136 hook (S), #138 vein run (S), #131 devil records (S), #133 devil loot (S), #123 vultures (S), #139 pickaxe tiers (S), #107 overboost (S), then the first creature (#65 crystal mites, M).
 
 ## 2026-11-12 (twenty-first session — first hazard)
 

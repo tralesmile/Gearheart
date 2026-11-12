@@ -12,6 +12,8 @@ public struct PlayerInput
     public bool Jump;
     public bool Mine;         // hold to dig at Aim
     public bool Place;        // place the selected block at Aim
+    public bool Grapple;      // throw the grappling hook toward Aim (one tick = one throw)
+    public bool Down;         // let go of the rope
     public Vector2 Aim;       // world position
 }
 
@@ -57,22 +59,44 @@ public partial class Player : Node2D
 
     public override void _PhysicsProcess(double delta)
     {
-        if (!Active || World == null) return;
+        if (!Active || World == null)
+        {
+            if (Hook != HookState.None || _hookFlying) ReleaseHook("car");
+            return;
+        }
         float dt = (float)delta;
         PlayerInput input = Override ?? ReadHuman();
+        bool onRope = UpdateHook(input, dt);
 
-        // Horizontal movement.
-        float wanted = input.Move * WalkSpeed;
-        float footing = Grounded && World.GripAt(Position + new Vector2(0f, HalfHeight + 4f)) < 0.5f ? 0.1f : 1f;   // ice is slippery
-        Velocity.X = Mathf.MoveToward(Velocity.X, wanted, Acceleration * footing * dt);
-        if (Mathf.Abs(input.Move) > 0.1f && !input.Mine) _facingLeft = input.Move < 0f;
+        if (Hook == HookState.Mantle)
+        {
+            // Climbing over a ledge: the hook code moves the body.
+            Grounded = false;
+            UpdateTarget(input);
+            _mining = false;
+            _animTime += dt;
+            QueueRedraw();
+            return;
+        }
 
-        // Jump and gravity.
-        if (input.Jump && Grounded) Velocity.Y = -JumpSpeed;
-        Velocity.Y = Mathf.Min(Velocity.Y + Gravity * dt, 900f);
+        if (!onRope)
+        {
+            // Horizontal movement.
+            float wanted = input.Move * WalkSpeed;
+            float footing = Grounded && World.GripAt(Position + new Vector2(0f, HalfHeight + 4f)) < 0.5f ? 0.1f : 1f;   // ice is slippery
+            // In the air after a rope ride, keep most of the swing instead of stopping dead.
+            float accel = !Grounded && Mathf.Abs(Velocity.X) > WalkSpeed ? Acceleration * 0.35f : Acceleration;
+            Velocity.X = Mathf.MoveToward(Velocity.X, wanted, accel * footing * dt);
+            if (Mathf.Abs(input.Move) > 0.1f && !input.Mine) _facingLeft = input.Move < 0f;
+
+            // Jump and gravity.
+            if (input.Jump && Grounded) Velocity.Y = -JumpSpeed;
+            Velocity.Y = Mathf.Min(Velocity.Y + Gravity * dt, 900f);
+        }
 
         bool wasGrounded = Grounded;
         Grounded = false;
+        Vector2 before = Position;
         Vector2 p = Position;
 
         // X axis, with auto step-up over one-tile ledges.
@@ -116,7 +140,7 @@ public partial class Player : Node2D
         }
 
         // Ramps: the feet follow the ramp surface under the body's centre.
-        if (Velocity.Y >= 0f)
+        if (Velocity.Y >= 0f && !onRope)
         {
             float feet = p.Y + HalfHeight;
             int tx = Mathf.FloorToInt(p.X / Ts);
@@ -136,6 +160,7 @@ public partial class Player : Node2D
         }
 
         Position = p;
+        HookAfterMove(before, dt);
 
         UpdateTarget(input);
         _mining = false;
@@ -168,6 +193,20 @@ public partial class Player : Node2D
                      || Input.IsPhysicalKeyPressed(Key.Up) || Input.IsJoyButtonPressed(0, JoyButton.A);
         input.Mine = Input.IsMouseButtonPressed(MouseButton.Left);
         input.Place = Input.IsMouseButtonPressed(MouseButton.Right);
+        input.Down = Input.IsPhysicalKeyPressed(Key.S) || Input.IsPhysicalKeyPressed(Key.Down);
+
+        // The hook: E or the middle mouse button toward the cursor; on a gamepad, the right shoulder
+        // throws it along the left stick (straight up and a little forward when the stick is centred).
+        bool padHook = Input.IsJoyButtonPressed(0, JoyButton.RightShoulder);
+        bool hookKey = Input.IsPhysicalKeyPressed(Key.E) || Input.IsMouseButtonPressed(MouseButton.Middle) || padHook;
+        input.Grapple = hookKey && !_grappleHeld;
+        _grappleHeld = hookKey;
+        if (padHook && input.Grapple)
+        {
+            var stick = new Vector2(Input.GetJoyAxis(0, JoyAxis.LeftX), Input.GetJoyAxis(0, JoyAxis.LeftY));
+            Vector2 dir = stick.Length() > 0.3f ? stick.Normalized() : new Vector2(_facingLeft ? -0.35f : 0.35f, -1f).Normalized();
+            input.Aim = Hand + dir * HookRange;
+        }
         return input;
     }
 
@@ -215,6 +254,7 @@ public partial class Player : Node2D
 
         int frame;
         if (_mining) frame = 6 + ((int)(_animTime * 7f) & 1);
+        else if (Hook != HookState.None) frame = 5;
         else if (!Grounded) frame = 5;
         else if (Mathf.Abs(Velocity.X) > 12f) frame = 1 + ((int)(_animTime * 9f) & 3);
         else frame = 0;
@@ -222,6 +262,7 @@ public partial class Player : Node2D
         DrawSetTransform(Vector2.Zero, 0f, new Vector2(_facingLeft ? -1f : 1f, 1f));
         DrawTextureRectRegion(Art.Player, new Rect2(-12f, -HalfHeight - 3.5f, 32f, 48f), new Rect2(frame * 32, 0, 32, 48));
         DrawSetTransform(Vector2.Zero, 0f, Vector2.One);
+        DrawHook();
 
         // Highlight the tile in reach under the cursor.
         if (_targetValid && Override == null)

@@ -199,6 +199,7 @@ public partial class WorldScene : Node2D
         _sfx = new Sfx { Name = "Sfx" };
         AddChild(_sfx);
         _player.Placed += () => _sfx.Play("place");
+        SetupHook();
         SetupBirds(garage.Position);
         _crashFx.Camera = _camera;
         _crashFx.Sfx = _sfx;
@@ -315,6 +316,11 @@ public partial class WorldScene : Node2D
     }
 
     private Vector2 Focus => _driving ? _car.CenterPosition : _player.Position;
+
+    /// <summary>What the camera follows: on foot it leans toward a thrown hook so you see where it bites.</summary>
+    private Vector2 CameraFocus => !_driving && _player.HookPoint is Vector2 h
+        ? _player.Position + (h - _player.Position).LimitLength(Player.HookRange) * 0.35f
+        : Focus;
     private bool NearCar() => _player.Position.DistanceTo(_car.CenterPosition) < EnterDistance;
     private bool NearGarage() => Mathf.Abs(Focus.X - _garageDoor.X) < 190f && Mathf.Abs(Focus.Y - _garageDoor.Y) < 140f;
     private bool NearGarageCar() => Mathf.Abs(_car.CenterPosition.X - _garageDoor.X) < 420f && Mathf.Abs(_car.CenterPosition.Y - _garageDoor.Y) < 160f;
@@ -583,7 +589,7 @@ public partial class WorldScene : Node2D
         // way the car is going, and frame the landing on a big jump (AirCam).
         float driveZoom = DriveZoom - 0.4f * Mathf.Clamp((_car.Speed - 500f) / 1000f, 0f, 1f);
         bool flying = _driving && _car.Airborne && !_bodyDown && !_car.SelfRighting;
-        _airCam.Step(dt, _driving, focus, _car.CenterVelocity, flying, flying ? _airTime : 0f,
+        _airCam.Step(dt, _driving, CameraFocus, _car.CenterVelocity, flying, flying ? _airTime : 0f,
                      _driving ? driveZoom : FootZoom, _camera.Zoom.X, GetViewportRect().Size);
         _camera.Position = _airCam.Target;
         _view.Focus = _airCam.Target;
@@ -1044,7 +1050,9 @@ public partial class WorldScene : Node2D
         }
         else
         {
-            string hint = "A/D: walk   Space: jump   Hold left mouse: mine   Right mouse: place block   1/2: choose block";
+            string hint = _player.Hook != Player.HookState.None
+                ? "On the rope:   Space: jump off   S: let go   E: throw again   Hold left mouse: mine"
+                : "A/D: walk   Space: jump   Hold left mouse: mine   Right mouse: place block   E: grappling hook   1/2: choose block";
             if (NearCar()) hint += "\nF: get in the car";
             if (NearGarage()) hint += "\nG: open the garage (build and upgrade your car)";
             _hint.Text = hint;
@@ -1858,6 +1866,7 @@ public partial class WorldScene : Node2D
         if (GameSession.TripTest) RunTripBot();
         if (GameSession.IceTest) RunIceBot();
         if (GameSession.DeepTest) RunDeepBot();
+        if (GameSession.HookTest) RunHookBot();
         if (GameSession.LaunchTest) RunLaunchBot();
         if (GameSession.RockTest) RunRockBot();
         if (GameSession.FlipTest) RunFlipBot();
@@ -1865,7 +1874,7 @@ public partial class WorldScene : Node2D
         LogStall();
         RunHornBot();
 
-        if (!_driving && !GameSession.CrashTest && !GameSession.TripTest && !GameSession.IceTest && !GameSession.DeepTest && !GameSession.LaunchTest && !GameSession.RockTest && !GameSession.FlipTest)
+        if (!_driving && !GameSession.CrashTest && !GameSession.TripTest && !GameSession.IceTest && !GameSession.DeepTest && !GameSession.HookTest && !GameSession.LaunchTest && !GameSession.RockTest && !GameSession.FlipTest)
         {
             Vector2 feet = _player.Position + new Vector2(0f, Player.HalfHeight);
             // --stashtest: once the bot starts digging, bury a toolbox and a strongbox under its feet
@@ -1914,7 +1923,7 @@ public partial class WorldScene : Node2D
                  $"top={_topSpeed / PixelsPerMeter * 3.6f:0}km/h longestAir={_longestAir:0.0}s landings={_perfectLandings}/{_cleanLandings}/{_roughLandings}/{_flops} kickers={_kickerJumps}/{_kickerLaunches} longJumps={_longJumps}/{_jumpRecords}/{_longestJump:0.0}m " +
                  $"crashes={_crashFx.Hits} hardest={_crashFx.HardestHit / PixelsPerMeter * 3.6f:0}km/h sparks={_crashFx.SparkBursts} " +
                  $"cans={_cansTaken} heaps={_heapsTaken} smashed={_heapsSmashed} bestStreak={_bestStreak} " +
-                 $"dash={(_dash.Visible ? $"{_dash.ShownKmh:0}km/h" : "hidden")} lines={_lines.Intensity:0.00} peakLines={_peakLines:0.00} wind={_sfx.WindLevel:0.00} gear={_car.Gearbox.Gear}/{_car.Gearbox.Gears} revs={_car.Gearbox.Rpm:0.00} enginePitch={_sfx.LastEnginePitch:0.00} shifts={_car.Gearbox.Upshifts}/{_car.Gearbox.Downshifts} topGear={_car.Gearbox.TopGear} limiter={_car.Gearbox.Limiter} pops={_car.Backfires} turbo={(_car.HasTurbo ? $"peak {_car.TurboPeak:0.00} full {_car.TurboFullSeconds:0.0}s blowoffs {_car.TurboBlowOffs} now {_car.TurboBoost:0.00}" : "none")} starts={_perfectStarts}/{_goodStarts}/{_boggedStarts} sprints={_sprintsRun} sprintBest={GameSession.SprintBest:0.00} stuck={_stuckCount} rocks={_car.RockPulses} rockedFree={_rockFrees} longestStuck={_longestStuck:0.0}s flips={_backflips}/{_frontflips}/{_flipsCrashed} maxAirRot={_maxAirRot:0} rollOvers={_rollOvers} ice={_spray.IceSeconds:0.0}s slip={_spray.SlipSeconds:0.0}s bite={_spray.BiteSeconds:0.0}s trip={tripNow} reports={_tripsReported} deepest={_deepestThisRun:0.0}m crystalsMined={_crystalsMined} card={(_card.Showing ? _card.ShownScore.ToString() : "hidden")} {NightSummary()} {BirdSummary()} {DevilSummary()} | " +
+                 $"dash={(_dash.Visible ? $"{_dash.ShownKmh:0}km/h" : "hidden")} lines={_lines.Intensity:0.00} peakLines={_peakLines:0.00} wind={_sfx.WindLevel:0.00} gear={_car.Gearbox.Gear}/{_car.Gearbox.Gears} revs={_car.Gearbox.Rpm:0.00} enginePitch={_sfx.LastEnginePitch:0.00} shifts={_car.Gearbox.Upshifts}/{_car.Gearbox.Downshifts} topGear={_car.Gearbox.TopGear} limiter={_car.Gearbox.Limiter} pops={_car.Backfires} turbo={(_car.HasTurbo ? $"peak {_car.TurboPeak:0.00} full {_car.TurboFullSeconds:0.0}s blowoffs {_car.TurboBlowOffs} now {_car.TurboBoost:0.00}" : "none")} starts={_perfectStarts}/{_goodStarts}/{_boggedStarts} sprints={_sprintsRun} sprintBest={GameSession.SprintBest:0.00} stuck={_stuckCount} rocks={_car.RockPulses} rockedFree={_rockFrees} longestStuck={_longestStuck:0.0}s flips={_backflips}/{_frontflips}/{_flipsCrashed} maxAirRot={_maxAirRot:0} rollOvers={_rollOvers} ice={_spray.IceSeconds:0.0}s slip={_spray.SlipSeconds:0.0}s bite={_spray.BiteSeconds:0.0}s trip={tripNow} reports={_tripsReported} deepest={_deepestThisRun:0.0}m crystalsMined={_crystalsMined} card={(_card.Showing ? _card.ShownScore.ToString() : "hidden")} {NightSummary()} {BirdSummary()} {DevilSummary()} {HookSummary()} | " +
                  string.Join(" ", System.Array.ConvertAll(GameSession.Items, i => $"{i}={GameSession.Count(i)}")));
     }
 }
