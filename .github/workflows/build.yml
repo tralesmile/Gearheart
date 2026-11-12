@@ -50,6 +50,7 @@ jobs:
             grep "\[landing\]" smoke.log | head -30
             grep "\[kicker\]" smoke.log | head -24
             grep "\[engine\]" smoke.log | head -24
+            grep -E "\[(launch|stall)\]" smoke.log | head -16
             # "resources still in use at exit" is a shutdown notice about cached textures and sounds, not a fault.
             if grep -E "ERROR|Unhandled exception|SCRIPT ERROR|System\.[A-Za-z]*Exception" smoke.log | grep -v "still in use at exit" | grep .; then
               echo "::error::Smoke test failed: $name"
@@ -65,6 +66,9 @@ jobs:
           run "world: drive left to the Frozen North on Spiked Tyres" res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --left --design=spiked
           run "world: V8 swap (engine sound and gearbox, 6 gears)" res://scenes/world.tscn --quit-after 2400 -- --fresh --autoplay --design=v8
           run "world: Scrap 4-Cylinder swap (4 gears)" res://scenes/world.tscn --quit-after 2400 -- --fresh --autoplay --design=scrap4
+          run "world: launch control, perfect start (rides the limiter once, then lets go in the green)" res://scenes/world.tscn --quit-after 900 -- --fresh --autoplay --launchtest --design=starter
+          run "world: launch control, let go too early (bogged)" res://scenes/world.tscn --quit-after 900 -- --fresh --autoplay --launchearly --design=starter
+          run "world: launch control, Scrap 4-Cylinder" res://scenes/world.tscn --quit-after 900 -- --fresh --autoplay --launchtest --design=scrap4
           run "world: rocket booster car"             res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --design=rocket
           run "world: crash test (15 m drop, then drive)" res://scenes/world.tscn --quit-after 2400 -- --fresh --autoplay --crashtest --design=starter
           run "world: buried stash test (dig up planted stashes)" res://scenes/world.tscn --quit-after 1800 -- --fresh --autoplay --stashtest --design=starter
@@ -77,6 +81,9 @@ jobs:
           run "hill climb, starter car, 40 s" res://scenes/drive.tscn --quit-after 4800 -- --hillclimb --autodrive --design=starter
           run "hill climb, rocket car, 40 s"  res://scenes/drive.tscn --quit-after 4800 -- --hillclimb --autodrive --design=rocket
           run "free drive, driller, 40 s"     res://scenes/drive.tscn --quit-after 4800 -- --freedrive --autodrive --design=driller
+          # Same car, flat test track instead of the world: does the Scrap 4-Cylinder pickup stall there too?
+          run "free drive, Scrap 4-Cylinder, 10 s" res://scenes/drive.tscn --quit-after 1200 -- --freedrive --autodrive --design=scrap4
+          run "free drive, V8, 10 s"              res://scenes/drive.tscn --quit-after 1200 -- --freedrive --autodrive --design=v8
           exit $fail
 
       - name: Screenshots (software rendering, for review)
@@ -84,7 +91,7 @@ jobs:
         run: |
           sudo apt-get update -qq > /dev/null 2>&1 || true
           sudo apt-get install -y -qq xvfb libgl1-mesa-dri > /dev/null 2>&1 || true
-          mkdir -p shots/world shots/left shots/drill shots/rocket shots/crash shots/stash shots/trip shots/garage shots/iceplain shots/icespiked shots/jump shots/deep shots/crystal keep
+          mkdir -p shots/launch shots/world shots/left shots/drill shots/rocket shots/crash shots/stash shots/trip shots/garage shots/iceplain shots/icespiked shots/jump shots/deep shots/crystal keep
           # Keep Godot from importing (and exporting) the thousands of movie frames: they slowed every
           # later run, bloated the game builds and flooded the job log past the playtest lines.
           touch shots/.gdignore keep/.gdignore
@@ -100,6 +107,14 @@ jobs:
           xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/jump/f.png --quit-after 400 res://scenes/world.tscn -- --fresh --autoplay --jumptest --design=starter > shots/jump.log 2>&1 || true
           xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/deep/f.png --quit-after 260 res://scenes/world.tscn -- --fresh --autoplay --deeptest --design=starter > shots/deep.log 2>&1 || true
           xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/crystal/f.png --quit-after 400 res://scenes/world.tscn -- --fresh --autoplay --design=crystal > shots/crystal.log 2>&1 || true
+          xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/launch/f.png --quit-after 90 res://scenes/world.tscn -- --fresh --autoplay --launchtest --design=starter > shots/launch.log 2>&1 || true
+          # Launch control: charging, the GO window just before letting go, and the PERFECT START a moment after.
+          grep "\[launch\] Perfect start" shots/launch.log | head -1 | sed -E 's/.*frame=([0-9]+).*/\1/' | while read n; do
+            for d in -6 -1 2 6; do
+              f=$(printf "shots/launch/f%08d.png" $((n + d))); [ -f "$f" ] && cp "$f" keep/launch_$((n + d)).png
+            done
+          done
+          grep -E "\[(launch|engine)\]" shots/launch.log | head -10
           xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/garage/f.png --quit-after 12 res://scenes/garage.tscn > shots/garage.log 2>&1 || true
           # Engine: the frame just after each of the first upshifts (gear box flash on the dashboard) and the first exhaust pop.
           grep "\[engine\] upshift" shots/world.log | head -3 | sed -E 's/.*frame=([0-9]+).*/\1/' | while read n; do

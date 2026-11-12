@@ -97,6 +97,17 @@ public sealed class Gearbox
         PeakRpm = Mathf.Max(PeakRpm, _rpm);
     }
 
+    /// <summary>
+    /// Launch control: the handbrake holds the car and the driver sets the revs with the throttle.
+    /// Overrides this tick's revs (call after <see cref="Update"/>); the gear stays in first.
+    /// </summary>
+    public void HoldRevs(float rpm, bool limiter)
+    {
+        _rpm = Mathf.Clamp(rpm, Idle, 1.05f);
+        Limiter = limiter;
+        PeakRpm = Mathf.Max(PeakRpm, _rpm);
+    }
+
     private void Shift(int by)
     {
         Gear += by;

@@ -2,6 +2,38 @@
 
 Newest entry first. Each session: what was built and why, how it was verified, what is not verified, and what comes next.
 
+## 2026-11-12, about 12:40–14:00 UTC — Launch control, and why the Scrap 4 pickup will not move (PR #20)
+
+**Started by** checking for unfinished work: PR #19 (engine sounds and gearbox) was open with a green build (run 43215472593) and a playtest log matching its description (40 s positions unchanged, starter 4 up / 0 down shifts), so I squash-merged it.
+
+**Built**
+
+- **Launch control** (`SoftVehicle.UpdateLaunch`, constants at the top of `SoftVehicle`): at a standstill, hold Space + throttle and a launch charge climbs from idle to the top in 1.1 s. Let go of Space with the throttle still down: 0.75–0.97 is a **PERFECT START** (+18 km/h shove along the body, an exhaust pop, ta-DING, warm speed streaks), 0.45–0.75 a **GOOD START** (+8 km/h), lower **BOGGED DOWN**. Past the top the revs bounce off the limiter back to 0.6 and climb again, so you can wait for the next window. The shove works from a standstill (the old perfect-landing kick needed the car already rolling) and spins the tyres up with it.
+- **Dashboard**: while armed the rev bar shows the charge, the top segments are green with a bracket beside them, and the gear box reads "L", then a green "GO" while you are in the window. The engine revs follow the charge (pitch climbs, limiter stutter on the bounce).
+- **Hint line**: "Hold Space + D, let go in the green: PERFECT START" while the car is stopped.
+- **CI**: `[launch]` lines (grade, charge, bounces, kick; speed and distance 0.5/1/2 s after every start, plain starts too), `starts=perfect/good/bogged` on `[autoplay]`, runs `--launchtest` (gets straight in, rides the limiter once, lets go at 0.86) for the starter and the Scrap 4 pickup, `--launchearly` (lets go at 0.30), a screenshot run with `launch_*` frames. `[stall]` lines (per-wheel spin, slip, hub speed, ground normal, body nodes touching the ground) whenever a car does not move off after getting in, and two Free Drive runs (Scrap 4, V8) on the flat test track.
+
+**Why this** — Brainstorm in `docs/IDEAS.md` (thirteenth session). The first second of every trip is the dullest: press D, the pickup creeps off the pad. Need for Speed and Mario Kart turn that second into a skill moment, and PR #19's revs and limiter were exactly what it needed (#70 was the top pick). The Next list's #1 (Scrap 4 cannot move the pickup) is about the same second, so I put diagnostics for it in the same runs.
+
+**Verified (CI runs 43218896309 and 43221442547, both green)**
+
+- **Launch control works**: `[launch] Perfect start: charge 0.87 bounces=1 kick 18 km/h revs 0.90`. Starter V6 on the pad, 2 s after letting go: **perfect 19.0 m at 42 km/h**, bogged (`charge 0.30`) 14.1 m at 35 km/h, plain start 14.4 m at 39 km/h; 0.5 s after: 32 km/h vs 14–16. The bounce happened once before the release (bounces=1), as planned.
+- **Screenshots**: `launch_18.png` (dashboard: green "GO" box, bracket beside the rev bar, bar filled into the green, hint line at the top), `launch_21.png` ("PERFECT START! +18 km/h", exhaust puff behind the car, 23 km/h in 2nd).
+- **Nothing else changed**: 40 s positions identical to main in both runs (starter 2189.5, drill 1473.5/97.2, Crystal Drill 1475.0/105.5, left 603.2, spiked 300.1, rocket 2155.9), trip reports 259 and 443, Hill Climb 18.97 s / 15.25 s. No errors.
+- **Scrap 4 stall — cause found, not fixed**: on the pad the Scrap 4 pickup sits at −8 px/s with full throttle, both wheels grounded, spin −0.3, slip 0, no body node touching the ground. In Free Drive (flat track near x = 0) the same car reaches 20 km/h in 2 s. A Python port of the solver (`/tmp` only, not committed) reproduces it exactly with 32-bit positions at x = 20,500 (Scrap 4 −8.9 px/s, V8 stuck at 82 px/s) and not at x = 500. The garage is at x ≈ 20,600 px, where a float steps 0.002 px, and the Verlet velocity (position minus previous position) loses any change under about 1.9 px/s per substep. Details in `docs/DECISIONS.md`. With a perfect launch the Scrap 4 pickup does get going (10.7 m in 2 s, 23 km/h).
+
+**Not verified / known issues**
+
+- Fun is my judgement. Whether the window (about 0.24 s wide) is too generous, and whether +18 km/h is too strong, needs you to play (D1).
+- Launch control is only exercised by the bot from the garage pad, facing right. Reversing launches (hold A) use the same code but are not tested.
+- The float-precision problem affects every car everywhere in the world (coarser further east). The fix (car nodes relative to a local origin) is next.
+
+**Next**
+
+1. Fix the float precision: car nodes relative to a local origin (M–S); then re-check every playtest number, since handling may change.
+2. Gate sprint: a timed dash from the pad to the gate with a best time (S, IDEAS #76) — gives launch control a number to beat.
+3. Garage "too weak" warning (S, #77), Crystal Lamp (S, #64), surface lift (S–M, #68).
+
 ## 2026-11-12, about 11:25–12:35 UTC — Engine feel: a sound per engine, gear shifts, exhaust pops (PR #19, polish session)
 
 **Started by** checking for unfinished work: no open pull requests; the last main build (after PR #18) was running and later green. The branch `polish/dashboard-speed-smash` still exists but was merged long ago as PR #11 (left alone).

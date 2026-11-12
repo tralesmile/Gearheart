@@ -41,6 +41,32 @@ public partial class SoftVehicle : Node2D, IVehicle
     /// <summary>Bots only: fire the boosters whenever the car is in a safe attitude.</summary>
     public bool AutoBoost;
 
+    /// <summary>Bots only: hold the handbrake (with <see cref="AutoThrottle"/> this arms launch control).</summary>
+    public bool AutoHandbrake;
+
+    // ---- Launch control -------------------------------------------------------------------------
+    // At a standstill, hold the handbrake and the throttle: the revs climb (the launch charge fills the
+    // rev bar). Let go of the handbrake with the throttle still down. In the green window near the top
+    // it is a PERFECT START (a big shove), lower a GOOD START (a small one), early a BOGGED start (none).
+    // Holding on past the top bounces off the limiter and drops back a little, so you can try again.
+    public const float LaunchRiseTime = 1.1f;        // seconds from idle to the top
+    public const float LaunchPerfectFrom = 0.75f, LaunchPerfectTo = 0.97f, LaunchGoodFrom = 0.45f;
+    public const float LaunchBounceTo = 0.6f;        // the charge drops back to this off the limiter
+    public const float LaunchPerfectKick = 320f;     // px/s (18 km/h)
+    public const float LaunchGoodKick = 140f;        // px/s (8 km/h)
+    private const float LaunchMaxSpeed = 50f;        // px/s (about 3 km/h): faster than this is not a standing start
+
+    /// <summary>True while the car is held on the handbrake with the throttle down, ready to launch.</summary>
+    public bool LaunchArmed { get; private set; }
+    /// <summary>Launch charge 0..1 while armed (the revs the driver holds).</summary>
+    public float LaunchCharge { get; private set; }
+    /// <summary>Times the charge has bounced off the limiter during this hold.</summary>
+    public int LaunchBounces { get; private set; }
+    private float _launchBounceFlash;
+
+    /// <summary>Raised when the handbrake is let go from an armed launch: the grade and the kick (px/s).</summary>
+    public event System.Action<LaunchGrade, float> Launched;
+
     /// <summary>
     /// Raised once per hard hit (landing, slam into the ground, snapped beams, lost wheel), for
     /// screen shake, sparks and crunch sounds. Fired from the physics tick.
@@ -110,10 +136,20 @@ public partial class SoftVehicle : Node2D, IVehicle
     /// </summary>
     public void Kick(float speed)
     {
+        _kickDir = 0f;
         _kickPending += speed;
         _kickRate = _kickPending / KickTime;
         // Overdrive: the engine may spin past its normal top speed by the kick for a moment,
         // or it would stop pushing and the kick would bleed away at once.
+        _overdrive = Mathf.Max(_overdrive, speed);
+    }
+
+    /// <summary>A launch shove from a standstill (px/s), to the right for <paramref name="direction"/> > 0.</summary>
+    private void LaunchKick(float speed, float direction)
+    {
+        _kickDir = Mathf.Sign(direction);
+        _kickPending = speed;
+        _kickRate = speed / KickTime;
         _overdrive = Mathf.Max(_overdrive, speed);
     }
 
@@ -205,7 +241,7 @@ public partial class SoftVehicle : Node2D, IVehicle
     private bool _selfRighting;
     private float _rightingTime;
     private bool _hopPending;
-    private float _kickPending, _kickRate, _overdrive;
+    private float _kickPending, _kickRate, _overdrive, _kickDir;
     private const float AirSpinDamping = 0.003f;   // share of spin removed per substep while airborne
     private float _autoStuckTime, _autoReverseTime;
     private int _rearHub = -1, _frontHub = -1;
@@ -591,6 +627,7 @@ public partial class SoftVehicle : Node2D, IVehicle
             float add = Mathf.Min(_kickPending, _kickRate * dt);
             _kickPending -= add;
             ApplyKick(add, dt);
+            if (_kickPending <= 0f) _kickDir = 0f;
         }
         if (_hopPending)
         {
@@ -701,6 +738,14 @@ public partial class SoftVehicle : Node2D, IVehicle
         Vector2 velocity = Vector2.Zero;
         for (int i = 0; i < BodyNodeCount; i++) velocity += Pos[i] - Prev[i];
         float along = velocity.Dot(forward) / Mathf.Max(1, BodyNodeCount) / dt;
+        if (_kickDir != 0f)
+        {
+            // A launch: from a standstill, in the way the throttle points; the tyres spin up with it.
+            Vector2 launchDir = forward * (forward.X >= 0f ? _kickDir : -_kickDir);   // along the body, towards the throttle side
+            for (int i = 0; i < Pos.Length; i++) Prev[i] -= launchDir * speed * dt;
+            foreach (var wheel in _wheels) wheel.Spin += _kickDir * speed / wheel.Radius;
+            return;
+        }
         if (Mathf.Abs(along) < 40f) return;   // nearly stopped: no direction to push in
         Vector2 dir = forward * Mathf.Sign(along);
         for (int i = 0; i < Pos.Length; i++) Prev[i] -= dir * speed * dt;
@@ -817,8 +862,57 @@ public partial class SoftVehicle : Node2D, IVehicle
             break;
         }
         if (_rearCell != null) _exhaust.Position = ToLocal((Pos[_rearCell.Corners[0]] + Pos[_rearCell.Corners[3]]) / 2f);
+        UpdateLaunch(delta);
         UpdateGearbox(delta);
         QueueRedraw();
+    }
+
+    /// <summary>
+    /// Launch control (see the constants at the top): arms with the handbrake and the throttle held at
+    /// a standstill on the ground, fills the charge, bounces off the limiter, and grades the start when
+    /// the handbrake is let go with the throttle still down. Letting go of the throttle first cancels it.
+    /// </summary>
+    private void UpdateLaunch(float delta)
+    {
+        _launchBounceFlash = Mathf.Max(0f, _launchBounceFlash - delta);
+        bool grounded = false;
+        foreach (var w in _wheels) grounded |= w.Attached && w.Grounded;
+        bool holding = !Parked && Fuel > 0f && _input.Handbrake && Mathf.Abs(_input.Throttle) > 0.5f && grounded;
+
+        if (!LaunchArmed)
+        {
+            if (holding && Speed < LaunchMaxSpeed)
+            {
+                LaunchArmed = true;
+                LaunchCharge = 0f;
+                LaunchBounces = 0;
+            }
+            return;
+        }
+
+        if (holding)
+        {
+            LaunchCharge += delta / LaunchRiseTime;
+            if (LaunchCharge >= 1f)
+            {
+                LaunchCharge = LaunchBounceTo;   // off the limiter: the revs drop back and climb again
+                LaunchBounces++;
+                _launchBounceFlash = 0.12f;
+            }
+            return;
+        }
+
+        LaunchArmed = false;
+        // Let go of the throttle (or ran dry, or got knocked into the air): no launch.
+        if (Parked || Fuel <= 0f || Mathf.Abs(_input.Throttle) <= 0.5f || _input.Handbrake || !grounded) return;
+
+        float charge = LaunchCharge;
+        LaunchGrade grade = charge >= LaunchPerfectFrom && charge <= LaunchPerfectTo ? LaunchGrade.Perfect
+                          : charge >= LaunchGoodFrom ? LaunchGrade.Good : LaunchGrade.Bogged;
+        float kick = grade == LaunchGrade.Perfect ? LaunchPerfectKick : grade == LaunchGrade.Good ? LaunchGoodKick : 0f;
+        if (kick > 0f) LaunchKick(kick, _input.Throttle);
+        if (grade == LaunchGrade.Perfect) Backfire(false);
+        Launched?.Invoke(grade, kick);
     }
 
     /// <summary>
@@ -839,6 +933,7 @@ public partial class SoftVehicle : Node2D, IVehicle
         float throttle = Mathf.Abs(Throttle);
         float topSpeed = attached > 0 ? _engineMaxSpin * radius / attached : 0f;   // px/s at the tyre
         Gearbox.Update(delta, _engineMaxSpin > 0f ? spin / _engineMaxSpin : 0f, topSpeed > 0f ? Speed / topSpeed : 0f, throttle, Airborne);
+        if (LaunchArmed) Gearbox.HoldRevs(Gearbox.Idle + (1.02f - Gearbox.Idle) * LaunchCharge, _launchBounceFlash > 0f || LaunchCharge > 0.95f);
 
         _popCooldown = Mathf.Max(0f, _popCooldown - delta);
         if (_lastThrottle > 0.6f && throttle < 0.1f && Gearbox.Rpm > 0.7f) Backfire(true);
@@ -1132,11 +1227,40 @@ public partial class SoftVehicle : Node2D, IVehicle
     }
 
     /// <summary>
+    /// One line for the playtest log about why a car is not moving: per wheel (grounded, spin, slip,
+    /// hub speed along x, ground normal), body nodes touching the ground, drive torque and mass.
+    /// </summary>
+    public string StallReport()
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.Append($"torque={_engineTorque:0} maxSpin={_engineMaxSpin:0} mass={_totalMass:0.00} throttle={_input.Throttle:0.0} handbrake={_input.Handbrake} overdrive={_overdrive:0}");
+        int touching = 0;
+        var touched = new System.Text.StringBuilder();
+        for (int i = 0; i < BodyNodeCount; i++)
+        {
+            if (World != null && World.Terrain != null && World.Terrain.Collide(Pos[i], NodeRadius + 0.5f, out _, out _))
+            {
+                touching++;
+                if (touched.Length < 80) touched.Append($"{i}@({Pos[i].X:0},{Pos[i].Y:0}) ");
+            }
+        }
+        sb.Append($" bodyTouching={touching} [{touched.ToString().Trim()}]");
+        int k = 0;
+        foreach (var w in _wheels)
+        {
+            float hubVx = (Pos[w.Hub].X - Prev[w.Hub].X) * 960f;
+            sb.Append($" w{k++}(att={w.Attached} gnd={w.Grounded} spin={w.Spin:0.0} slip={w.Slip:0} hubVx={hubVx:0} n=({w.GroundNormal.X:0.00},{w.GroundNormal.Y:0.00}) hub=({Pos[w.Hub].X:0},{Pos[w.Hub].Y:0}))");
+        }
+        return sb.ToString();
+    }
+
+    /// <summary>
     /// Drives like a careful player, for bots and automated playtests: full throttle,
     /// ease off while drilling, and tilt the nose back down if the car starts to flip.
     /// </summary>
     private VehicleInput AutoPilot()
     {
+        if (AutoHandbrake) return new VehicleInput(AutoThrottle, 0f, true);
         if (AutoTilt != 0f) return new VehicleInput(AutoThrottle, AutoTilt, false, AutoBoostNow());
 
         float throttle = AutoThrottle;

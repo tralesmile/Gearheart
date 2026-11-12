@@ -251,6 +251,7 @@ public partial class WorldScene : Node2D
         _car.Crashed += OnCarCrash;
         _car.Gearbox.Shifted += OnShift;
         _car.Backfired += OnBackfire;
+        _car.Launched += OnLaunch;
         _judge.Cancel();
         _airTime = 0f;
         _bodyDown = false;
@@ -322,8 +323,104 @@ public partial class WorldScene : Node2D
         if (GameSession.AutoPlay) _car.DrillEnabled = true;
         _car.AutoBoost = GameSession.AutoPlay && _car.HasBooster;
         _sfx.StartEngine(_car.EngineSound);
+        _enteredAt = _elapsed;
+        _stallLines = 0;
         if (GameSession.AutoPlay)
+        {
             GD.Print($"[engine] start: {_car.EngineName}, {_car.Gearbox.Gears} gears, loop {_car.EngineSound} frame={Engine.GetFramesDrawn()}");
+            if (GameSession.LaunchTest) _car.AutoHandbrake = true;   // RunLaunchBot lets go
+            else StartWatch("plain");
+        }
+    }
+
+    // ---- Launch control (see SoftVehicle.UpdateLaunch) ------------------------------------------
+
+    private float _enteredAt;
+    private float _nextStallLog;
+    private int _stallLines, _perfectStarts, _goodStarts, _boggedStarts;
+    private string _watchKind;
+    private float _watchAt = -1f, _watchX;
+    private int _watchStage;
+
+    private void OnLaunch(LaunchGrade grade, float kick)
+    {
+        if (!_driving) return;
+        float kmh = kick / PixelsPerMeter * 3.6f;
+        switch (grade)
+        {
+            case LaunchGrade.Perfect:
+                _perfectStarts++;
+                _kickGlow = 0.8f;
+                Toast($"PERFECT START!\n+{kmh:0} km/h");
+                _sfx.Play("land", -4f, 0.2f, 1.1f);
+                break;
+            case LaunchGrade.Good:
+                _goodStarts++;
+                Toast($"GOOD START\n+{kmh:0} km/h · let go in the green for more");
+                _sfx.Play("pickup", -6f);
+                break;
+            default:
+                _boggedStarts++;
+                Toast("BOGGED DOWN\nhold Space + throttle, let go in the green");
+                _sfx.Play("thud", -14f, 0.1f, 0.8f);
+                break;
+        }
+        if (GameSession.AutoPlay)
+        {
+            GD.Print($"[launch] {grade} start: charge {_car.LaunchCharge:0.00} bounces={_car.LaunchBounces} kick {kmh:0} km/h revs {_car.Gearbox.Rpm:0.00} t={_elapsed:0.00}s frame={Engine.GetFramesDrawn()}");
+            StartWatch(grade.ToString().ToLowerInvariant());
+        }
+    }
+
+    /// <summary>Bots: measure a start (speed 0.5 s after, distance 1 s and 2 s after) for the playtest log.</summary>
+    private void StartWatch(string kind)
+    {
+        _watchKind = kind;
+        _watchAt = _elapsed;
+        _watchX = _car.CenterPosition.X;
+        _watchStage = 0;
+    }
+
+    private void UpdateWatch()
+    {
+        if (_watchAt < 0f || !_driving) return;
+        float since = _elapsed - _watchAt;
+        float meters = Mathf.Abs(_car.CenterPosition.X - _watchX) / PixelsPerMeter;
+        float kmh = _car.Speed / PixelsPerMeter * 3.6f;
+        if (_watchStage == 0 && since >= 0.5f) { _watchStage = 1; GD.Print($"[launch] {_watchKind} +0.5s: {kmh:0} km/h, {meters:0.0} m"); }
+        else if (_watchStage == 1 && since >= 1f) { _watchStage = 2; GD.Print($"[launch] {_watchKind} +1s: {kmh:0} km/h, {meters:0.0} m"); }
+        else if (_watchStage == 2 && since >= 2f)
+        {
+            _watchStage = 3;
+            _watchAt = -1f;
+            GD.Print($"[launch] {_watchKind} +2s: {kmh:0} km/h, {meters:0.0} m, gear {_car.Gearbox.Gear}");
+        }
+    }
+
+    /// <summary>
+    /// --launchtest: get straight in, hold the handbrake and the throttle, and let go when the charge is
+    /// in the green (or, with --launchearly, at a third of the way up). The first try deliberately rides
+    /// the limiter once, so the bounce is tested too.
+    /// </summary>
+    private void RunLaunchBot()
+    {
+        if (!_driving && _elapsed > 0.5f) EnterCar();
+        if (!_driving || !_car.AutoHandbrake) return;
+        float letGoAt = GameSession.LaunchEarly ? 0.3f : 0.86f;
+        bool ready = GameSession.LaunchEarly || _car.LaunchBounces >= 1;
+        if (_car.LaunchArmed && ready && _car.LaunchCharge >= letGoAt)
+            _car.AutoHandbrake = false;
+    }
+
+    /// <summary>Bots: why is the car not moving right after getting in? Per-wheel numbers, a few lines per run.</summary>
+    private void LogStall()
+    {
+        if (!_driving || _car.LaunchArmed || _stallLines >= 8) return;
+        float since = _elapsed - _enteredAt;
+        if (since < 0.5f || since > 4.5f || _car.Speed > 60f || _elapsed < _nextStallLog) return;
+        _nextStallLog = _elapsed + 0.5f;
+        _stallLines++;
+        GD.Print($"[stall] t={_elapsed:0.0}s {since:0.0}s after getting in: speed {_car.Speed:0} px/s pitch {_car.PitchDegrees():0} {_car.StallReport()}");
     }
 
     // ---- Engine: gear shifts and exhaust pops (sound and smoke only, see Gearbox) --------------
@@ -831,7 +928,8 @@ public partial class WorldScene : Node2D
 
         if (_driving)
         {
-            _hint.Text = "A/D: drive   Q/E: tilt (also rolls you back over)   Space: handbrake   F: get out" +
+            _hint.Text = (_car.Speed < 60f && !_car.Airborne ? "Hold Space + D, let go in the green: PERFECT START   " : "") +
+                         "A/D: drive   Q/E: tilt (also rolls you back over)   Space: handbrake   F: get out" +
                          (_car.HasDrill ? $"   X: drill {(_car.DrillEnabled ? "ON" : "OFF")}" : "") +
                          (_car.HasBooster ? "   Shift: BOOST" : "") +
                          (NearGarage() ? "   G: garage   R: repair" : "");
@@ -842,6 +940,7 @@ public partial class WorldScene : Node2D
             _dash.Visible = true;
             _dash.Set(kmh, _car.Fuel, _car.FuelCapacity, _car.Damage, _car.Boosting);
             _dash.SetEngine(_car.Gearbox.Gear, _car.Gearbox.Rpm, _car.Gearbox.Limiter);
+            _dash.SetLaunch(_car.LaunchArmed, _car.LaunchCharge, SoftVehicle.LaunchPerfectFrom, SoftVehicle.LaunchPerfectTo);
             _lines.Set(_carVx / PixelsPerMeter * 3.6f, _carDir, _car.Boosting || _kickGlow > 0f);
             _peakLines = Mathf.Max(_peakLines, _lines.Intensity);
             if (GameSession.AutoPlay && !_linesLogged && _lines.Intensity > 0.6f)
@@ -1511,8 +1610,11 @@ public partial class WorldScene : Node2D
         if (GameSession.TripTest) RunTripBot();
         if (GameSession.IceTest) RunIceBot();
         if (GameSession.DeepTest) RunDeepBot();
+        if (GameSession.LaunchTest) RunLaunchBot();
+        UpdateWatch();
+        LogStall();
 
-        if (!_driving && !GameSession.CrashTest && !GameSession.TripTest && !GameSession.IceTest && !GameSession.DeepTest)
+        if (!_driving && !GameSession.CrashTest && !GameSession.TripTest && !GameSession.IceTest && !GameSession.DeepTest && !GameSession.LaunchTest)
         {
             Vector2 feet = _player.Position + new Vector2(0f, Player.HalfHeight);
             // --stashtest: once the bot starts digging, bury a toolbox and a strongbox under its feet
@@ -1557,7 +1659,7 @@ public partial class WorldScene : Node2D
                  $"top={_topSpeed / PixelsPerMeter * 3.6f:0}km/h longestAir={_longestAir:0.0}s landings={_perfectLandings}/{_cleanLandings}/{_roughLandings}/{_flops} kickers={_kickerJumps}/{_kickerLaunches} longJumps={_longJumps}/{_jumpRecords}/{_longestJump:0.0}m " +
                  $"crashes={_crashFx.Hits} hardest={_crashFx.HardestHit / PixelsPerMeter * 3.6f:0}km/h sparks={_crashFx.SparkBursts} " +
                  $"cans={_cansTaken} heaps={_heapsTaken} smashed={_heapsSmashed} bestStreak={_bestStreak} " +
-                 $"dash={(_dash.Visible ? $"{_dash.ShownKmh:0}km/h" : "hidden")} lines={_lines.Intensity:0.00} peakLines={_peakLines:0.00} wind={_sfx.WindLevel:0.00} gear={_car.Gearbox.Gear}/{_car.Gearbox.Gears} revs={_car.Gearbox.Rpm:0.00} enginePitch={_sfx.LastEnginePitch:0.00} shifts={_car.Gearbox.Upshifts}/{_car.Gearbox.Downshifts} topGear={_car.Gearbox.TopGear} limiter={_car.Gearbox.Limiter} pops={_car.Backfires} rollOvers={_rollOvers} ice={_spray.IceSeconds:0.0}s slip={_spray.SlipSeconds:0.0}s bite={_spray.BiteSeconds:0.0}s trip={tripNow} reports={_tripsReported} deepest={_deepestThisRun:0.0}m crystalsMined={_crystalsMined} card={(_card.Showing ? _card.ShownScore.ToString() : "hidden")} | " +
+                 $"dash={(_dash.Visible ? $"{_dash.ShownKmh:0}km/h" : "hidden")} lines={_lines.Intensity:0.00} peakLines={_peakLines:0.00} wind={_sfx.WindLevel:0.00} gear={_car.Gearbox.Gear}/{_car.Gearbox.Gears} revs={_car.Gearbox.Rpm:0.00} enginePitch={_sfx.LastEnginePitch:0.00} shifts={_car.Gearbox.Upshifts}/{_car.Gearbox.Downshifts} topGear={_car.Gearbox.TopGear} limiter={_car.Gearbox.Limiter} pops={_car.Backfires} starts={_perfectStarts}/{_goodStarts}/{_boggedStarts} rollOvers={_rollOvers} ice={_spray.IceSeconds:0.0}s slip={_spray.SlipSeconds:0.0}s bite={_spray.BiteSeconds:0.0}s trip={tripNow} reports={_tripsReported} deepest={_deepestThisRun:0.0}m crystalsMined={_crystalsMined} card={(_card.Showing ? _card.ShownScore.ToString() : "hidden")} | " +
                  string.Join(" ", System.Array.ConvertAll(GameSession.Items, i => $"{i}={GameSession.Count(i)}")));
     }
 }

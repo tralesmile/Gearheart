@@ -2,6 +2,19 @@
 
 Newest first. One entry per big decision: what, why, and what would make us revisit it.
 
+## 2026-11-12 — Launch control: a timing window, not a reaction test
+
+- **What:** at a standstill (under about 3 km/h, a wheel on the ground), holding the handbrake and the throttle arms launch control. A charge climbs from idle to the top in 1.1 s and is shown on the rev bar (the gear box reads "L", then a green "GO"). Letting go of the handbrake with the throttle still down grades the start by the charge: 0.75–0.97 **PERFECT START** (+18 km/h shove along the body, exhaust pop, cheer), 0.45–0.75 **GOOD START** (+8 km/h), lower **BOGGED DOWN** (nothing extra). Holding past the top bounces off the limiter back to 0.6 and climbs again, so a missed window is retried by holding on, not by starting over. Letting go of the throttle first cancels it.
+- **Why:** the first second of every trip was the dullest; a rising bar with a window is readable at a glance and rewards rhythm, not reflexes (the window is about 0.24 s wide and comes round every 0.44 s while you hold). The shove uses the same overdrive trick as a perfect landing, so the engine keeps pushing past its usual top for a moment.
+- **Measured (CI):** starter V6 on the pad, 2 s after letting go: perfect 19.0 m / 42 km/h, bogged 14.1 m / 35 km/h, plain start 14.4 m / 39 km/h; 0.5 s after: 32 vs 14–16 km/h.
+- **Revisit when:** you have played (D1): the window width (`LaunchPerfectFrom/To`), the shove (`LaunchPerfectKick`) and the rise time are constants at the top of `SoftVehicle`. If perfect starts feel mandatory, shrink the shove; if nobody finds the feature, add a first-time toast at the garage.
+
+## 2026-11-12 — Found: the car physics loses small forces far from x = 0 (float precision)
+
+- **What:** node positions are stored as absolute world pixels in 32-bit floats. The garage stands at about x = 20,600 px, where a float can only step 0.002 px; the Verlet integrator keeps velocity as the difference of two positions, so any change smaller than about 1.9 px/s per substep is rounded away. Reproduced offline with a Python port of the solver: at x = 20,500 the Scrap 4-Cylinder pickup sits at −8.9 px/s with full throttle and the V8 pickup is stuck at 82 px/s (4.6 km/h); at x = 500 both pull away normally. The CI log matches (Scrap 4: −8 px/s creep, wheels grounded, no slip; V8: 6 km/h for over 2 s), and in the flat Free Drive scene near x = 0 the Scrap 4 pickup reaches 20 km/h in 2 s.
+- **Consequence:** every car's handling in the world is subtly off from what the formulas say, and it gets coarser further east (above x = 32,768 the step doubles). Parked cars creep by about 8 px/s.
+- **Planned fix:** keep each car's nodes relative to a local origin (a multiple of 1,024 px, moved as the car drives) and add it only when talking to the world (terrain, drawing, crashes). Not done in PR #20; see the work log.
+
 ## 2026-11-12 — Gears are for the ears only
 
 - **What:** The car has a pretend gearbox (`src/Vehicles/Gearbox.cs`) that drives the engine sound and the dashboard's gear and rev bar. It never changes torque or top speed. Gears and revs follow the car's road speed (plus a little for real wheelspin), not the wheel spin, and shifts are at least 0.6 s apart.

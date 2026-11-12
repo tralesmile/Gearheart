@@ -83,6 +83,10 @@ public static class GameSession
 
     /// <summary>--deeptest: the bot starts on foot in a glowing cavern of the Deep and digs out crystals.</summary>
     public static bool DeepTest => UserArgs.Contains("--deeptest");
+    /// <summary>--launchtest: the bot gets straight in and launches with launch control, letting go in the green
+    /// (--launchearly: lets go far too early for a bogged start).</summary>
+    public static bool LaunchTest => UserArgs.Contains("--launchtest") || LaunchEarly;
+    public static bool LaunchEarly => UserArgs.Contains("--launchearly");
     private static bool FreshStart => UserArgs.Contains("--fresh");
 
     public static void ApplyCommandLine()
