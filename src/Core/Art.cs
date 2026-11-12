@@ -23,6 +23,9 @@ public static class Art
 
     /// <summary>Decor cells of the kicker warning sign, arrow pointing right (east) or left (west).</summary>
     public const int DecorKickerRight = 8, DecorKickerLeft = 9;
+
+    /// <summary>Decor cells of the long-jump record flag, flying right (east) or left (west).</summary>
+    public const int DecorRecordFlagRight = 10, DecorRecordFlagLeft = 11;
     public const int PartSize = 22;
     public const int WheelCell = 56;
 

@@ -10,7 +10,7 @@ All current art is **placeholder pixel art drawn by code** (`python3 tools/make_
 | `wheels.png` | 56 x 56 px cells | Small (radius 16), standard (20), off-road (26), spiked winter tyre (20, studs poke out about 4 px), centred in the cell |
 | `garage.png` | 112 x 72 px | The garage shed, drawn at 2x |
 | `pickups.png` | 32 x 32 px cells, art standing on the bottom edge | Fuel can · scrap heap (meadow) · rusty scrap heap (The Wastes) · snowy scrap heap (Frozen North) |
-| `decor.png` | 48 x 64 px cells, art standing on the bottom edge | Oak, snowy pine, cactus, bush, flowers, grass tuft, desert rock, snowy rock |
+| `decor.png` | 48 x 64 px cells, art standing on the bottom edge | Oak, snowy pine, cactus, bush, flowers, grass tuft, desert rock, snowy rock, kicker warning sign (right, left), long-jump record flag (flying right, left; the pole is at the cell's centre) |
 
 Sounds are in `assets/audio/` (22.05 kHz mono WAV, made by `python3 tools/make_sounds.py`): `engine`, `drill` and `boost` are one-second loops; `pick`, `break`, `place`, `pickup`, `thud`, `crunch`, `snap` `treasure` (stash fanfare), `fuel` (fuel can glug and ding), `tally` (trip-report tick) and `record` (new best trip fanfare) are one-shots. Replace any file with a real recording of the same name.
 

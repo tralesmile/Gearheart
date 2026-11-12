@@ -73,6 +73,17 @@ public partial class WorldScene : Node2D
     private int _kickerRise, _kickerLaunches, _kickerJumps, _kickerPerfects;
     private static bool _kickerHinted;    // "KICKER AHEAD" is shown once per game session
 
+    // Long jumps: how far past the crest the car came down, against a record flag per kicker.
+    private readonly record struct LongJump(float Meters, float Before, bool Record, bool Counted);
+    private JumpMarks _marks;
+    private Kicker? _jumpKicker;           // the kicker the car just took off from, until it comes down
+    private float _jumpAt = -10f;
+    private string _jumpLine;              // "LONG JUMP 7.4 m · NEW RECORD!", waiting for the landing grade
+    private float _jumpLineAt = -10f;
+    private int _longJumps, _jumpRecords;
+    private float _longestJump;
+    private readonly HashSet<int> _flagLogged = new();
+
     // Trips: leave the garage grounds, come back, get a report card with a score and a best to beat.
     private const float TripLeave = 18f, TripHome = 8f;   // metres from the middle of the garage pad
     private Trip _trip;
@@ -113,6 +124,11 @@ public partial class WorldScene : Node2D
         // Fuel cans and scrap heaps along the road (drawn behind the car and the player).
         _pickups = new RoadsidePickups { Name = "Pickups", World = _world, Focus = TileWorld.PadCenter };
         AddChild(_pickups);
+
+        // Long-jump record flags past the kickers.
+        if (GameSession.JumpTest) PlantJumpRecords();
+        _marks = new JumpMarks { Name = "JumpMarks", World = _world, Focus = TileWorld.PadCenter };
+        AddChild(_marks);
 
         _physics = new SoftPhysicsWorld { Name = "SoftPhysicsWorld", Terrain = _world, Mineable = _world };
         AddChild(_physics);
@@ -357,6 +373,7 @@ public partial class WorldScene : Node2D
         _lamp.Energy = under * 1.15f;
         _lamp.TextureScale = _driving ? 1.6f : 1.1f;
         _glints.Focus = focus;
+        _marks.Focus = focus;
         if (!_glintHinted && _glints.Nearest < 230f && _toastTime <= 0f)
         {
             _glintHinted = true;
@@ -978,6 +995,7 @@ public partial class WorldScene : Node2D
             return;
         }
         _bodyDown = false;
+        if (_airTime > 0f) LongJumpTouchdown(_airTime);
         if (_airTime > 0.3f) _trip?.NoteAir(_airTime);
         if (_airTime > 0.9f) _longestAir = Mathf.Max(_longestAir, _airTime);
         if (_airTime >= LandingJudge.MinAir)
@@ -1009,6 +1027,9 @@ public partial class WorldScene : Node2D
         if (last == int.MinValue || last == col || Mathf.Abs(col - last) > 8) return;
         foreach (Kicker k in _world.Kickers)
         {
+            if (GameSession.AutoPlay && _world.JumpBest(k) > 0f && (k.Start - col) * k.Dir is > 30 and < 40 && (col - last) * k.Dir > 0 && _flagLogged.Add(k.Start))
+                GD.Print($"[kicker] approach: record flag {_world.JumpBest(k):0.0} m past the {k.Meters:0.00} m kicker at x={k.Crest} " +
+                         $"({Mathf.Abs(MetersFromGarage(k.Crest * Ts)):0} m out) speed={_car.Speed / PixelsPerMeter * 3.6f:0}km/h frame={Engine.GetFramesDrawn()}");
             bool before = (k.Crest - last) * k.Dir >= 0, after = (k.Crest - col) * k.Dir < 0;
             bool backBefore = (last - k.Crest) * k.Dir > 0, backAfter = (col - k.Crest) * k.Dir <= 0;
             if (before && after)
@@ -1017,6 +1038,9 @@ public partial class WorldScene : Node2D
                 _kickerAt = _elapsed;
                 _kickerRise = k.Rise;
                 _kickerKmh = _car.Speed / PixelsPerMeter * 3.6f;
+                _jumpKicker = k;
+                _jumpAt = _elapsed;
+                _jumpLine = null;
                 if (GameSession.AutoPlay)
                     GD.Print($"[kicker] take-off: {k.Meters:0.00} m kicker in {TileWorld.BiomeAt(k.Crest)} at x={k.Crest} ({Mathf.Abs(MetersFromGarage(k.Crest * Ts)):0} m out) " +
                              $"speed={_kickerKmh:0}km/h pitch={_car.PitchDegrees():0} wheelsDown={_car.WheelsGrounded}/{_car.WheelsAttached} frame={Engine.GetFramesDrawn()} | launches={_kickerLaunches}");
@@ -1039,6 +1063,72 @@ public partial class WorldScene : Node2D
             GD.Print($"[kicker] jump: {grade} after air={air:0.00}s from a {_kickerRise * 0.25f:0.00} m kicker at {_kickerKmh:0}km/h | jumps={_kickerJumps}/{_kickerLaunches} perfect={_kickerPerfects}");
     }
 
+    /// <summary>
+    /// The car came down after a jump. If it took off from a kicker, measure how far past the crest it
+    /// landed. Long enough jumps get their line with the landing grade (or straight away when the jump
+    /// was too short to be graded).
+    /// </summary>
+    private void LongJumpTouchdown(float air)
+    {
+        if (MeasureLongJump(air, flop: false) is not LongJump j) return;
+        _jumpLine = JumpLine(j);
+        _jumpLineAt = _elapsed;
+        if (air >= LandingJudge.MinAir) return;   // Landed() tells it with the grade
+        _jumpLine = null;
+        if (!_goalToast || _toastTime < 1.2f) Toast(JumpLine(j).Replace(" · ", "\n"));
+        _sfx.Play("pickup", -6f);
+    }
+
+    /// <summary>
+    /// Distance from the kicker's crest to where the car came down, checked against the kicker's record.
+    /// A botched landing (on the roof, nose or tail) is measured but never sets a record.
+    /// </summary>
+    private LongJump? MeasureLongJump(float air, bool flop)
+    {
+        if (_jumpKicker is not Kicker k) return null;
+        bool fromKicker = _elapsed - air - _jumpAt < 1.2f && _elapsed - _jumpAt < 6f;
+        _jumpKicker = null;
+        if (!fromKicker || air < 0.25f) return null;
+        float meters = (_car.CenterPosition.X - JumpMarks.EdgeX(k)) * k.Dir / PixelsPerMeter;
+        if (meters < 1.5f) return null;   // rolled off the crest, no real jump
+
+        float before = _world.JumpBest(k);
+        bool record = !flop && meters > before + 0.05f;
+        if (record)
+        {
+            _world.SetJumpBest(k, meters);
+            _marks.Fresh(k);
+            _jumpRecords++;
+            if (before > 0f) _sfx.Play("record", -9f, 0.5f, 1.25f);
+        }
+        if (!flop)
+        {
+            _longJumps++;
+            _longestJump = Mathf.Max(_longestJump, meters);
+        }
+        if (GameSession.AutoPlay)
+            GD.Print($"[kicker] long jump: {meters:0.0} m past the {k.Meters:0.00} m kicker at x={k.Crest} air={air:0.00}s took off at {_kickerKmh:0}km/h " +
+                     $"{(flop ? "botched (does not count)" : record ? (before > 0f ? $"NEW RECORD (was {before:0.0} m)" : "first jump: flag planted") : $"no record (best {before:0.0} m)")} " +
+                     $"frame={Engine.GetFramesDrawn()} | longJumps={_longJumps} records={_jumpRecords} longest={_longestJump:0.0}m");
+        return new LongJump(meters, before, record, !flop);
+    }
+
+    private static string JumpLine(LongJump j) =>
+        j.Before <= 0f ? $"LONG JUMP {j.Meters:0.0} m · flag planted"
+        : j.Record ? $"LONG JUMP {j.Meters:0.0} m · NEW RECORD! (+{j.Meters - j.Before:0.0} m)"
+        : $"LONG JUMP {j.Meters:0.0} m · flag at {j.Before:0.0} m";
+
+    /// <summary>--jumptest: plant record flags before the bot drives, so it meets a flag to beat (2 m past the first
+    /// kicker east) and flags it cannot beat (9 m past the others).</summary>
+    private void PlantJumpRecords()
+    {
+        Kicker? first = null;
+        foreach (Kicker k in _world.Kickers)
+            if (k.Dir > 0 && (first == null || k.Crest < first.Value.Crest)) first = k;
+        foreach (Kicker k in _world.Kickers) _world.SetJumpBest(k, first is Kicker f && f.Start == k.Start ? 2f : 9f);
+        GD.Print($"[kicker] jump test: planted record flags (2.0 m on the first kicker east, 9.0 m on the other {_world.Kickers.Count - 1})");
+    }
+
     private static string AirPraise(float air) => air > 2.5f ? "MONSTER AIR" : air > 1.6f ? "HUGE AIR" : "BIG AIR";
 
     /// <summary>The landing has been judged: cheer it, and kick the car forward if it was perfect.</summary>
@@ -1048,6 +1138,8 @@ public partial class WorldScene : Node2D
         bool mayToast = !_goalToast || _toastTime < 1.2f;   // let a fresh goal call-out be read first
         float kmh = _car.Speed / PixelsPerMeter * 3.6f;
         float kick = 0f;
+        string jump = _elapsed - _jumpLineAt < 1.5f ? _jumpLine : null;   // a long jump off a kicker, told with the grade
+        _jumpLine = null;
         switch (l.Grade)
         {
             case LandingGrade.Perfect:
@@ -1058,20 +1150,28 @@ public partial class WorldScene : Node2D
                 _kickKmhBefore = kmh;
                 _perfectLandings++;
                 if (_trip != null) _trip.PerfectLandings++;
-                if (mayToast) Toast($"PERFECT LANDING!\n{l.Air:0.0} s air   +{kick / PixelsPerMeter * 3.6f:0} km/h");
+                if (mayToast)
+                    Toast(jump == null ? $"PERFECT LANDING!\n{l.Air:0.0} s air   +{kick / PixelsPerMeter * 3.6f:0} km/h"
+                                       : $"PERFECT LANDING!  +{kick / PixelsPerMeter * 3.6f:0} km/h\n{jump}");
                 _sfx.Play("land", -4f, 0.2f, 1f);
                 break;
             case LandingGrade.Clean:
                 _cleanLandings++;
                 if (_trip != null) _trip.CleanLandings++;
-                if (mayToast) Toast(bigAir ? $"{AirPraise(l.Air)}!  {l.Air:0.0} s\nclean landing" : "CLEAN LANDING");
+                if (mayToast)
+                    Toast(jump != null ? $"CLEAN LANDING\n{jump}" : bigAir ? $"{AirPraise(l.Air)}!  {l.Air:0.0} s\nclean landing" : "CLEAN LANDING");
                 _sfx.Play("pickup", -6f);
                 break;
             default:
                 _roughLandings++;
                 if (bigAir)
                 {
-                    if (mayToast) Toast($"{AirPraise(l.Air)}!  {l.Air:0.0} s");
+                    if (mayToast) Toast(jump == null ? $"{AirPraise(l.Air)}!  {l.Air:0.0} s" : $"{AirPraise(l.Air)}!  {l.Air:0.0} s\n{jump}");
+                    _sfx.Play("pickup", -6f);
+                }
+                else if (jump != null)
+                {
+                    if (mayToast) Toast(jump.Replace(" · ", "\n"));
                     _sfx.Play("pickup", -6f);
                 }
                 break;
@@ -1107,7 +1207,9 @@ public partial class WorldScene : Node2D
         if (air > 0.9f) _longestAir = Mathf.Max(_longestAir, air);
         _airTime = 0f;
         _bodyDown = true;
-        if (!_goalToast || _toastTime < 1.2f) Toast($"{what}!\n{air:0.0} s of air");
+        LongJump? jump = MeasureLongJump(air, flop: true);
+        if (!_goalToast || _toastTime < 1.2f)
+            Toast(jump is LongJump j ? $"{what}!\n{j.Meters:0.0} m, but it doesn't count" : $"{what}!\n{air:0.0} s of air");
         NoteKickerJump(what.ToLowerInvariant(), air);
         if (GameSession.AutoPlay)
             GD.Print($"[landing] flop: {what.ToLowerInvariant()} after air={air:0.00}s pitch={pitch:0} hit={e.Strength / PixelsPerMeter * 3.6f:0}km/h " +
@@ -1279,7 +1381,7 @@ public partial class WorldScene : Node2D
         GD.Print($"[autoplay] t={_elapsed:0}s {(_driving ? "driving" : "on foot")} biome={TileWorld.BiomeAt(Mathf.FloorToInt(c.X / Ts))} grip={_world.GripAt(c + new Vector2(0f, 60f)):0.00} player=({p.X / Ts:0.0},{p.Y / Ts:0.0}) grounded={_player.Grounded} " +
                  $"car=({c.X / Ts:0.0},{c.Y / Ts:0.0}) surfaceRow={surface} depth={(c.Y / Ts - surface) * 0.25f:0.0}m speed={_car.Speed / PixelsPerMeter * 3.6f:0}km/h pitch={_car.PitchDegrees():0} " +
                  $"fuel={_car.Fuel:0} damage={_car.Damage:0} drilling={_car.IsDrilling} boosting={_car.Boosting} boostTotal={_boostSeconds:0.0}s " +
-                 $"top={_topSpeed / PixelsPerMeter * 3.6f:0}km/h longestAir={_longestAir:0.0}s landings={_perfectLandings}/{_cleanLandings}/{_roughLandings}/{_flops} kickers={_kickerJumps}/{_kickerLaunches} " +
+                 $"top={_topSpeed / PixelsPerMeter * 3.6f:0}km/h longestAir={_longestAir:0.0}s landings={_perfectLandings}/{_cleanLandings}/{_roughLandings}/{_flops} kickers={_kickerJumps}/{_kickerLaunches} longJumps={_longJumps}/{_jumpRecords}/{_longestJump:0.0}m " +
                  $"crashes={_crashFx.Hits} hardest={_crashFx.HardestHit / PixelsPerMeter * 3.6f:0}km/h sparks={_crashFx.SparkBursts} " +
                  $"cans={_cansTaken} heaps={_heapsTaken} smashed={_heapsSmashed} bestStreak={_bestStreak} " +
                  $"dash={(_dash.Visible ? $"{_dash.ShownKmh:0}km/h" : "hidden")} lines={_lines.Intensity:0.00} peakLines={_peakLines:0.00} wind={_sfx.WindLevel:0.00} rollOvers={_rollOvers} ice={_spray.IceSeconds:0.0}s slip={_spray.SlipSeconds:0.0}s bite={_spray.BiteSeconds:0.0}s trip={tripNow} reports={_tripsReported} card={(_card.Showing ? _card.ShownScore.ToString() : "hidden")} | " +
