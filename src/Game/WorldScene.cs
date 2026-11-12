@@ -336,6 +336,7 @@ public partial class WorldScene : Node2D
     // ---- Launch control (see SoftVehicle.UpdateLaunch) ------------------------------------------
 
     private float _enteredAt;
+    private float _nextStallLog;
     private int _stallLines, _perfectStarts, _goodStarts, _boggedStarts;
     private string _watchKind;
     private float _watchAt = -1f, _watchX;
@@ -416,8 +417,8 @@ public partial class WorldScene : Node2D
     {
         if (!_driving || _car.LaunchArmed || _stallLines >= 8) return;
         float since = _elapsed - _enteredAt;
-        if (since < 0.5f || since > 4.5f || _car.Speed > 60f) return;
-        if (since < 0.5f + _stallLines * 0.5f) return;
+        if (since < 0.5f || since > 4.5f || _car.Speed > 60f || _elapsed < _nextStallLog) return;
+        _nextStallLog = _elapsed + 0.5f;
         _stallLines++;
         GD.Print($"[stall] t={_elapsed:0.0}s {since:0.0}s after getting in: speed {_car.Speed:0} px/s pitch {_car.PitchDegrees():0} {_car.StallReport()}");
     }

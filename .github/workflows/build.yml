@@ -81,6 +81,9 @@ jobs:
           run "hill climb, starter car, 40 s" res://scenes/drive.tscn --quit-after 4800 -- --hillclimb --autodrive --design=starter
           run "hill climb, rocket car, 40 s"  res://scenes/drive.tscn --quit-after 4800 -- --hillclimb --autodrive --design=rocket
           run "free drive, driller, 40 s"     res://scenes/drive.tscn --quit-after 4800 -- --freedrive --autodrive --design=driller
+          # Same car, flat test track instead of the world: does the Scrap 4-Cylinder pickup stall there too?
+          run "free drive, Scrap 4-Cylinder, 10 s" res://scenes/drive.tscn --quit-after 1200 -- --freedrive --autodrive --design=scrap4
+          run "free drive, V8, 10 s"              res://scenes/drive.tscn --quit-after 1200 -- --freedrive --autodrive --design=v8
           exit $fail
 
       - name: Screenshots (software rendering, for review)

@@ -77,13 +77,33 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 67 | Depth gauge on the dashboard: a vertical bar with your record notch, so diving in the car feels like the speedometer | S | Open (new 2026-11-12; polish, ties depth to the car) |
 | 68 | Surface lift: a rope/elevator block you place in your shaft to ride back up, so deep trips don't end in a tedious climb | S–M | Open (new 2026-11-12; removes the most boring minute underground: coming back up) |
 | 69 | Crystal echo: a struck crystal rings with a chime whose pitch says how many more crystals are within 10 m | S | Open (new 2026-11-12; pure audio, a hot/cold hunt like the metal detector #9) |
-| 70 | Launch control: at a standstill hold handbrake + throttle, the revs sit on the limiter, let go at the green for a "PERFECT START" speed burst | S | Open (new 2026-11-12, twelfth session; top pick: a skill moment at the start of every trip, built on the new revs) |
+| 70 | Launch control: at a standstill hold handbrake + throttle, the revs sit on the limiter, let go at the green for a "PERFECT START" speed burst | S | **Built 2026-11-12** (PR #20: a launch charge fills the rev bar, green window at the top, PERFECT +18 km/h / GOOD +8 km/h / BOGGED, limiter bounce to retry) |
 | 71 | Garage rev test: placing an engine in the garage revs it once, so you hear the V8 before you pay for it | S | Open (new 2026-11-12; makes buying an engine a moment) |
 | 72 | Turbo part (copper + iron): a whistle that spools with the revs and a pssh on every upshift, extra torque above half revs | S–M | Open (new 2026-11-12; a part you hear and feel) |
 | 73 | Hanging crystals and stalactites on cavern ceilings (a flipped tile variant) | S | Open (new 2026-11-12; the Deep's ceilings are bare, crystals all point up) |
 | 74 | Ice drift: holding a sideways slide on ice for 1.5 s+ scores "DRIFT 2.1 s" on the trip report | S | Open (new 2026-11-12; turns plain-tyre ice from a nuisance into a trick) |
 | 75 | Ghost of your best trip: a see-through car replaying your best trip's drive next to you | M | Open (new 2026-11-12; instant rival on the road, like #20 for Hill Climb) |
+| 76 | Gate sprint: a timed 50 m dash from the garage pad to the gate flag, best time on the status line ("SPRINT 3.42 s, best 3.20") | S | Open (new 2026-11-12, thirteenth session; gives launch control a number to beat, Hill Climb Racing's hook in 5 seconds) |
+| 77 | Garage "too weak" warning: the stats panel turns red and says "won't climb hills" when an engine is too weak for the car's weight | S | Open (new 2026-11-12; the Scrap 4 in the starter pickup cannot leave the pad: a trap, not a choice) |
+| 78 | Burnout: holding a launch on the limiter for 2+ s spins the tyres, pours smoke and leaves black marks on the pad | S | Open (new 2026-11-12; pure show-off, makes waiting at the start fun) |
+| 79 | Falling star crate: now and then a glowing crate streaks down from the sky somewhere out in a biome, with a marker at the screen edge; first there gets the loot | M | Open (new 2026-11-12; a "go now!" event that turns an idle minute at the garage into a trip) |
+| 80 | Winch part: fire a cable at the ground ahead to drag the car out of a hole or up a ledge | M | Open (new 2026-11-12; turns "stuck" into a skill instead of a walk home) |
+| 81 | Rival truck: a slow bot truck drives the road; overtake it before the next kicker for "OVERTAKE" points | M | Open (new 2026-11-12; first moving thing on the road, NFS-lite without combat) |
 | 29 | Speedometer redline overdrive: holding the needle in the red for 3 s with the booster unlocks a "SONIC" call-out and a sonic-boom puff | S | Open (new 2026-11-12, cheap thrill) |
+
+## 2026-11-12 (thirteenth session)
+
+Looked at `shift_world_108.png` and `garage.png` and the last playtest lines (PR #19's engine work, merged at the start of this session). The car now *sounds* like effort, but the first second of every trip is still the dullest: you press D and the pickup creeps off the pad. Need for Speed and Mario Kart both turn that second into a skill test (the rev-at-the-lights start boost). The revs and limiter from PR #19 are exactly what a launch needs. And the log showed a trap: a pickup with the cheap Scrap 4-Cylinder sits at 0 km/h for 10 s at full throttle.
+
+- **Launch control** (S): hold Space + throttle at a standstill, let go in the green for a PERFECT START. Why fun: a tiny skill moment at the start of every trip, and every stop on the road. *Built.*
+- **Gate sprint** (S): a timed dash from the pad to the gate flag with a best time. Why fun: gives the perfect start a number to beat in five seconds.
+- **Garage "too weak" warning** (S): say so before you pay for an engine the car cannot carry. Why fun: removes a trap that feels like a bug.
+- **Burnout** (S): hold the launch too long and the tyres smoke and mark the pad. Why fun: showing off while you wait.
+- **Falling star crate** (M): a crate streaks down far away; race there for the loot. Why fun: an event that says "go now", the best "one more trip" reason.
+- **Winch part** (M): pull yourself out of holes. Why fun: getting stuck becomes a skill.
+- **Rival truck** (M): a slow bot truck on the road to overtake. Why fun: the road gets something alive on it.
+
+Best open picks for fun per effort right now: #76 gate sprint (S), #77 too-weak warning (S, with the Scrap 4 fix), #64 Crystal Lamp (S), #46 perfect chain (S), #68 surface lift (S–M), #79 falling star crate (M), then #65 deep critters and #56 lava (M).
 
 ## 2026-11-12 (twelfth session — polish)
 
