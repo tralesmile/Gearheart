@@ -420,6 +420,9 @@ public partial class SoftVehicle : Node2D, IVehicle
 
     public void Refuel() => Fuel = FuelCapacity;
 
+    /// <summary>Adds fuel (a can picked up on the road), up to the tank size.</summary>
+    public void AddFuel(float amount) => Fuel = Mathf.Min(FuelCapacity, Fuel + amount);
+
     /// <summary>Verlet integration with gravity, plus air control.</summary>
     public void Integrate(float dt)
     {

@@ -128,6 +128,20 @@ def treasure():
     return s
 
 
+def fuel():
+    """A fuel can grabbed: three quick glugs rising in pitch, then a bright two-note ding."""
+    n = int(SR * 0.55); t = np.arange(n) / SR
+    s = np.zeros(n)
+    for i, f in enumerate((180.0, 230.0, 300.0)):
+        start = int(SR * 0.07 * i); tt = t[: n - start]
+        sweep = f * (1 + 1.2 * tt)                                       # bubble: pitch rises as it pops
+        s[start:] += np.sin(2 * np.pi * np.cumsum(sweep) / SR) * np.exp(-tt * 28) * (1 - np.exp(-tt * 600))
+    for f, at in ((1046.5, 0.2), (1568.0, 0.27)):
+        start = int(SR * at); tt = t[: n - start]
+        s[start:] += 0.55 * (np.sin(2 * np.pi * f * tt) + 0.3 * np.sin(2 * np.pi * f * 2 * tt)) * np.exp(-tt * 9)
+    return s
+
+
 crash_rng = np.random.default_rng(31)   # separate stream: adding sounds never changes the older ones
 
 
@@ -144,4 +158,5 @@ if __name__ == "__main__":
     save("crunch", tail_fade(crunch()), 0.8)
     save("snap", tail_fade(snap()), 0.6)
     save("treasure", tail_fade(treasure(), 80), 0.6)
+    save("fuel", tail_fade(fuel(), 60), 0.6)
     print("sounds written to", os.path.abspath(OUT))

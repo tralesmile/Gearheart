@@ -5,7 +5,7 @@ namespace Gearheart.Core;
 /// <summary>The game's textures. Layouts are described in docs/ART.md.</summary>
 public static class Art
 {
-    private static Texture2D _tiles, _player, _parts, _wheels, _garage, _decor;
+    private static Texture2D _tiles, _player, _parts, _wheels, _garage, _decor, _pickups;
 
     public static Texture2D Tiles => _tiles ??= GD.Load<Texture2D>("res://assets/art/tiles.png");
     public static Texture2D Player => _player ??= GD.Load<Texture2D>("res://assets/art/player.png");
@@ -15,6 +15,10 @@ public static class Art
 
     public static Texture2D Decor => _decor ??= GD.Load<Texture2D>("res://assets/art/decor.png");
 
+    /// <summary>Roadside pickups: fuel can, then scrap heaps for the meadow, the Wastes and the Frozen North.</summary>
+    public static Texture2D Pickups => _pickups ??= GD.Load<Texture2D>("res://assets/art/pickups.png");
+
+    public const int PickupCell = 32;
     public const int DecorWidth = 48, DecorHeight = 64;
     public const int PartSize = 22;
     public const int WheelCell = 56;
