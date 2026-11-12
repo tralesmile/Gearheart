@@ -2,6 +2,41 @@
 
 Newest entry first. Each session: what was built and why, how it was verified, what is not verified, and what comes next.
 
+## 2026-11-12, about 17:25–18:15 UTC — Merged air cam (PR #25), then the Turbocharger (PR #26)
+
+**Started by** checking for unfinished work: PR #25 (air cam) was open, its last run (43267689584, a re-check after the one-off exit crash) still going; it finished green at 17:30 with a log matching the PR (61 big-air touchdowns, 0 frames with the car off screen, no errors), so I squash-merged it (ccb69f3).
+
+**Built — Turbocharger** (`turbo` in `data/parts/parts.json`, `src/Vehicles/SoftVehicle.Turbo.cs`, `WorldScene.Turbo.cs`, dashboard, art and sounds)
+
+- **The part**: a new block category, Turbo (2 Iron + 3 Copper, mass 0.4), meant to sit on top of the engine. Boost (0..1) builds with the throttle held past half, at a rate set by the revs (none below 0.3 of the redline, full rate 1/0.9 s from 0.8 up); off the throttle it bleeds at 2.6/s, each upshift costs 0.25. At full boost: +40% engine torque, +12% top spin, +30% fuel use. Only the best turbo on a car counts.
+- **Feel and sound**: a whistle loop (`turbo.wav`: 2.3 kHz whine with harmonics and a band of rushing air) whose pitch and volume rise with the boost; lifting off with 0.45+ boost plays the blow-off (`blowoff.wav`: a sharp hiss with a fluttering tail) and puffs air out of the turbo. A copper snail-shell sprite (`parts.png` cell 13); the game draws a compressor wheel on it that spins with the boost and glows orange near full. A **BOOST** arc inside the speedometer fills pale blue to hot orange and pulses at full. The first full boost of a session says "TURBO! Full boost: +40% torque / Lift off to hear it blow off".
+- **Launch control spools it**: an armed launch holds the revs high, so the turbo is spooled when you let go — a plain start feels the lag, a perfect launch does not.
+- **Exit crash fixed**: world generation (and stash/heap loot, the test terrain, ore boulders) now disposes its `FastNoiseLite` / `RandomNumberGenerator` objects (`using var`). This PR's first run hit the same segmentation fault at exit that PR #25 saw once ("Leaked unsafe reference" for exactly these objects, then signal 11 after the Scrap 4 launch test had finished). The second run had no leak lines and no crash.
+- **CI**: `--design=turbo` (starter pickup + turbo on the V6); runs: world 40 s, launch control, Hill Climb 40 s; `[turbo]` lines (full boost, blow-offs), `turbo=peak … full …s blowoffs …` on `[autoplay]`; a screenshot run with `turbo_full_*` and `turbo_blowoff_*` frames.
+
+**Why this** — Brainstorm in `docs/IDEAS.md` (eighteenth session). Seven sessions in a row were the first seconds of a drive and air tricks; the garage had not had a part that changes how the car drives since the Rocket Booster, and Wastes copper bought only the booster and the V8. The roadmap asks for parts tied to each biome, the owner's D21 leans to "crafting and more parts" first, and a turbo is a part you hear and feel in the first second (Need for Speed's spool and blow-off). The previous session was feel, so this one is a feature.
+
+**Verified (CI runs 43271044239 — exit crash in an unrelated test, every scene still ran — and 43271644749, green)**
+
+- **Turbo pickup vs starter, same route, 40 s**: 2302.1 vs 2209.3 tiles (about 23 m further), top 55 vs 49 km/h, fuel 63 vs 70 left; full boost (0.9+) for 22.2 s of the 40, 8 blow-offs; 5 "full boost" events.
+- **Hill Climb**: **17.22 s** vs 19.18 s (starter) — 10% faster; rocket car 14.08 s.
+- **Launch**: perfect start +1 s 44 km/h / 8.5 m (starter 37 km/h / 7.6 m), +2 s 18.5 m (16.8 m); **20 m sprint 2.13 s** (starter 2.32 s; its second sprint 2.06 s). Plain start (lag): 11.0 m after 2 s vs 10.8 m, sprint 2.93 s vs 2.99 s.
+- **Screenshots**: `turbo_full_23.png` (turbo on the bonnet, compressor wheel, the BOOST arc lit orange on the dial, the TURBO! call-out), `turbo_blowoff_73.png` (the puff of air behind the turbo mid-jump), `garage.png` (the Turbo Pickup in the editor, cost "Iron 2, Copper 3").
+- **Nothing else changed**: starter 2209.3, left 465.7, spiked 424.9, Crystal Drill 1480.1, rocket 2552.7, all sprints and Hill Climb times identical to main. No errors.
+
+**Not verified / known issues**
+
+- Fun and sound are my judgement (D1). The whistle and blow-off are tuned by numbers only.
+- The bot's revs sit near the limiter a lot (the tyres spin), so the turbo is at full boost about half of a drive: the lag only shows at a standing start and after lifting off. It may feel like a flat +40%. Lengthening the spool (or spooling from road speed instead of revs) is the knob.
+- The garage stats panel still shows the plain engine torque (48 kNm); the part's info line says "+40% torque … at full boost".
+- The Hill Climb scene has no turbo whistle or BOOST arc (physics only).
+
+**Next**
+
+1. Overboost (S, IDEAS #107): hold full boost too long and the turbo overheats — makes lifting off a choice.
+2. Start-light gantry (S, #82), Gyro part (S, #94) or the new-part roll-out (S, #112).
+3. Crystal Lamp (S, #64), cave bats (S, #110), surface lift (S–M, #68), then the first underground danger (#65 / #56, M).
+
 ## 2026-11-12, about 16:20–17:35 UTC — Air cam (PR #25, feel session)
 
 **Started by** checking for unfinished work: no open pull requests; main's build after PR #24 (run 43257455503) was running and finished green. The branches `polish/dashboard-speed-smash` and `polish/engine-gearbox` belong to old merged PRs (left alone).

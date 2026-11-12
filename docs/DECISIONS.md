@@ -2,6 +2,19 @@
 
 Newest first. One entry per big decision: what, why, and what would make us revisit it.
 
+## 2026-11-12 — Turbocharger: the first part that reads the gearbox revs
+
+- **What:** a new block, the Turbocharger (`turbo`, category Turbo, 2 Iron + 3 Copper, mass 0.4). Boost pressure (0..1) builds while the throttle is held past half, at a rate set by the pretend gearbox's revs: nothing below 0.3 of the redline, the full rate (1 / 0.9 s) from 0.8 up. It bleeds at 2.6/s off the throttle, drops 0.25 on each upshift, and lifting off with 0.45+ boost blows off (sound and a puff). At full boost the engine has +40% torque and +12% top spin, and burns 30% more fuel. Only the best turbo on a car counts. The bot design `--design=turbo` is the starter pickup with the turbo on top of the V6.
+- **Why:** each biome should feed a part that changes how the car drives (roadmap), and Wastes copper only bought the booster and the V8. A turbo is the classic "new part, new car" moment, you hear it before you feel it, and its lag makes launch control matter more: armed launches hold the revs high, so the turbo spools on the line.
+- **Gearbox no longer show-only:** the gearbox was sound and dashboard only. The turbo is the first thing that reads its revs for physics. The gearbox does not read the turbo back, so there is no loop; but changing the gearbox's shift points now changes how fast the turbo spools.
+- **Revisit when:** you have driven it (D1). If it feels like a flat +40% (the revs sit high most of the time, so it is at full boost about half of a drive), lengthen `spoolTime` or raise `TurboSpoolFromRpm`; if it is too strong for 3 Copper, lower `turboTorque` in `data/parts/parts.json`.
+
+## 2026-11-12 — World generation disposes its noise and random objects
+
+- **What:** `FastNoiseLite` and `RandomNumberGenerator` objects made during world generation (and for stash loot, heap loot, the test terrain and ore boulders) are now `using var`, so they are freed at once instead of by the .NET garbage collector.
+- **Why:** two CI runs in a row (PR #25's docs run and this PR's first run) crashed with a segmentation fault *after* a test had finished, right after "Leaked unsafe reference" errors for exactly these objects: the finalizer freed them while Godot was shutting down.
+- **Revisit when:** the exit crash comes back with other object types in the leak list.
+
 ## 2026-11-12 — Air cam: the camera looks where you are going and frames the landing
 
 - **What:** while driving, the camera aims ahead of the car by 0.22 s of travel (at most 220 px, about 3.4 m), plus the distance the Camera2D's own smoothing would otherwise trail behind (speed / smoothing speed), so the car sits left of centre driving right and the road ahead gets the room. On a jump, a plain ballistic arc (gravity only, from the body centre 44 px down, against the tiles and kicker ramps) predicts the landing; if the whole flight is predicted to last 0.7 s or more, the camera eases (over about a third of a second) toward the midpoint of car and landing and zooms out until both fit with a margin, but never below 0.85 zoom. A soft dark shadow sits on the ground at the predicted landing. On touchdown it eases back in. The car is always clamped to stay on screen.
