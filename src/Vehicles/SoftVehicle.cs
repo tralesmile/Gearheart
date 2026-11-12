@@ -87,6 +87,25 @@ public partial class SoftVehicle : Node2D, IVehicle
     /// <summary>Tilt strength with every wheel off the ground: 9 rad/s² x 1.5 turns a controlled backflip into
     /// about 1.35 s of air (at 1x it needed 1.7 s, longer than nearly every jump). See docs/DECISIONS.md.</summary>
     public const float AirFlipBoost = 1.5f;
+    /// <summary>Holding Q or E in the air (rather than tapping) ramps the rotation up by this much more, from
+    /// <see cref="AirHoldDelay"/> s into the hold over <see cref="AirHoldRamp"/> s: taps stay gentle for lining up a
+    /// landing, a held key commits to a flip (a full turn in about 0.85 s).</summary>
+    public const float AirHoldBoost = 0.8f, AirHoldDelay = 0.15f, AirHoldRamp = 0.3f;
+    private float _airHold;
+    private int _airHoldSign;
+
+    /// <summary>How much stronger tilt is with every wheel off the ground, for this substep.</summary>
+    private float AirSpinBoost(float tilt, float dt)
+    {
+        int sign = tilt > 0.5f ? 1 : tilt < -0.5f ? -1 : 0;
+        if (sign == 0 || sign != _airHoldSign)
+        {
+            _airHoldSign = sign;
+            _airHold = 0f;
+        }
+        else _airHold += dt;
+        return AirFlipBoost + AirHoldBoost * Mathf.Clamp((_airHold - AirHoldDelay) / AirHoldRamp, 0f, 1f);
+    }
     private const float RockBuffer = 0.4f;        // seconds a tap made in the air waits for touchdown
     public const int RockChainMax = 5;
     private const float RockFreeDistance = 96f;   // px sideways from the stuck point (1.5 m)
@@ -734,7 +753,8 @@ public partial class SoftVehicle : Node2D, IVehicle
         float tilt = _input.Tilt;
         if (Stuck && !_selfRighting) tilt *= RockTiltBoost;
         // Flying (no wheel down): rotation is stronger, so a full flip fits in a big jump.
-        else if (!_selfRighting && Airborne) tilt *= AirFlipBoost;
+        else if (!_selfRighting && Airborne) tilt *= AirSpinBoost(tilt, dt);
+        else _airHoldSign = 0;
         // If it stays stuck (wedged on its roof in a dip), the push grows until it rolls over.
         if (_selfRighting && !Parked) tilt = -Mathf.Sign(PitchDegrees()) * Mathf.Min(8f, 2.5f + 2.2f * _rightingTime);
 

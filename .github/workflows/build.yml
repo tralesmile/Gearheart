@@ -53,6 +53,7 @@ jobs:
             grep -E "\[(launch|stall)\]" smoke.log | head -16
             grep "\[sprint\]" smoke.log | head -12
             grep "\[rock\]" smoke.log | head -30
+            grep "\[flip\]" smoke.log | head -30
             # "resources still in use at exit" is a shutdown notice about cached textures and sounds, not a fault.
             if grep -E "ERROR|Unhandled exception|SCRIPT ERROR|System\.[A-Za-z]*Exception" smoke.log | grep -v "still in use at exit" | grep .; then
               echo "::error::Smoke test failed: $name"

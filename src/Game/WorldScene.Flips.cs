@@ -143,7 +143,7 @@ public partial class WorldScene
     /// <summary>
     /// --fliptest: straight into the car and out east (the rocket car boosts on the ground). Off every
     /// kicker it tries a flip like a player would: hold the tilt until a full turn is close, then
-    /// counter-tilt to stop the spin level. Odd kickers backflip, even ones frontflip. No boost in the air.
+    /// counter-tilt to stop the spin level. Odd kickers backflip, even ones frontflip. No boost during a flip.
     /// </summary>
     private void RunFlipBot()
     {
@@ -154,7 +154,7 @@ public partial class WorldScene
         }
         _car.AutoThrottle = 1f;
         bool air = _car.Airborne && !_car.SelfRighting && !_bodyDown;
-        _car.AutoBoost = _car.HasBooster && !air;
+        _car.AutoBoost = _car.HasBooster && _flipBotTarget == 0f;   // no thrust while spinning
         if (!air)
         {
             _car.AutoTilt = 0f;
