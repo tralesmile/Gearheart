@@ -13,12 +13,12 @@ Newest entry first. Each session: what was built and why, how it was verified, w
 
 **Why this** — Brainstorm in `docs/IDEAS.md`: the trip report gave every trip a score, but every trip is the same trip (hold D east, smash, come back). Nothing pushes you west, underground or into the air. It was "Next" item 1 in the last worklog and the top-ranked open idea, and a player meets it on their first trip.
 
-**Verified (CI run 43161562839, green; second run on the PR for the fixes below)**
+**Verified (CI runs 43161562839 and 43162432585, both green)**
 
-- Trip test: trip 1 goal "Go 50 m out" done 4.1 s into the trip at 50 m; report 1 = 316 (same rows as before) + 120 goal = **436**, row "Trip goal: Go 50 m out -> +120 DONE". Trip 2 goal "Reach the Frozen North" (the bot drives east): report 2 row "Reach the Frozen North (0/95 m) -> +0 MISSED", score 377 against best 436, so trip 2 is no longer a new best (it was before the bonus) — correct behaviour. Trip 3's goal on the card's status line: "Next trip goal: Hit 50 km/h".
+- Trip test: trip 1 goal "Go 50 m out" done 4.1 s into the trip at 50 m; report 1 = 316 (same rows as before) + 120 goal = **436**, row "Trip goal: Go 50 m out -> +120 DONE". Trip 2 goal "Reach the Frozen North" (the bot drives east): report 2 row "Reach the Frozen North (0/95 m) -> +0 MISSED", score 377 against best 436, so trip 2 is no longer a new best (it was before the bonus) — correct behaviour. Trip 3's goal on the status line beside the card: "Next trip goal: Hit 55 km/h" (best 48 km/h; it read 50 before the round-up fix).
 - World runs: starter car done at 50 m after 4.4 s; left run done at −50 m after 11.0 s (the west side counts); rocket after 7.2 s; crash test after 4.4 s; drill car (tunnelling) never gets 50 m out in 40 s, so not done (expected).
 - Screenshots: `goal_done_trip_71.png` (GOAL DONE! call-out, green "GOAL DONE Go 50 m out +120" line), `goal_start_trip_274.png` (TRIP GOAL call-out, "GOAL Reach the Frozen North 0/95 m"), `trip_245.png` (DONE row, score 436, "Next trip goal: Reach the Frozen North"), `trip_611.png` (MISSED row).
-- Run 1 showed two problems, fixed in the second commit: the MISSED row's text was cut off ("(0/95"), now drawn a size smaller; and "BIG AIR" replaced the TRIP GOAL call-out within half a second in two runs, now stunt call-outs wait. The speed target now rounds up so it is always above your best.
+- Run 1 showed two problems, fixed in the second commit: the MISSED row's text was cut off ("(0/95"), now drawn a size smaller; and "BIG AIR" replaced the TRIP GOAL call-out within half a second in two runs, now stunt call-outs wait. The speed target now rounds up so it is always above your best. Run 2: `goal_start_world_128.png` now shows "TRIP GOAL / Go 50 m out" while the car is in the air (BIG AIR waited), and `trip_611.png` shows the whole "Reach the Frozen North (0/95 m)" with the MISSED tag. All other numbers unchanged: Hill Climb 18.97 s and 15.25 s, trip scores 436 and 377.
 
 **Not verified / known issues**
 
