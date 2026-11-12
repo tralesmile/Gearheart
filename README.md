@@ -35,7 +35,7 @@ A 2D side-view sandbox where you mine, craft and build vehicles part by part, th
 | --- | --- |
 | A / D | Drive |
 | Q / E | Tilt (air control, or to point the drill down) |
-| Space | Handbrake |
+| Space | Handbrake (hold it with D/A at a standstill for launch control) |
 | Shift | Rocket boost (needs a Rocket Booster part; burns fuel fast) |
 | X | Drill on / off |
 | F | Get out |
@@ -44,6 +44,8 @@ A 2D side-view sandbox where you mine, craft and build vehicles part by part, th
 **The loop:** mine ore by hand → open the garage → spend materials on parts (a Drill Head costs 4 Scrap and 2 Iron) → drive further and dig deeper for Iron and Copper. Scrap is shallow, Iron starts about 2 m down, Copper about 5 m down. It gets dark underground; you carry a lamp.
 
 **Engines you can hear:** every engine part has its own sound — the Scrap 4-Cylinder buzzes and rattles, the V6 hums, the V8 burbles — and a pretend gearbox (4, 5 or 6 gears) makes the note climb, drop at each shift and climb again. The dashboard shows the gear over a rev bar that blinks red on the limiter (free-spinning wheels in the air hit it). Floor it through a shift or lift off at high revs and the exhaust pops a flame; getting in cranks the starter. The gearbox is sound and show only: it does not change how the car drives.
+
+**Launch control:** stopped? Hold Space and D (or A): the revs climb up the rev bar and the gear box shows "L". Let go of Space when the bar reaches the green window at the top ("GO") for a **PERFECT START** (+18 km/h and an exhaust pop); a bit early is a GOOD START (+8 km/h), far too early is BOGGED DOWN. Hold on past the top and the revs bounce off the limiter and climb again, so you can wait for the next window.
 
 **Rocket Booster:** 2 Scrap, 2 Iron and 3 Copper buy a booster for the back of the car. Hold Shift (or RB / X on a gamepad) for thrust: long jumps, steep hills and spectacular crashes. Long jumps get a "BIG AIR" call-out with the airtime, and hard landings and crashes shake the screen and throw sparks.
 
@@ -75,7 +77,7 @@ The world, your materials and your car are saved automatically (`user://world.bi
 
 ## Automated playtests
 
-Every build runs the game headless at a fixed 120 FPS and fails on any error: a bot walks, mines and places blocks in the world, then drives the car (once with the starter pickup, once tunnelling with a drill car); plus the garage, the physics lab, the Hill Climb and the old boulder test. The build also renders real screenshots with software graphics and pushes them to the `screenshots` branch. Progress lines (`[autoplay]`, `[race]`, `[mining]`, `[stunt]`, `[crash]`, `[stash]`, `[pickup]`, `[trip]`, `[ice]`, `[landing]`, `[kicker]`, `[engine]` (starter, shifts, exhaust pops; `--design=v8` and `--design=scrap4` swap the starter's engine); `--crashtest` drops the car from 15 m, `--stashtest` buries stashes under the bot's pickaxe, `--triptest` makes two out-and-back drives for the trip report, `--icetest` lays 40 m of ice by the garage and drives across it, for plain and spiked tyres; `--jumptest` plants long-jump record flags before driving: one to beat, the rest out of reach) appear in the build log. Run one yourself:
+Every build runs the game headless at a fixed 120 FPS and fails on any error: a bot walks, mines and places blocks in the world, then drives the car (once with the starter pickup, once tunnelling with a drill car); plus the garage, the physics lab, the Hill Climb and the old boulder test. The build also renders real screenshots with software graphics and pushes them to the `screenshots` branch. Progress lines (`[autoplay]`, `[race]`, `[mining]`, `[stunt]`, `[crash]`, `[stash]`, `[pickup]`, `[trip]`, `[ice]`, `[landing]`, `[kicker]`, `[engine]` (starter, shifts, exhaust pops; `--design=v8` and `--design=scrap4` swap the starter's engine), `[launch]` (launch-control starts and plain starts: speed and distance 0.5, 1 and 2 s after; `--launchtest` gets straight in and lets go in the green after one limiter bounce, `--launchearly` lets go far too early), `[stall]` (per-wheel numbers when a car does not move off after getting in); `--crashtest` drops the car from 15 m, `--stashtest` buries stashes under the bot's pickaxe, `--triptest` makes two out-and-back drives for the trip report, `--icetest` lays 40 m of ice by the garage and drives across it, for plain and spiked tyres; `--jumptest` plants long-jump record flags before driving: one to beat, the rest out of reach) appear in the build log. Run one yourself:
 
 ```
 godot --headless --path . --fixed-fps 120 res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay
