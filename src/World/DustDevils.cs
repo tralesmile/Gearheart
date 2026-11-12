@@ -41,7 +41,7 @@ public partial class DustDevils : Node2D
     public const int Zones = 3;
     private const float Ts = TileWorld.TileSize;
     private const float DrawDistance = 2600f;
-    private const int Grains = 90;
+    private const int Grains = 160;
 
     public TileWorld World;
 
@@ -95,7 +95,7 @@ public partial class DustDevils : Node2D
         {
             _grainU[i] = Mathf.Pow(_rng.Randf(), 0.8f);
             _grainA[i] = _rng.RandfRange(0f, Mathf.Tau);
-            _grainS[i] = _rng.RandfRange(2f, 5.5f);
+            _grainS[i] = _rng.RandfRange(3f, 6.5f);
             _grainR[i] = _rng.RandfRange(0.75f, 1.15f);
         }
         _front = new Node2D { Name = "Front", ZIndex = 4 };   // over the car and the player, under sparks
@@ -243,19 +243,53 @@ public partial class DustDevils : Node2D
 
     public override void _Draw() => DrawLayer(this, false);
 
-    private static readonly Color Sand = new(0.87f, 0.74f, 0.5f), SandDark = new(0.69f, 0.55f, 0.34f), SandLight = new(0.96f, 0.88f, 0.68f);
+    private static readonly Color Sand = new(0.87f, 0.74f, 0.5f), SandLight = new(0.97f, 0.9f, 0.7f);
+    private static readonly Color Dust = new(0.66f, 0.5f, 0.31f), DustDark = new(0.5f, 0.36f, 0.21f);
+
+    /// <summary>Horizontal sway of the column at height fraction u (0 = foot, 1 = top).</summary>
+    private static float Sway(DustDevil d, float u) =>
+        Mathf.Sin(d.Phase * 1.3f + u * 3.2f + d.Index) * 22f * u + Mathf.Sin(d.Phase * 0.7f) * 10f * u;
+
+    /// <summary>Radius of the funnel at height fraction u: narrow at the foot, wide at the top.</summary>
+    private static float FunnelRadius(DustDevil d, float u) => d.Radius * (0.3f + 0.95f * Mathf.Pow(u, 1.2f));
 
     /// <summary>
-    /// The column: grains on rings that widen with height, sweeping round faster near the ground,
-    /// the whole thing swaying. Grains on the far side of a ring are drawn behind the car (darker),
-    /// grains on the near side in front.
+    /// The column. Behind the car: a tapering funnel of dusty slices with darker edges and lighter
+    /// bands that climb as it turns, and a haze at its foot. In front: grains on rings sweeping round
+    /// (faster near the ground), bits of debris, a thin veil, and the sand it kicks up.
     /// </summary>
     private void DrawLayer(CanvasItem on, bool front)
     {
         foreach (var d in _devils)
         {
             if (!d.Alive || d.Strength < 0.02f || Mathf.Abs(d.X - Focus.X) > DrawDistance) continue;
-            float s = d.Strength, h = d.Height, r0 = d.Radius;
+            float s = Mathf.Clamp(d.Strength * 1.25f, 0f, 1f), h = d.Height, r0 = d.Radius;
+            const float slice = 6f;
+            int slices = Mathf.CeilToInt(h / slice);
+            for (int k = 0; k < slices; k++)
+            {
+                float u = (k + 0.5f) / slices;
+                float r = FunnelRadius(d, u) * (1f + 0.06f * Mathf.Sin(d.Phase * 5f + u * 9f) + 0.07f * Mathf.Sin(k * 1.7f + d.Phase * 9f));   // ragged edges
+                float cx = d.X + Sway(d, u);
+                float y = Mathf.Round(d.GroundY - (k + 1) * slice);
+                float fade = u > 0.8f ? (1f - u) / 0.2f : 1f;   // the top frays out
+                // Bands climbing up the funnel as it turns.
+                float band = 0.5f + 0.5f * Mathf.Sin(u * 18f - d.Phase * 7f * d.Spin);
+                if (!front)
+                {
+                    on.DrawRect(new Rect2(Mathf.Round(cx - r), y, Mathf.Round(2f * r), slice), Dust with { A = s * fade * (0.42f + 0.18f * band) });
+                    on.DrawRect(new Rect2(Mathf.Round(cx - r), y, 4f, slice), DustDark with { A = s * fade * 0.35f });
+                    on.DrawRect(new Rect2(Mathf.Round(cx + r - 4f), y, 4f, slice), DustDark with { A = s * fade * 0.35f });
+                    // A lighter streak sweeping across the face.
+                    float sweep = Mathf.Sin(d.Phase * 6f * d.Spin + u * 5f);
+                    on.DrawRect(new Rect2(Mathf.Round(cx + sweep * r * 0.7f - 6f), y, 12f, slice), SandLight with { A = s * fade * 0.35f * band });
+                }
+                else
+                {
+                    on.DrawRect(new Rect2(Mathf.Round(cx - r * 0.85f), y, Mathf.Round(1.7f * r), slice), Sand with { A = s * fade * 0.12f });
+                }
+            }
+
             for (int i = 0; i < Grains; i++)
             {
                 float u = _grainU[i];
@@ -263,41 +297,41 @@ public partial class DustDevils : Node2D
                 float a = _grainA[i] + d.Phase * speed;
                 float depth = Mathf.Sin(a);   // > 0: near side
                 if ((depth > 0f) != front) continue;
-                float ring = r0 * (0.28f + 0.95f * Mathf.Pow(u, 1.25f)) * _grainR[i];
-                float sway = Mathf.Sin(d.Phase * 1.3f + u * 3.2f + d.Index) * 18f * u + Mathf.Sin(d.Phase * 0.7f) * 8f * u;
-                float x = d.X + sway + Mathf.Cos(a) * ring;
-                float y = d.GroundY - u * h - 6f + Mathf.Sin(a * 2f + i) * 4f;
-                float alpha = s * (0.75f - 0.45f * u) * (front ? 0.85f : 0.6f);
-                Color c = (front ? (i % 3 == 0 ? SandLight : Sand) : SandDark) with { A = alpha };
-                float size = Mathf.Round(_grainS[i] * (0.7f + 0.6f * u));
-                on.DrawRect(new Rect2(Mathf.Round(x), Mathf.Round(y), size, size), c);
+                float ring = FunnelRadius(d, u) * 1.08f * _grainR[i];
+                float x = d.X + Sway(d, u) + Mathf.Cos(a) * ring;
+                float y = d.GroundY - u * h - 4f + Mathf.Sin(a * 2f + i) * 5f;
+                float alpha = s * (0.95f - 0.4f * u);
+                Color c = front ? (i % 3 == 0 ? SandLight : Sand) : DustDark;
+                float size = Mathf.Round(_grainS[i] * (0.8f + 0.7f * u));
+                on.DrawRect(new Rect2(Mathf.Round(x), Mathf.Round(y), size, size), c with { A = alpha });
                 // A streak behind fast grains near the ground, so the swirl reads as motion.
-                if (u < 0.45f && i % 2 == 0)
+                if (front && u < 0.5f && i % 2 == 0)
                 {
-                    float trail = -Mathf.Sin(a) * speed * 3f;
-                    on.DrawRect(new Rect2(Mathf.Round(x - trail), Mathf.Round(y + 1f), Mathf.Max(2f, size - 2f), Mathf.Max(1f, size - 3f)), c with { A = alpha * 0.5f });
+                    float trail = -Mathf.Sin(a) * speed * 4f;
+                    on.DrawRect(new Rect2(Mathf.Round(Mathf.Min(x, x - trail)), Mathf.Round(y + 1f), Mathf.Round(Mathf.Abs(trail)) + 2f, Mathf.Max(2f, size - 2f)), c with { A = alpha * 0.45f });
                 }
             }
+
             if (!front)
             {
                 // A haze at the foot, where the sand is thickest.
                 for (int k = 0; k < 5; k++)
                 {
-                    float w = r0 * (1.1f + 0.25f * k) + 8f * Mathf.Sin(d.Phase * 3f + k);
-                    on.DrawRect(new Rect2(Mathf.Round(d.X - w), Mathf.Round(d.GroundY - 10f - 6f * k), Mathf.Round(2f * w), 6f), Sand with { A = s * (0.32f - 0.05f * k) });
+                    float w = r0 * (0.9f + 0.3f * k) + 8f * Mathf.Sin(d.Phase * 3f + k);
+                    on.DrawRect(new Rect2(Mathf.Round(d.X - w), Mathf.Round(d.GroundY - 8f - 7f * k), Mathf.Round(2f * w), 7f), Sand with { A = s * (0.4f - 0.07f * k) });
                 }
             }
             else
             {
                 // A few bits of debris (twigs, a scrap of tin) whirling round higher up.
-                for (int k = 0; k < 4; k++)
+                for (int k = 0; k < 5; k++)
                 {
                     float a = d.Phase * (3.2f + 0.4f * k) * d.Spin + k * 1.7f;
-                    float u = 0.35f + 0.15f * k;
-                    float x = d.X + Mathf.Cos(a) * r0 * (0.4f + u);
+                    float u = 0.3f + 0.13f * k;
+                    float x = d.X + Sway(d, u) + Mathf.Cos(a) * FunnelRadius(d, u);
                     float y = d.GroundY - u * h + Mathf.Sin(a * 1.3f) * 10f;
                     var col = k % 2 == 0 ? new Color(0.35f, 0.26f, 0.16f, s) : new Color(0.55f, 0.55f, 0.58f, s);
-                    on.DrawRect(new Rect2(Mathf.Round(x), Mathf.Round(y), k % 2 == 0 ? 6f : 4f, k % 2 == 0 ? 2f : 4f), col);
+                    on.DrawRect(new Rect2(Mathf.Round(x), Mathf.Round(y), k % 2 == 0 ? 8f : 5f, k % 2 == 0 ? 3f : 5f), col);
                 }
             }
         }
@@ -306,7 +340,7 @@ public partial class DustDevils : Node2D
             {
                 if (Mathf.Abs(p.Pos.X - Focus.X) > DrawDistance) continue;
                 float sz = Mathf.Round(p.Size);
-                on.DrawRect(new Rect2(Mathf.Round(p.Pos.X), Mathf.Round(p.Pos.Y), sz, sz), Sand with { A = Mathf.Clamp(p.Life, 0f, 1f) * 0.6f });
+                on.DrawRect(new Rect2(Mathf.Round(p.Pos.X), Mathf.Round(p.Pos.Y), sz, sz), Sand with { A = Mathf.Clamp(p.Life, 0f, 1f) * 0.75f });
             }
     }
 }

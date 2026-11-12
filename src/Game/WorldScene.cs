@@ -200,7 +200,6 @@ public partial class WorldScene : Node2D
         AddChild(_sfx);
         _player.Placed += () => _sfx.Play("place");
         SetupBirds(garage.Position);
-        SetupDevils();
         _crashFx.Camera = _camera;
         _crashFx.Sfx = _sfx;
         _crashFx.Toast = text =>
@@ -224,6 +223,7 @@ public partial class WorldScene : Node2D
 
         BuildHud();
         StartClock();
+        SetupDevils();   // after the clock: a game started at midday has its devils up already
         LogStashes();
         LogPickups();
         GD.Print($"[world] ready: design=\"{GameSession.CurrentDesign.Name}\" autoplay={GameSession.AutoPlay} " +

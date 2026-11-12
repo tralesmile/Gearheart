@@ -136,7 +136,28 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 126 | Air Horn part (Copper + Scrap): a truck horn on the roof, scares birds from 30 m and plays a deep two-note blast; the starter keeps its beep | S | Open (new 2026-11-12; a joke part you show off, NFS-style personalisation) |
 | 127 | Night owls: an owl on some trees hoots at night, its eyes shine in the headlights, and it glides off when you honk | S | Open (new 2026-11-12; folds #118 glowing eyes into the birds system) |
 | 128 | Scrap gulls: a few crows drop onto a smashed scrap heap a few seconds later and pick at the bits | S | Open (new 2026-11-12; the world reacts to what you did; reuses the birds) |
+| 129 | Dust devils: midday whirlwinds wander The Wastes road; drive in and the car is lifted 2–3 m, slowed and twisted, then thrown out while the devil blows itself out | S–M | **Built 2026-11-12** (PR #29; twenty-first session, first hazard) |
+| 130 | Snow devils / spindrift in the Frozen North: low swirls of snow that push the car sideways on the ice | S | Open (new 2026-11-12, twenty-first session; reuses the devils, gives the north its own weather hazard) |
+| 131 | Devil rider records: "DEVIL RIDE 1.8 s · 3.2 m up" on landing, a best on the status line, a "Ride a dust devil" trip goal | S | Open (new 2026-11-12; turns the hazard into a stunt you chase; the goal shifts the bot's goal order) |
+| 132 | Sand-blasted paint: each devil ride scuffs the car's paint a shade lighter until the next repair | S | Open (new 2026-11-12; the car shows where it has been) |
+| 133 | Devil loot: a devil sometimes carries a scrap heap or a fuel can round and round; drive through to catch it | S | Open (new 2026-11-12; a reason to drive into one on purpose, a moving pickup) |
+| 134 | Heat haze over The Wastes at midday (a wobble on the far dunes) and a "forecast" line on the status bar at the garage ("dust devils from 10:30") | S | Open (new 2026-11-12; the clock gets a reason to look at it before a trip) |
+| 135 | Lightning storm at night in the Frozen North: strikes hit tall things and the car if you sit on a ridge top | M | Open (new 2026-11-12; danger tied to the night and the terrain) |
 | 29 | Speedometer redline overdrive: holding the needle in the red for 3 s with the booster unlocks a "SONIC" call-out and a sonic-boom puff | S | Open (new 2026-11-12, cheap thrill) |
+
+## 2026-11-12 (twenty-first session — first hazard)
+
+Merged PR #28 (birds) first: green, the bird lines and `birds_left_172.png` looked right. Then looked at `birds_world_248.png` (The Wastes) as a player. Twenty sessions built a rich toy: tricks, records, a clock, birds. But **nothing in the world can hurt you or push back**: the only danger is your own driving. The Wastes is a long road of sand where the most boring minute is holding D past the same dunes; the best moments (big air, flips, wild crashes) only happen at kickers. Danger and enemies are the one direction of the roadmap never started.
+
+- **Dust devils** (S–M, #129): on hot afternoons whirlwinds of sand wander The Wastes road, tall enough to see coming. Drive in and the car is lifted, slowed and twisted, then thrown out as the devil blows itself out. Why fun: a hazard that is also a free jump anywhere on the road; fight the spin with Q/E for a perfect landing or ride it into a flip; you can wait for one to wander off, or aim for it. It ties The Wastes to the clock (they only form 10:30–17:30). *Built.*
+- **Snow devils** (S, #130). Why fun: the north gets its own weather.
+- **Devil rider records** (S, #131). Why fun: "how high did it throw me?" becomes a number to beat.
+- **Sand-blasted paint** (S, #132). Why fun: the car tells the story of the trip.
+- **Devil loot** (S, #133). Why fun: a moving prize inside a hazard — risk for reward.
+- **Heat haze and a forecast** (S, #134). Why fun: plan the trip around the clock.
+- **Lightning storm** (M, #135). Why fun: a night danger you feel in your stomach on a ridge top.
+
+Best open picks for fun per effort now: #131 devil records (S), #133 devil loot (S), #123 vultures over strongboxes (S), #107 overboost (S), #117 biome nights (S), #82 start lights (S), then the first creature (#65 crystal mites or #118 glowing eyes into night critters, M).
 
 ## 2026-11-12 (twentieth session — polish and life)
 
