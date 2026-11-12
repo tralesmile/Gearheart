@@ -29,6 +29,9 @@ public sealed class Pickup
 public partial class RoadsidePickups : Node2D
 {
     public const float FuelAmount = 18f;
+
+    /// <summary>A can is only taken when at least this much room is in the tank, so it is not wasted.</summary>
+    public const float MinRoom = 6f;
     public const double RespawnSeconds = 150.0;
     private const float HiddenDistance = 1400f, DrawDistance = 1500f;
     private const float Ts = TileWorld.TileSize;
@@ -58,7 +61,7 @@ public partial class RoadsidePickups : Node2D
 
     /// <summary>
     /// Places pickups outwards from the garage on both sides, every 10–19 m, starting about 18 m out.
-    /// About 40% are fuel cans.
+    /// About 30% are fuel cans.
     /// </summary>
     public static List<Pickup> Place(TileWorld world)
     {
@@ -70,7 +73,7 @@ public partial class RoadsidePickups : Node2D
         foreach (int dir in new[] { 1, -1 })
         {
             for (int x = center + dir * rng.RandiRange(68, 80); x > 24 && x < TileWorld.Width - 24; x += dir * rng.RandiRange(40, 76))
-                list.Add(new Pickup { X = x, Kind = rng.Randf() < 0.4f ? PickupKind.FuelCan : PickupKind.ScrapHeap });
+                list.Add(new Pickup { X = x, Kind = rng.Randf() < 0.3f ? PickupKind.FuelCan : PickupKind.ScrapHeap });
         }
         return list;
     }
@@ -79,7 +82,7 @@ public partial class RoadsidePickups : Node2D
     public static List<(string Item, int Amount)> HeapLoot(int x)
     {
         var rng = new RandomNumberGenerator { Seed = (ulong)(uint)(x * 2654435761u) };
-        var loot = new List<(string, int)> { ("Scrap", rng.RandiRange(2, 4)) };
+        var loot = new List<(string, int)> { ("Scrap", rng.RandiRange(1, 3)) };
         Biome biome = TileWorld.BiomeAt(x);
         float roll = rng.Randf();
         if (biome == Biome.Desert && roll < 0.35f) loot.Add(("Copper", 1));

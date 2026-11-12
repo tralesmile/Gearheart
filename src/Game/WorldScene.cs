@@ -376,7 +376,7 @@ public partial class WorldScene : Node2D
                     }
                     continue;
                 }
-                if (_car.Fuel >= _car.FuelCapacity - 0.5f) continue;   // full: leave it for later
+                if (_car.Fuel > _car.FuelCapacity - RoadsidePickups.MinRoom) continue;   // nearly full: leave it for later
                 float before = _car.Fuel;
                 _car.AddFuel(RoadsidePickups.FuelAmount);
                 _pickups.Take(p);

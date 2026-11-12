@@ -9,9 +9,10 @@ All current art is **placeholder pixel art drawn by code** (`python3 tools/make_
 | `parts.png` | 22 x 22 px cells | In order of the `sprite` number in `data/parts/parts.json`: light frame, body panel, heavy frame, three engines, armor, bumper, fuel tank, drill block, cab, rocket booster (the nozzle and flame are drawn by the game) |
 | `wheels.png` | 56 x 56 px cells | Small (radius 16), standard (20), off-road (26), centred in the cell |
 | `garage.png` | 112 x 72 px | The garage shed, drawn at 2x |
+| `pickups.png` | 32 x 32 px cells, art standing on the bottom edge | Fuel can · scrap heap (meadow) · rusty scrap heap (The Wastes) · snowy scrap heap (Frozen North) |
 | `decor.png` | 48 x 64 px cells, art standing on the bottom edge | Oak, snowy pine, cactus, bush, flowers, grass tuft, desert rock, snowy rock |
 
-Sounds are in `assets/audio/` (22.05 kHz mono WAV, made by `python3 tools/make_sounds.py`): `engine`, `drill` and `boost` are one-second loops; `pick`, `break`, `place`, `pickup`, `thud`, `crunch`, `snap` and `treasure` (stash fanfare) are one-shots. Replace any file with a real recording of the same name.
+Sounds are in `assets/audio/` (22.05 kHz mono WAV, made by `python3 tools/make_sounds.py`): `engine`, `drill` and `boost` are one-second loops; `pick`, `break`, `place`, `pickup`, `thud`, `crunch`, `snap` `treasure` (stash fanfare) and `fuel` (fuel can glug and ding) are one-shots. Replace any file with a real recording of the same name.
 
 ## Using a free pack (Kenney and similar)
 
