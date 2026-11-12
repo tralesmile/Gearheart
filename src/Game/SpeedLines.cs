@@ -29,6 +29,7 @@ public partial class SpeedLines : Control
 
     private bool _seeded;
 
+    /// <param name="kmh">Sideways speed (falling straight down makes no streaks).</param>
     /// <param name="dir">+1 when the car moves right, -1 when it moves left.</param>
     public void Set(float kmh, float dir, bool boosting)
     {
@@ -82,12 +83,12 @@ public partial class SpeedLines : Control
         for (int i = 0; i < shown; i++)
         {
             float fromMiddle = Mathf.Abs(_pos[i].Y / h - 0.48f) * 2f;          // 0 at the car's height, 1 at the edges
-            float alpha = _intensity * (0.1f + 0.32f * fromMiddle);
+            float alpha = Mathf.Min(0.75f, _intensity * (0.22f + 0.5f * fromMiddle));
             float len = _len[i] * (0.4f + 0.9f * _intensity);
             var tail = _pos[i] + new Vector2(_dir * len, 0f);
             // A bright head fading into the tail.
-            DrawLine(_pos[i], _pos[i] + new Vector2(_dir * len * 0.35f, 0f), new Color(tint, alpha), 2f, true);
-            DrawLine(_pos[i] + new Vector2(_dir * len * 0.35f, 0f), tail, new Color(tint, alpha * 0.45f), 1.5f, true);
+            DrawLine(_pos[i], _pos[i] + new Vector2(_dir * len * 0.35f, 0f), new Color(tint, alpha), 2.5f, true);
+            DrawLine(_pos[i] + new Vector2(_dir * len * 0.35f, 0f), tail, new Color(tint, alpha * 0.5f), 1.5f, true);
         }
     }
 }

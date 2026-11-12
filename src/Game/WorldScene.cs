@@ -39,7 +39,7 @@ public partial class WorldScene : Node2D
     private const float StreakWindow = 2.5f;     // seconds between smashes that still chain
     private Dashboard _dash;
     private SpeedLines _lines;
-    private float _carDir = 1f, _dirCarX;
+    private float _carDir = 1f, _dirCarX, _carVx;
     private float _peakLines;
     private bool _linesLogged, _wasRighting;
     private int _rollOvers;
@@ -310,6 +310,7 @@ public partial class WorldScene : Node2D
         // Which way the car is travelling (for the wind streaks); ignore tiny jitters.
         float moved = _car.CenterPosition.X - _dirCarX;
         if (Mathf.Abs(moved) > 0.5f) _carDir = Mathf.Sign(moved);
+        if (dt > 0f) _carVx = Mathf.Lerp(_carVx, Mathf.Abs(moved) / dt, 1f - Mathf.Exp(-12f * dt));
         _dirCarX = _car.CenterPosition.X;
 
         _crashFx.Enabled = _driving;
@@ -661,12 +662,12 @@ public partial class WorldScene : Node2D
             _status.Modulate = _car.Boosting ? new Color(1f, 0.8f, 0.4f) : Colors.White;
             _dash.Visible = true;
             _dash.Set(kmh, _car.Fuel, _car.FuelCapacity, _car.Damage, _car.Boosting);
-            _lines.Set(kmh, _carDir, _car.Boosting);
+            _lines.Set(_carVx / PixelsPerMeter * 3.6f, _carDir, _car.Boosting);
             _peakLines = Mathf.Max(_peakLines, _lines.Intensity);
             if (GameSession.AutoPlay && !_linesLogged && _lines.Intensity > 0.6f)
             {
                 _linesLogged = true;
-                GD.Print($"[speed] streaks at {_lines.Intensity:0.00} at {kmh:0} km/h, wind {_sfx.WindLevel:0.00}, boosting={_car.Boosting} frame={Engine.GetFramesDrawn()}");
+                GD.Print($"[speed] streaks at {_lines.Intensity:0.00} at {_carVx / PixelsPerMeter * 3.6f:0} km/h sideways, wind {_sfx.WindLevel:0.00}, boosting={_car.Boosting} frame={Engine.GetFramesDrawn()}");
             }
         }
         else
@@ -704,6 +705,12 @@ public partial class WorldScene : Node2D
         }
         _topSpeed = Mathf.Max(_topSpeed, _car.Speed);
 
+        // Lying on the roof also has no wheels on the ground: that is not air time worth a cheer.
+        if (_car.SelfRighting)
+        {
+            _airTime = 0f;
+            return;
+        }
         if (_car.Airborne)
         {
             if (_airTime == 0f) _airStartSpeed = _car.Speed;
