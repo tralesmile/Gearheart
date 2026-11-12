@@ -146,7 +146,8 @@ public partial class TripCard : Control
             float age = _t - (RowStart + i * RowGap);
             float slide = Mathf.Max(0f, 1f - age * 8f) * 24f;
             DrawString(font, new Vector2(32f - slide, y), r.Label, HorizontalAlignment.Left, 150f, 19, Dim);
-            DrawString(font, new Vector2(184f - slide, y), r.Value, HorizontalAlignment.Left, W - 390f, 19, Ink);
+            // The goal row can be long ("Reach the Frozen North  (61/95 m)"): a size smaller so it fits before the tag.
+            DrawString(font, new Vector2(184f - slide, y), r.Value, HorizontalAlignment.Left, W - 390f, r.Tag != null ? 16 : 19, Ink);
             if (r.Tag != null)
             {
                 bool done = r.Tag == "DONE";

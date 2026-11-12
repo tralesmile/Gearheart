@@ -50,7 +50,7 @@ public sealed class TripGoal
             GoalKind.Heaps => Mathf.Clamp(3 + tripNumber / 3, 3, 8),
             GoalKind.Streak => tripNumber < 8 ? 3 : 4,
             GoalKind.Air => hasBooster ? 1.6f : 1.0f,
-            GoalKind.Speed => Mathf.Clamp(Mathf.Round((top + 4f) / 5f) * 5f, 40f, 110f),
+            GoalKind.Speed => Mathf.Clamp(Mathf.Ceil((top + 3f) / 5f) * 5f, 40f, 110f),
             GoalKind.Cans => 3,
             GoalKind.Copper => 2,
             GoalKind.Wastes or GoalKind.North => BiomeEdge,

@@ -2,6 +2,13 @@
 
 Newest first. One entry per big decision: what, why, and what would make us revisit it.
 
+## 2026-11-12 — Trip goals: a flat bonus, picked by trip number
+
+- **What:** each trip gets one goal from ten kinds (distance, reach The Wastes, reach the Frozen North, smash N heaps, SMASH xN streak, air time, top speed, fuel cans, find Copper, dig up a stash). The first trip ever is always "Go 50 m out". Later goals are picked from the trip number with a fixed hash (never the same kind twice in a row), so a given trip always gets the same goal and the bot runs are repeatable. Distance and speed targets sit just past your records (best × 1.15 + 10 m; best + 4 km/h); heaps grow from 3 to 8 with the trip count; air is 1.0 s, or 1.6 s with a Rocket Booster. A done goal adds a flat bonus row to the report (100–200 points by difficulty); a missed one shows how close you got and scores 0.
+- **Why a flat bonus, not "double points":** doubling the whole score would make the best trip mostly a matter of goal luck, and a goal like "grab 3 cans" would be worth more on a long trip than a short one. A flat bonus is about a third of a typical trip score: worth chasing, not the whole game.
+- **Choices:** the goal is shown before you leave ("Next trip goal" under the status line), so you can choose your direction at the gate. Trips too short to report do not use up the goal (the next attempt has the same one). No reroll yet. Save formats unchanged (no new saved fields).
+- **Revisit when:** you have played (D1): if goals feel like chores, add a reroll or a choice of two; if they feel good, add a goal streak multiplier (idea 35).
+
 ## 2026-11-12 — Trip report and trip score
 
 - **What:** a trip is the time between leaving the garage grounds (18 m from the middle of the pad, on foot or driving) and coming back (within 8 m, less than 3 m underground). Trips with something to show (20 m out, a heap, a stash or any haul) end with a report card and a score: 2 per metre of farthest distance, 1 per km/h of top speed, 4 per tenth of a second of the longest air, 10 per heap plus 15 per streak step above x1, 5 per fuel can, 100 per stash, haul 2/5/8 per Scrap/Iron/Copper, and 5 per crash or roll-over ("carnage", because crashes are a pillar, not a failure). The best score and the best of each stat are saved in `progress.json` (`bestTrip`); no world format change.

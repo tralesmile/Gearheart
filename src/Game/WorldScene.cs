@@ -668,6 +668,7 @@ public partial class WorldScene : Node2D
     private void Toast(string text)
     {
         _smashToast = false;
+        _goalToast = false;
         _toast.Text = text;
         _toastTime = 2f;
     }
@@ -796,6 +797,7 @@ public partial class WorldScene : Node2D
         // Out of the gate: the goal for this trip, big and centred.
         Toast($"TRIP GOAL\n{_trip.Goal.Text}");
         _toastTime = 2.6f;
+        _goalToast = true;
         _sfx.Play("tally", -6f, 0.05f, 0.9f);
         if (GameSession.AutoPlay)
             GD.Print($"[trip] start: left the garage grounds {(_driving ? "driving" : "on foot")} at t={_elapsed:0.0}s goal=\"{_trip.Goal.Text}\" kind={_trip.Goal.Kind} target={_trip.Goal.Target:0.##} bonus={_trip.Goal.Bonus} frame={Engine.GetFramesDrawn()}");
@@ -819,7 +821,7 @@ public partial class WorldScene : Node2D
         if (goal == null || !goal.Check(_trip, _elapsed - _trip.StartedAt)) return;
         Toast($"GOAL DONE!\n{goal.Text}   +{goal.Bonus}");
         _toastTime = 2.6f;
-        _smashToast = false;
+        _goalToast = true;
         _sfx.Play("record", -7f, 0.05f, 1.1f);
         _goalFlash = 1f;
         if (GameSession.AutoPlay)
@@ -827,6 +829,7 @@ public partial class WorldScene : Node2D
     }
 
     private float _goalFlash;
+    private bool _goalToast;       // the toast shows a goal call-out: stunt cheers wait until it has been read
 
     /// <summary>The gold goal line under the status: the next goal at the garage, progress on a trip, DONE when done.</summary>
     private void UpdateGoalLabel()
@@ -922,7 +925,7 @@ public partial class WorldScene : Node2D
         {
             _longestAir = Mathf.Max(_longestAir, _airTime);
             string praise = _airTime > 2.5f ? "MONSTER AIR" : _airTime > 1.6f ? "HUGE AIR" : "BIG AIR";
-            Toast($"{praise}!  {_airTime:0.0} s");
+            if (!_goalToast || _toastTime < 1.2f) Toast($"{praise}!  {_airTime:0.0} s");   // let a fresh goal call-out be read first
             _sfx.Play("pickup", -6f);
             if (GameSession.AutoPlay)
                 GD.Print($"[stunt] {praise.ToLowerInvariant()}: airborne {_airTime:0.00}s, took off at {_airStartSpeed / PixelsPerMeter * 3.6f:0} km/h, damage={_car.Damage:0}");
