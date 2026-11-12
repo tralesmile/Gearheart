@@ -2,6 +2,39 @@
 
 Newest entry first. Each session: what was built and why, how it was verified, what is not verified, and what comes next.
 
+## 2026-11-12, about 05:20–06:00 UTC — Trip goals (PR #13)
+
+**Built**
+
+- **One goal per trip** (`src/Game/TripGoal.cs`): ten kinds — go N m out, reach The Wastes, reach the Frozen North, smash N scrap heaps, a SMASH xN streak, N s of air in one jump, hit N km/h, grab N fuel cans, find N Copper, dig up a buried stash. The first trip ever is always "Go 50 m out"; later ones are picked from the trip number (never the same kind twice in a row), with targets that grow with your records (distance: best × 1.15 + 10 m; speed: just past your best; heaps 3 → 8; air 1.0 s, or 1.6 s with a booster). Bonus 100–200 points by difficulty.
+- **At the gate**: a gold "Next trip goal: Reach the Frozen North" line under the status line while you are at the garage, so you can choose your direction before leaving. Leaving the grounds pops a "TRIP GOAL" call-out with a click. On the way the line reads "GOAL  Reach the Frozen North  61/95 m"; when it is done: "GOAL DONE!" call-out, a short fanfare (`record` at a higher pitch), and the line turns green and flashes. Stunt call-outs wait 1.4 s so a fresh goal call-out can be read.
+- **Report**: a "Trip goal" row with a green DONE tag and the bonus, or a grey MISSED tag with how close you got. Card widened to 680×520 for the extra row.
+- **CI**: `goal=` on every `[trip] start` line, `[trip] goal done:` lines, goal fields on `[trip] report`, DONE/MISSED on report rows, and `goal_start_*` / `goal_done_*` screenshots. No save format change (nothing new is saved).
+
+**Why this** — Brainstorm in `docs/IDEAS.md`: the trip report gave every trip a score, but every trip is the same trip (hold D east, smash, come back). Nothing pushes you west, underground or into the air. It was "Next" item 1 in the last worklog and the top-ranked open idea, and a player meets it on their first trip.
+
+**Verified (CI runs 43161562839 and 43162432585, both green)**
+
+- Trip test: trip 1 goal "Go 50 m out" done 4.1 s into the trip at 50 m; report 1 = 316 (same rows as before) + 120 goal = **436**, row "Trip goal: Go 50 m out -> +120 DONE". Trip 2 goal "Reach the Frozen North" (the bot drives east): report 2 row "Reach the Frozen North (0/95 m) -> +0 MISSED", score 377 against best 436, so trip 2 is no longer a new best (it was before the bonus) — correct behaviour. Trip 3's goal on the status line beside the card: "Next trip goal: Hit 55 km/h" (best 48 km/h; it read 50 before the round-up fix).
+- World runs: starter car done at 50 m after 4.4 s; left run done at −50 m after 11.0 s (the west side counts); rocket after 7.2 s; crash test after 4.4 s; drill car (tunnelling) never gets 50 m out in 40 s, so not done (expected).
+- Screenshots: `goal_done_trip_71.png` (GOAL DONE! call-out, green "GOAL DONE Go 50 m out +120" line), `goal_start_trip_274.png` (TRIP GOAL call-out, "GOAL Reach the Frozen North 0/95 m"), `trip_245.png` (DONE row, score 436, "Next trip goal: Reach the Frozen North"), `trip_611.png` (MISSED row).
+- Run 1 showed two problems, fixed in the second commit: the MISSED row's text was cut off ("(0/95"), now drawn a size smaller; and "BIG AIR" replaced the TRIP GOAL call-out within half a second in two runs, now stunt call-outs wait. The speed target now rounds up so it is always above your best. Run 2: `goal_start_world_128.png` now shows "TRIP GOAL / Go 50 m out" while the car is in the air (BIG AIR waited), and `trip_611.png` shows the whole "Reach the Frozen North (0/95 m)" with the MISSED tag. All other numbers unchanged: Hill Climb 18.97 s and 15.25 s, trip scores 436 and 377.
+
+**Not verified / known issues**
+
+- Fun is my judgement: whether goals feel like a purpose or a chore needs you to play (D1).
+- Goals are fixed per trip number; there is no reroll. A trip too short to report keeps the same goal for the next attempt.
+- "Find N Copper" counts Copper gained anywhere on the trip (by hand, drill, heaps or stashes).
+- The goal does not show in the Hill Climb scene (trips are world-only).
+
+**Next**
+
+1. Snow/ice part (spiked tyres or tracks) from Frozen North iron (medium) — a new part that changes how the car drives; overdue on the roadmap, and "Reach the Frozen North" goals now send players there.
+2. Goal streak multiplier for consecutive goals (small).
+3. Smashable props per biome (cacti, snowmen, fences) feeding the streak (small).
+4. Landing grades and a perfect-landing speed kick (small).
+5. Tow home when out of fuel far away (small).
+
 ## 2026-11-12, about 04:20–05:00 UTC — Trip report card (PR #12)
 
 **Built**

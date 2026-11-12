@@ -120,7 +120,18 @@ jobs:
               f=$(printf "shots/trip/f%08d.png" $((n + d))); [ -f "$f" ] && cp "$f" keep/trip_$((n + d)).png
             done
           done
-          grep "\[trip\]" shots/trip.log | head -30
+          # Trip goals: the TRIP GOAL call-out leaving the gate, and the GOAL DONE moment.
+          for run in trip world left rocket; do
+            grep "\[trip\] start" shots/$run.log | head -2 | sed -E 's/.*frame=([0-9]+).*/\1/' | while read n; do
+              f=$(printf "shots/$run/f%08d.png" $((n + 5))); [ -f "$f" ] && cp "$f" keep/goal_start_${run}_$((n + 5)).png
+            done
+            grep "\[trip\] goal done:" shots/$run.log | head -2 | sed -E 's/.*frame=([0-9]+).*/\1/' | while read n; do
+              for d in 3 20; do
+                f=$(printf "shots/$run/f%08d.png" $((n + d))); [ -f "$f" ] && cp "$f" keep/goal_done_${run}_$((n + d)).png
+              done
+            done
+          done
+          grep "\[trip\]" shots/trip.log | head -40
           grep "\[speed\]" shots/*.log | head -5
           grep "\[pickup\]" shots/world.log | head -8
           for i in 28 32 36 40 45 50 60 75 95; do

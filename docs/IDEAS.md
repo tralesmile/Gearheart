@@ -37,12 +37,29 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 26 | Distance flags every 50 m with your best distance marked on the road ("BEST 312 m") | S | Open (new 2026-11-12) |
 | 27 | Nitro-style "perfect landing" boost: land clean on all wheels and get a short free speed kick | S | Open (new 2026-11-12; pairs with landing grades) |
 | 28 | Engine smoke and a coughing engine sound when damage is high, so the damage meter means something you can hear | S | Open (new 2026-11-12) |
-| 30 | Trip goal at the gate: one bonus objective per trip ("smash 8 heaps", "reach The Wastes", "2 s of air") worth double points on the report | S | Open (new 2026-11-12, next top pick: gives each trip a purpose) |
+| 30 | Trip goal at the gate: one bonus objective per trip ("smash 8 heaps", "reach The Wastes", "2 s of air") worth double points on the report | S | **Built 2026-11-12** (PR #13: ten kinds, flat bonus 100–200 instead of "double", targets grow with your records) |
+| 35 | Goal streak: finish goals on consecutive trips for a growing multiplier ("GOAL STREAK x3") shown at the gate | S | Open (new 2026-11-12, sixth session; top pick next to the snow tyres) |
+| 36 | Trophy shelf in the garage: records, goals done, stashes found and biomes reached as little trophies you can see grow | S | Open (new 2026-11-12) |
+| 37 | Homeward time trial: the drive back is timed against your best return from that distance | S | Open (new 2026-11-12) |
+| 38 | Reroll the trip goal at the garage for 2 Scrap | S | Open (new 2026-11-12, tiny; wait to see if goals feel forced) |
+| 39 | Weather patches per biome: a sandstorm in The Wastes and a blizzard in the north that cut sight and push the car | M | Open (new 2026-11-12) |
 | 31 | Tow home: out of fuel far away? Pay Scrap for a tow, and the trip report stamps it TOWED (score kept, haul taxed) | S | Open (new 2026-11-12) |
 | 32 | Launch ramp at the garage gate, so every trip starts with a jump | S | Open (new 2026-11-12) |
 | 33 | Best-moment snapshot on the trip card (frame of the biggest air or crash) | M | Open (new 2026-11-12) |
 | 34 | Engine sound follows the engine part (small engine buzzes, big V8 rumbles) | S | Open (new 2026-11-12) |
 | 29 | Speedometer redline overdrive: holding the needle in the red for 3 s with the booster unlocks a "SONIC" call-out and a sonic-boom puff | S | Open (new 2026-11-12, cheap thrill) |
+
+## 2026-11-12 (sixth session)
+
+Looked at `trip_611.png` and `left_330.png`. The trip report gives the end of a trip a number, but every trip is the same trip: hold D, smash what is on the road, come back. Nothing asks you to go *west* instead of east, to dig instead of drive, or to try a jump. The most boring minute is now the decision at the gate, because there is no decision. Hill Climb Racing and Tony Hawk both fix this with small missions that change what "a good run" means.
+
+- **Trip goal at the gate** (S): one objective per trip, shown before you leave, tracked on the way, a DONE or MISSED row on the report with a bonus. Why fun: each trip has a purpose and pushes you into a part of the game you skip (the Frozen North, a stash, a jump). *Built.*
+- **Goal streak** (S): finish goals on consecutive trips for a growing multiplier. Why fun: a reason not to give up on a hard goal, and a risk to keep.
+- **Trophy shelf in the garage** (S): your records and milestones as objects on a shelf. Why fun: visible progress you can look at between trips (The Sims' trophy/skill rewards, Terraria's boss trophies).
+- **Homeward time trial** (S): the drive back is timed against your best return. Why fun: the way home is the dullest part of a trip; a clock makes it a race.
+- **Goal reroll for 2 Scrap** (S): skip a goal you do not fancy. Why fun: choice; small Scrap sink.
+- **Weather patches** (M): sandstorm and blizzard zones that cut sight and push the car. Why fun: the biomes would feel dangerous and different, not just recoloured.
+- Still high: **snow/ice tyres** (#12) — a part that changes how the car drives on the ice patches; overdue on the roadmap.
 
 ## 2026-11-12 (fifth session)
 

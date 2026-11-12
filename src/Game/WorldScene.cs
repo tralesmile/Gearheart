@@ -58,6 +58,8 @@ public partial class WorldScene : Node2D
     private const float TripLeave = 18f, TripHome = 8f;   // metres from the middle of the garage pad
     private Trip _trip;
     private TripCard _card;
+    private TripGoal _nextGoal;    // shown at the garage before you leave; becomes the trip's goal
+    private Label _goalLabel;
     private int _tripsReported;
     private bool _farthestCheered;
     private int _tripLeg;          // --triptest bot: which leg of the two out-and-back trips
@@ -603,6 +605,13 @@ public partial class WorldScene : Node2D
         _status.CustomMinimumSize = new Vector2(820f, 0f);
         layer.AddChild(_status);
 
+        // The trip goal, in gold under the status line.
+        _goalLabel = Outlined(new Label { HorizontalAlignment = HorizontalAlignment.Right }, 19);
+        _goalLabel.SetAnchorsPreset(Control.LayoutPreset.TopRight);
+        _goalLabel.Position += new Vector2(-836f, 72f);
+        _goalLabel.CustomMinimumSize = new Vector2(820f, 0f);
+        layer.AddChild(_goalLabel);
+
         _toast = Outlined(new Label { HorizontalAlignment = HorizontalAlignment.Center }, 28);
         _toast.SetAnchorsPreset(Control.LayoutPreset.CenterTop);
         _toast.Position += new Vector2(-200f, 110f);
@@ -659,6 +668,7 @@ public partial class WorldScene : Node2D
     private void Toast(string text)
     {
         _smashToast = false;
+        _goalToast = false;
         _toast.Text = text;
         _toastTime = 2f;
     }
@@ -706,6 +716,7 @@ public partial class WorldScene : Node2D
                            (GameSession.StashesFound > 0 ? $"   Stashes found {GameSession.StashesFound}" : "");
         }
 
+        UpdateGoalLabel();
         _toast.Visible = !_card.Showing;   // the report card has the stage
         if (_toastTime > 0f)
         {
@@ -734,6 +745,7 @@ public partial class WorldScene : Node2D
         float away = Mathf.Abs(dx);
         if (_trip == null)
         {
+            _nextGoal ??= TripGoal.For((GameSession.BestTrip?.Trips ?? 0) + 1, GameSession.BestTrip, _car != null && _car.HasBooster);
             // The report card has the stage: coasting past the garage while it shows does not start a new trip.
             if (away > TripLeave && !_card.Showing) StartTrip();
             return;
@@ -748,6 +760,13 @@ public partial class WorldScene : Node2D
         float depth = (focus.Y / Ts - _world.SurfaceRow(Mathf.FloorToInt(focus.X / Ts))) * 0.25f;
         _trip.Deepest = Mathf.Max(_trip.Deepest, depth);
         if (_driving) _trip.NoteSpeed(_car.Speed / PixelsPerMeter * 3.6f);
+        if (dx > 0f) _trip.FarthestEast = Mathf.Max(_trip.FarthestEast, dx);
+        else _trip.FarthestWest = Mathf.Max(_trip.FarthestWest, -dx);
+        Biome here = TileWorld.BiomeAt(Mathf.FloorToInt(focus.X / Ts));
+        _trip.ReachedWastes |= here == Biome.Desert;
+        _trip.ReachedNorth |= here == Biome.Frozen;
+        CountTrip(_trip);
+        UpdateGoal();
 
         // Passing your farthest point ever: a cheer, like the best-distance flag in Hill Climb Racing.
         TripBest best = GameSession.BestTrip;
@@ -770,10 +789,75 @@ public partial class WorldScene : Node2D
             StartedAt = _elapsed,
             HeapsAtStart = _heapsTaken, CansAtStart = _cansTaken, CrashesAtStart = _crashFx.Hits,
             RollOversAtStart = _rollOvers, StashesAtStart = GameSession.StashesFound,
+            Goal = _nextGoal ?? TripGoal.For((GameSession.BestTrip?.Trips ?? 0) + 1, GameSession.BestTrip, _car != null && _car.HasBooster),
         };
+        _nextGoal = null;
         foreach (string item in Trip.HaulItems) _trip.MaterialsAtStart[item] = GameSession.Count(item);
         _farthestCheered = false;
-        if (GameSession.AutoPlay) GD.Print($"[trip] start: left the garage grounds {(_driving ? "driving" : "on foot")} at t={_elapsed:0.0}s");
+        // Out of the gate: the goal for this trip, big and centred.
+        Toast($"TRIP GOAL\n{_trip.Goal.Text}");
+        _toastTime = 2.6f;
+        _goalToast = true;
+        _sfx.Play("tally", -6f, 0.05f, 0.9f);
+        if (GameSession.AutoPlay)
+            GD.Print($"[trip] start: left the garage grounds {(_driving ? "driving" : "on foot")} at t={_elapsed:0.0}s goal=\"{_trip.Goal.Text}\" kind={_trip.Goal.Kind} target={_trip.Goal.Target:0.##} bonus={_trip.Goal.Bonus} frame={Engine.GetFramesDrawn()}");
+    }
+
+    /// <summary>The trip's running counts (heaps, cans, stashes, haul) from the counters at its start.</summary>
+    private void CountTrip(Trip t)
+    {
+        t.Heaps = _heapsTaken - t.HeapsAtStart;
+        t.Cans = _cansTaken - t.CansAtStart;
+        t.Crashes = _crashFx.Hits - t.CrashesAtStart;
+        t.RollOvers = _rollOvers - t.RollOversAtStart;
+        t.Stashes = GameSession.StashesFound - t.StashesAtStart;
+        foreach (string item in Trip.HaulItems) t.Haul[item] = Mathf.Max(0, GameSession.Count(item) - t.MaterialsAtStart.GetValueOrDefault(item));
+    }
+
+    /// <summary>Checks the trip goal; on the frame it gets done: a call-out, a fanfare and a log line.</summary>
+    private void UpdateGoal()
+    {
+        TripGoal goal = _trip.Goal;
+        if (goal == null || !goal.Check(_trip, _elapsed - _trip.StartedAt)) return;
+        Toast($"GOAL DONE!\n{goal.Text}   +{goal.Bonus}");
+        _toastTime = 2.6f;
+        _goalToast = true;
+        _sfx.Play("record", -7f, 0.05f, 1.1f);
+        _goalFlash = 1f;
+        if (GameSession.AutoPlay)
+            GD.Print($"[trip] goal done: \"{goal.Text}\" after {goal.DoneAt:0.0}s of the trip at x={Focus.X / Ts:0} ({MetersFromGarage(Focus.X):0} m) bonus={goal.Bonus} frame={Engine.GetFramesDrawn()}");
+    }
+
+    private float _goalFlash;
+    private bool _goalToast;       // the toast shows a goal call-out: stunt cheers wait until it has been read
+
+    /// <summary>The gold goal line under the status: the next goal at the garage, progress on a trip, DONE when done.</summary>
+    private void UpdateGoalLabel()
+    {
+        _goalFlash = Mathf.Max(0f, _goalFlash - (float)GetProcessDeltaTime() * 0.8f);
+        TripGoal goal = _trip?.Goal ?? _nextGoal;
+        if (goal == null)
+        {
+            _goalLabel.Text = "";
+            return;
+        }
+        var gold = new Color(1f, 0.85f, 0.4f);
+        var green = new Color(0.55f, 1f, 0.55f);
+        if (_trip == null)
+        {
+            _goalLabel.Text = $"Next trip goal: {goal.Text}";
+            _goalLabel.Modulate = gold;
+        }
+        else if (goal.Done)
+        {
+            _goalLabel.Text = $"GOAL DONE   {goal.Text}   +{goal.Bonus}";
+            _goalLabel.Modulate = green.Lerp(Colors.White, _goalFlash * (0.5f + 0.5f * Mathf.Sin(_elapsed * 20f)));
+        }
+        else
+        {
+            _goalLabel.Text = $"GOAL   {goal.Text}   {goal.ProgressText(_trip)}";
+            _goalLabel.Modulate = gold;
+        }
     }
 
     private void EndTrip()
@@ -781,12 +865,10 @@ public partial class WorldScene : Node2D
         Trip t = _trip;
         _trip = null;
         t.Seconds = _elapsed - t.StartedAt;
-        t.Heaps = _heapsTaken - t.HeapsAtStart;
-        t.Cans = _cansTaken - t.CansAtStart;
-        t.Crashes = _crashFx.Hits - t.CrashesAtStart;
-        t.RollOvers = _rollOvers - t.RollOversAtStart;
-        t.Stashes = GameSession.StashesFound - t.StashesAtStart;
-        foreach (string item in Trip.HaulItems) t.Haul[item] = Mathf.Max(0, GameSession.Count(item) - t.MaterialsAtStart.GetValueOrDefault(item));
+        CountTrip(t);
+        // Bringing the goods home counts the moment you are back (the Copper goal, say).
+        if (t.Goal != null && t.Goal.Check(t, t.Seconds) && GameSession.AutoPlay)
+            GD.Print($"[trip] goal done on arrival: \"{t.Goal.Text}\" bonus={t.Goal.Bonus}");
         if (!t.WorthReporting)
         {
             if (GameSession.AutoPlay) GD.Print($"[trip] back after a short stroll ({t.Farthest:0} m), no report");
@@ -806,8 +888,8 @@ public partial class WorldScene : Node2D
             GD.Print($"[trip] report {number}: score={score} best_before={(before == null ? "none" : before.Score.ToString())} newBest={(before != null && score > before.Score)} " +
                      $"farthest={t.Farthest:0}m side={(t.FarthestSide < 0 ? "west" : "east")} reached=\"{BiomeName(t.FarthestX)}\" time={t.Seconds:0.0}s top={t.TopKmh:0}km/h air={t.LongestAir:0.0}s " +
                      $"heaps={t.Heaps} streak={t.BestStreak} cans={t.Cans} stashes={t.Stashes} haul=\"{t.HaulText()}\" crashes={t.Crashes} rollOvers={t.RollOvers} " +
-                     $"records=[{records}] frame={Engine.GetFramesDrawn()}");
-            foreach (TripRow r in rows) GD.Print($"[trip]   {r.Label}: {r.Value} -> +{r.Points}{(r.Record ? " NEW BEST" : "")}");
+                     $"records=[{records}] goal=\"{t.Goal?.Text}\" goalDone={t.Goal?.Done} goalBonus={(t.Goal?.Done == true ? t.Goal.Bonus : 0)} frame={Engine.GetFramesDrawn()}");
+            foreach (TripRow r in rows) GD.Print($"[trip]   {r.Label}: {r.Value} -> +{r.Points}{(r.Record ? " NEW BEST" : "")}{(r.Tag != null ? " " + r.Tag : "")}");
         }
     }
 
@@ -843,7 +925,7 @@ public partial class WorldScene : Node2D
         {
             _longestAir = Mathf.Max(_longestAir, _airTime);
             string praise = _airTime > 2.5f ? "MONSTER AIR" : _airTime > 1.6f ? "HUGE AIR" : "BIG AIR";
-            Toast($"{praise}!  {_airTime:0.0} s");
+            if (!_goalToast || _toastTime < 1.2f) Toast($"{praise}!  {_airTime:0.0} s");   // let a fresh goal call-out be read first
             _sfx.Play("pickup", -6f);
             if (GameSession.AutoPlay)
                 GD.Print($"[stunt] {praise.ToLowerInvariant()}: airborne {_airTime:0.00}s, took off at {_airStartSpeed / PixelsPerMeter * 3.6f:0} km/h, damage={_car.Damage:0}");

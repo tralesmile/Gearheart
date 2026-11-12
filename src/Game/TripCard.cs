@@ -12,9 +12,9 @@ namespace Gearheart.Game;
 /// </summary>
 public partial class TripCard : Control
 {
-    public const float W = 620f, H = 490f;
+    public const float W = 680f, H = 520f;
     private const float RowStart = 0.35f, RowGap = 0.16f, CountTime = 1.1f, Life = 10f;
-    private static readonly Color Gold = new(1f, 0.82f, 0.32f), Dim = new(0.72f, 0.75f, 0.8f), Ink = new(0.95f, 0.96f, 0.98f);
+    private static readonly Color Green = new(0.45f, 0.9f, 0.45f), Gold = new(1f, 0.82f, 0.32f), Dim = new(0.72f, 0.75f, 0.8f), Ink = new(0.95f, 0.96f, 0.98f);
 
     public Sfx Sfx;
 
@@ -95,7 +95,9 @@ public partial class TripCard : Control
         int due = Mathf.Clamp(Mathf.FloorToInt((_t - RowStart) / RowGap) + 1, 0, _rows.Count);
         while (_rowsShown < due)
         {
-            if (_rows[_rowsShown].Points > 0) Sfx?.Play("tally", _rows[_rowsShown].Record ? -6f : -12f, 0.03f, 1f + 0.06f * _rowsShown);
+            TripRow row = _rows[_rowsShown];
+            if (row.Tag == "DONE") Sfx?.Play("pickup", -5f, 0.05f, 1.25f);   // the goal row gets a ding
+            if (row.Points > 0) Sfx?.Play("tally", row.Record || row.Tag == "DONE" ? -6f : -12f, 0.03f, 1f + 0.06f * _rowsShown);
             _rowsShown++;
         }
 
@@ -144,14 +146,22 @@ public partial class TripCard : Control
             float age = _t - (RowStart + i * RowGap);
             float slide = Mathf.Max(0f, 1f - age * 8f) * 24f;
             DrawString(font, new Vector2(32f - slide, y), r.Label, HorizontalAlignment.Left, 150f, 19, Dim);
-            DrawString(font, new Vector2(184f - slide, y), r.Value, HorizontalAlignment.Left, 300f, 19, Ink);
-            if (r.Record)
+            // The goal row can be long ("Reach the Frozen North  (61/95 m)"): a size smaller so it fits before the tag.
+            DrawString(font, new Vector2(184f - slide, y), r.Value, HorizontalAlignment.Left, W - 390f, r.Tag != null ? 16 : 19, Ink);
+            if (r.Tag != null)
+            {
+                bool done = r.Tag == "DONE";
+                var tag = new Rect2(W - 196f, y - 17f, 82f, 22f);
+                DrawRect(tag, done ? Green.Lerp(Colors.White, 0.25f * pulse) : new Color(0.3f, 0.32f, 0.36f));
+                DrawString(font, new Vector2(tag.Position.X, y), r.Tag, HorizontalAlignment.Center, tag.Size.X, 14, done ? new Color(0.03f, 0.15f, 0.03f) : Dim);
+            }
+            else if (r.Record)
             {
                 var tag = new Rect2(W - 196f, y - 17f, 82f, 22f);
                 DrawRect(tag, Gold.Lerp(Colors.White, 0.25f * pulse));
                 DrawString(font, new Vector2(tag.Position.X, y), "NEW BEST", HorizontalAlignment.Center, tag.Size.X, 14, new Color(0.15f, 0.1f, 0.02f));
             }
-            DrawString(font, new Vector2(W - 140f, y), r.Points > 0 ? $"+{r.Points}" : "-", HorizontalAlignment.Right, 108f, 19, r.Points > 0 ? Gold : Dim);
+            DrawString(font, new Vector2(W - 140f, y), r.Points > 0 ? $"+{r.Points}" : "-", HorizontalAlignment.Right, 108f, 19, r.Tag == "DONE" ? Green : r.Points > 0 ? Gold : Dim);
         }
 
         float sy = 124f + _rows.Count * 30f + 4f;
