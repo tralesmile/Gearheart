@@ -1221,10 +1221,11 @@ public partial class SoftVehicle : Node2D, IVehicle
             }
             else
             {
-                // Let go of everything for 1.5 s (or flipped, parked, drilling): no longer stuck.
+                // Let go of everything for 1.5 s (or flipped, parked): no longer stuck. A hop that
+                // brushes the drill against rock does not count as getting out.
                 bool idle = Mathf.Abs(_input.Throttle) < 0.3f && Mathf.Abs(_input.Tilt) < 0.5f;
                 _giveUp = idle ? _giveUp + dt : 0f;
-                if (_giveUp > 1.5f || _selfRighting || Parked || IsDrilling) EndStuck();
+                if (_giveUp > 1.5f || _selfRighting || Parked) EndStuck();
             }
         }
 
@@ -1232,7 +1233,9 @@ public partial class SoftVehicle : Node2D, IVehicle
         int sign = _input.Tilt > 0.5f ? 1 : _input.Tilt < -0.5f ? -1 : 0;
         if (sign != _heldTiltSign)
         {
-            if (sign != 0 && Stuck && _sinceRock >= RockMinGap) Rock(sign);
+            // Only off the ground: a wheel has to push off, or taps in the air would stack hop on hop
+            // (the first CI run flew the rocket car 13 m up with 13 taps).
+            if (sign != 0 && Stuck && grounded && _sinceRock >= RockMinGap) Rock(sign);
             _heldTiltSign = sign;
         }
     }
