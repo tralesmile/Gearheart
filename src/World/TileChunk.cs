@@ -171,6 +171,9 @@ public partial class TileChunk : Node2D
         Tile.Sandstone => Art.TileCell(4 + (variant & 1), 5),
         Tile.Snow => Art.TileCell(6 + (variant & 1), 5),
         Tile.Ice => Art.TileCell(5 + (variant & 1), 6),
+        Tile.StashSmall => Art.TileCell(variant & 1, 7),
+        Tile.StashMid => Art.TileCell(2 + (variant & 1), 7),
+        Tile.StashBig => Art.TileCell(4 + (variant & 1), 7),
         _ => Art.TileCell(variant & 1, 5),
     };
 

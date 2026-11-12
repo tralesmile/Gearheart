@@ -29,6 +29,8 @@ public partial class WorldScene : Node2D
     private Label _hint, _toast, _status;
     private Sfx _sfx;
     private CrashFx _crashFx;
+    private StashGlints _glints;
+    private bool _glintHinted, _stashPlanted;
     private bool _crashDropped;
     private float _pickTimer;
     private int _puffs;
@@ -108,6 +110,12 @@ public partial class WorldScene : Node2D
         _lamp = new PointLight2D { Texture = glow, Energy = 0f, TextureScale = 1.1f };
         AddChild(_lamp);
 
+        // Glints over buried stashes, on their own layer so the underground darkness does not hide them.
+        var glintLayer = new CanvasLayer { Layer = 1, FollowViewportEnabled = true };
+        AddChild(glintLayer);
+        _glints = new StashGlints { Name = "StashGlints", World = _world, Focus = _player.Position };
+        glintLayer.AddChild(_glints);
+
         _sfx = new Sfx { Name = "Sfx" };
         AddChild(_sfx);
         _player.Placed += () => _sfx.Play("place");
@@ -119,6 +127,7 @@ public partial class WorldScene : Node2D
         };
 
         BuildHud();
+        LogStashes();
         GD.Print($"[world] ready: design=\"{GameSession.CurrentDesign.Name}\" autoplay={GameSession.AutoPlay} " +
                  $"player=({_player.Position.X / Ts:0},{_player.Position.Y / Ts:0}) tiles");
     }
@@ -269,6 +278,12 @@ public partial class WorldScene : Node2D
         _lamp.Position = focus;
         _lamp.Energy = under * 1.15f;
         _lamp.TextureScale = _driving ? 1.6f : 1.1f;
+        _glints.Focus = focus;
+        if (!_glintHinted && _glints.Nearest < 230f && _toastTime <= 0f)
+        {
+            _glintHinted = true;
+            Toast("Something glints in the rock...");
+        }
         _backdrop.CameraPosition = _camera.GetScreenCenterPosition();
         _backdrop.Underground = under;
         (_backdrop.Desert, _backdrop.Frozen) = TileWorld.BiomeBlend(focus.X);
@@ -291,6 +306,11 @@ public partial class WorldScene : Node2D
     {
         _sfx?.Play("break", -9f, 0.06f);
         Puff(x, y, tile);
+        if (TileWorld.IsStash(tile))
+        {
+            OpenStash(x, y, tile);
+            return;
+        }
 
         var (item, amount) = TileWorld.Drop(tile);
         if (item == null) return;
@@ -298,6 +318,48 @@ public partial class WorldScene : Node2D
         GameSession.Add(item, amount);
         if (item != "Dirt" && item != "Stone") Toast($"+{amount} {item}");
         if (GameSession.AutoPlay && item != "Dirt" && item != "Stone") GD.Print($"[mining] +{amount} {item} at ({x},{y})");
+    }
+
+    /// <summary>The big find: a buried stash pays out a bundle of materials with a fanfare and a gold fountain.</summary>
+    private void OpenStash(int x, int y, Tile tile)
+    {
+        var loot = TileWorld.StashLoot(tile, x, y);
+        foreach (var (item, amount) in loot) GameSession.Add(item, amount);
+        GameSession.StashesFound++;
+        GameSession.SaveAll();
+
+        string items = string.Join("   ", loot.ConvertAll(l => $"+{l.Amount} {l.Item}"));
+        _toast.Text = $"{TileWorld.StashName(tile)}!\n{items}";
+        _toastTime = 3.5f;
+        _sfx?.Play("treasure", -4f, 0.2f, 1f);
+        var at = new Vector2((x + 0.5f) * Ts, (y + 0.5f) * Ts);
+        _glints.Burst(at, tile == Tile.StashBig);
+        _crashFx.AddTrauma(tile == Tile.StashBig ? 0.45f : 0.3f);
+
+        int depth = y - _world.SurfaceRow(x);
+        if (GameSession.AutoPlay)
+            GD.Print($"[stash] found {TileWorld.StashName(tile).ToLowerInvariant()} at ({x},{y}) depth={depth * 0.25f:0.0}m by {(_driving ? "drill" : "pickaxe")}: {items} | " +
+                     $"stashesFound={GameSession.StashesFound} " + string.Join(" ", System.Array.ConvertAll(GameSession.Items, i => $"{i}={GameSession.Count(i)}")));
+    }
+
+    /// <summary>Bot log: how many stashes the world has and how deep they lie.</summary>
+    private void LogStashes()
+    {
+        if (!GameSession.AutoPlay) return;
+        int small = 0, mid = 0, big = 0, nearestDx = int.MaxValue;
+        float minDepth = float.MaxValue, maxDepth = 0f;
+        int garageX = (TileWorld.PadFrom + TileWorld.PadTo) / 2;
+        foreach (Vector2I s in _world.Stashes)
+        {
+            Tile t = _world.Get(s.X, s.Y);
+            if (t == Tile.StashSmall) small++; else if (t == Tile.StashMid) mid++; else if (t == Tile.StashBig) big++; else continue;
+            float depth = (s.Y - _world.SurfaceRow(s.X)) * 0.25f;
+            minDepth = Mathf.Min(minDepth, depth);
+            maxDepth = Mathf.Max(maxDepth, depth);
+            nearestDx = Mathf.Min(nearestDx, Mathf.Abs(s.X - garageX));
+        }
+        GD.Print($"[stash] world has {small + mid + big} stashes: {small} toolboxes, {mid} supply crates, {big} strongboxes; " +
+                 $"depth {minDepth:0.0}-{maxDepth:0.0} m; nearest {nearestDx * 0.25f:0} m from the garage");
     }
 
     /// <summary>A small burst of debris in the tile's colour where it broke.</summary>
@@ -339,6 +401,7 @@ public partial class WorldScene : Node2D
             Tile.ScrapOre => new Color(0.8f, 0.82f, 0.86f),
             Tile.IronOre => new Color(0.71f, 0.4f, 0.29f),
             Tile.CopperOre => new Color(0.91f, 0.55f, 0.24f),
+            Tile.StashSmall or Tile.StashMid or Tile.StashBig => new Color(0.95f, 0.8f, 0.35f),
             _ => new Color(0.47f, 0.49f, 0.52f),
         };
 
@@ -439,7 +502,8 @@ public partial class WorldScene : Node2D
             if (NearGarage()) hint += "\nG: open the garage (build and upgrade your car)";
             _hint.Text = hint;
             _status.Modulate = Colors.White;
-            _status.Text = $"{BiomeName(_player.Position.X)}   Depth {Mathf.Max(0f, (_player.Position.Y / Ts - _world.SurfaceRow(Mathf.FloorToInt(_player.Position.X / Ts))) * 0.25f):0} m";
+            _status.Text = $"{BiomeName(_player.Position.X)}   Depth {Mathf.Max(0f, (_player.Position.Y / Ts - _world.SurfaceRow(Mathf.FloorToInt(_player.Position.X / Ts))) * 0.25f):0} m" +
+                           (GameSession.StashesFound > 0 ? $"   Stashes found {GameSession.StashesFound}" : "");
         }
 
         if (_toastTime > 0f)
@@ -492,6 +556,18 @@ public partial class WorldScene : Node2D
         if (!_driving && !GameSession.CrashTest)
         {
             Vector2 feet = _player.Position + new Vector2(0f, Player.HalfHeight);
+            // --stashtest: once the bot starts digging, bury a toolbox and a strongbox under its feet
+            // (it mines both) and a supply crate a few tiles further down, to see the glint.
+            if (GameSession.StashTest && !_stashPlanted && _elapsed >= 3f)
+            {
+                _stashPlanted = true;
+                int y = Mathf.FloorToInt((feet.Y + 8f) / Ts);
+                int xl = Mathf.FloorToInt((feet.X - 7f) / Ts), xr = Mathf.FloorToInt((feet.X + 7f) / Ts);
+                _world.PlaceStash(xl, y, Tile.StashSmall);
+                if (xr != xl) _world.PlaceStash(xr, y, Tile.StashBig);
+                _world.PlaceStash(xr + 3, y + 4, Tile.StashMid);
+                GD.Print($"[stash] test: buried a toolbox at ({xl},{y}){(xr != xl ? $", a strongbox at ({xr},{y})" : "")} and a crate at ({xr + 3},{y + 4})");
+            }
             if (_elapsed < 3f)
                 _player.Override = new PlayerInput { Move = GameSession.DriveLeft ? 1f : -1f, Jump = Mathf.Abs(_player.Velocity.X) < 5f, Aim = feet };
             else if (_elapsed < 9f)

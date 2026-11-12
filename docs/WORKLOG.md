@@ -2,6 +2,42 @@
 
 Newest entry first. Each session: what was built and why, how it was verified, what is not verified, and what comes next.
 
+## 2026-11-12, about 01:15–02:10 UTC — Buried stashes (PR #9)
+
+**Built**
+
+- **Three new tiles** (`Tile.StashSmall/Mid/Big`): Old Toolbox (shallow; 5–8 Scrap, 1–2 Iron), Lost Supply Crate (6.5–15 m; 3–5 Scrap, 3–5 Iron, 1–2 Copper), Ancient Strongbox (deeper; 4–6 Scrap, Iron and Copper). World generation buries one every 9–16 m, 2–28 m deep, never floating in a cave; the far biomes are richer (35% chance of the next kind up). Plus one guaranteed shallow toolbox 15–18 m to each side of the garage. Loot is fixed per stash. Both the pickaxe and the drill open them.
+- **Glints** (`src/World/StashGlints.cs`): every stash within about 12 m twinkles (a faint steady glow plus a star flash every ~2.7 s, gold for strongboxes). It is drawn on its own canvas layer, so it shows through the underground darkness. The first time you come near one: "Something glints in the rock...".
+- **The big find**: a two-line call-out ("ANCIENT STRONGBOX! / +4 Scrap +4 Iron +5 Copper"), a new `treasure` fanfare (rising arpeggio with shimmer, `tools/make_sounds.py`), a gold coin fountain, a small screen shake, and "Stashes found N" on the on-foot status line (saved in `progress.json`).
+- **Art**: row 7 of `tiles.png` (`tools/make_art.py`, own random stream; rows 0–6 checked byte-identical).
+- **Save**: world format GHW5 → GHW6, so old worlds regenerate.
+- **CI**: `--stashtest` bot flag (buries a toolbox and a strongbox under the bot's pickaxe, and a crate nearby to show the glint), a smoke run and a screenshot run (`stash_*.png`), `[stash]` lines in every world run. Also fixed CI: the movie frames in `shots/` were inside the Godot project, so every run re-imported them, the **game builds shipped thousands of screenshot PNGs**, and the export flooded the job log so the playtest lines could not be read. A `.gdignore` fixes all three; the run went from about 9 to 5 minutes.
+
+**Why this** — Brainstorm in `docs/IDEAS.md`: looking at the drill screenshots, underground is one flat grey and digging is a steady trickle of "+2 Scrap" with no moments and no direction. Buried treasure was ranked next after crash juice and is the "big find" moment from the brief. A glint you can see in the dark gives a goal ("dig over there"), and the jackpot gives the moment. Last session was polish, so this one is a feature.
+
+**Verified (CI runs 43134745097, 43136021517, both green; final run on the PR)**
+
+- World has 51 stashes from the regular placement (18 toolboxes, 14 crates, 19 strongboxes, 2.0–25.8 m deep) before the two near-garage toolboxes were added.
+- Stash test: the bot's pickaxe opened the toolbox (+8 Scrap +1 Iron) and the strongbox (+4 Scrap +4 Iron +5 Copper); inventory went to Scrap 12, Iron 5, Copper 5, "Stashes found 2".
+- Screenshots `stash_32/40.png`: stash tiles and glints show, the "Something glints in the rock..." hint fires; `stash_50.png`: "ANCIENT STRONGBOX!" call-out with the loot line and the gold fountain.
+- Nothing else changed: starter drive still ends at tile x=2240.4 at 40 s, drill car 8.8 m deep with Scrap 22 / Iron 3 / Copper 1, Hill Climb 18.97 s and 15.25 s.
+
+**Not verified / known issues**
+
+- The fanfare has not been listened to (no audio in CI).
+- The glint in the dark could not be seen in a screenshot yet (the test stash is near the surface in daylight). The layer is outside the darkness by construction, but please check underground.
+- Stash tiles always use a dark stone background, which looks like a pocket in dirt too; fine for now.
+- 19 strongboxes hold about 95 Copper in total. That may make copper too easy once a player learns to dig deep; tune after playing.
+- The bot's drill car does not pass through a stash in its 40 s run, so drill-opening is verified only by code path (same `TileBroken` event as the pickaxe).
+
+**Next**
+
+1. Metal detector beep that speeds up near a stash (small; doubles the tension of digging).
+2. Trip summary card back at the garage: distance, best air, ore, stashes, crashes (small).
+3. Landing grades ("CLEAN LANDING" / "BELLY FLOP") (small).
+4. Surface pickups between biomes (fuel cans, scrap heaps) (small).
+5. Snow/ice part (tracks or spiked tyres) from Frozen North iron.
+
 ## 2026-11-12, about 00:20–01:30 UTC — Crash juice (PR #8)
 
 **Built** (a polish-and-feel session)

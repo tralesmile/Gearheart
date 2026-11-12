@@ -111,6 +111,23 @@ def snap():
     return s
 
 
+def treasure():
+    """A buried stash opens: a quick bright rising arpeggio (C E G C) with a shimmering tail."""
+    notes = [523.25, 659.25, 783.99, 1046.5]
+    step = 0.075
+    n = int(SR * (step * len(notes) + 0.7)); t = np.arange(n) / SR
+    s = np.zeros(n)
+    for i, f in enumerate(notes):
+        start = int(SR * step * i)
+        tt = t[: n - start]
+        ring = 2.6 if i == len(notes) - 1 else 9.0
+        tone = np.sin(2 * np.pi * f * tt) + 0.35 * np.sin(2 * np.pi * f * 2 * tt) + 0.15 * np.sin(2 * np.pi * f * 3 * tt)
+        s[start:] += tone * np.exp(-tt * ring) * (1 - np.exp(-tt * 400))
+    shimmer = sum(np.sin(2 * np.pi * f * t) for f in (2093.0, 2637.0, 3136.0)) * (0.5 + 0.5 * np.sin(2 * np.pi * 11 * t))
+    s += 0.18 * shimmer * np.exp(-np.maximum(t - 0.3, 0) * 4) * (t > 0.22)
+    return s
+
+
 crash_rng = np.random.default_rng(31)   # separate stream: adding sounds never changes the older ones
 
 
@@ -126,4 +143,5 @@ if __name__ == "__main__":
     save("thud", tail_fade(thud()), 0.85)
     save("crunch", tail_fade(crunch()), 0.8)
     save("snap", tail_fade(snap()), 0.6)
+    save("treasure", tail_fade(treasure(), 80), 0.6)
     print("sounds written to", os.path.abspath(OUT))
