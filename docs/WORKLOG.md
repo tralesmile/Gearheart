@@ -2,6 +2,44 @@
 
 Newest entry first. Each session: what was built and why, how it was verified, what is not verified, and what comes next.
 
+## 2026-11-12, about 19:20–20:30 UTC — Birds and a horn (PR #28, polish and life)
+
+**Started by** checking for unfinished work: no open pull requests; main's build after PR #27 (run 43288451869) was running.
+
+**Built — birds and a horn** (`src/World/Birds.cs`, `src/Game/WorldScene.Birds.cs`, `birds.png`, `flutter` / `chirp` / `caw` / `horn` sounds)
+
+- **Flocks along the road**: 17 flocks every 22–42 m on both sides (never on a kicker), the first about 29 m east and 30 m west of the pad. Sparrows (3–6) in the Home Meadow, big black crows (2–3, drawn at 2x) in The Wastes, white snow buntings with black wings in the Frozen North. Three sparrows sit on the garage roof and sign. Perched birds peck, hop and turn round; at night they sleep (still).
+- **They notice you**: a flock takes off when the car comes within 140 px + 0.38 s of travel (6 m at 36 km/h, 12 m at 90 km/h), when you walk up to it on foot (1.5 m), honk (12 m), start the engine (12 m: the roof sparrows go every time you get in), crash (9 m) or dig next to it. Birds flap up and away from the threat, staggered, with a wing-beat bob; a flutter plus a chirp (sparrows, buntings pitched up) or a flutter plus a caw (crows), quieter further from the camera. Scattered flocks come back after 75 s, out of sight.
+- **Horn**: H (Y on a gamepad), a two-tone horn pitched by the engine (the Scrap 4 beeps higher, the V8 lower); on the driving hint line.
+- **No gameplay change**: no collision, no score, no physics. Birds always get away.
+- **CI**: `[birds]` lines (placement, every scatter with cause, distance and speed, honks), `birds=` on `[autoplay]`; the bot honks once at the first flock 7–10 m ahead; `birds_*` screenshots around the first scatters (and the first crows) in the world, left and rocket runs.
+
+**Why this** — Brainstorm in `docs/IDEAS.md` (twentieth session). The driving is rich now, but the world was dead: the only things moving on screen were the car, its particles and the clouds, and nothing noticed you. Animals that react are the cheapest "this is a place" feeling (Terraria's critters, Minecraft's animals), and a flock bursting up ahead of the bonnet is a small spectacle that gets bigger the faster you go. It is felt in the first ten seconds (the roof sparrows flutter off when you start the engine). The last two sessions were features (turbo, day and night), so this one is polish and life.
+
+**How it got there (CI runs 43290870602 and 43294349786, both green; a third for the docs)**
+
+1. Run 1: everything worked, but the car scared flocks 7.5–17 m away (230 px + 0.55 s of travel), so they left before they were on screen (`birds_world_123.png`: the flock is off the right edge when it goes); the roof sparrows were flushed by the player at spawn (1.7 m) on frame 4; sparrows at 1x were hard to see.
+2. Run 2: about half a second of warning instead, sparrows and buntings at 1.5x, the roof perch near the player's spawn removed, the on-foot radius 100 px.
+
+**Verified (run 43294349786)**
+
+- **Scatters**: the starter east scared 7 flocks in 40 s (engine 1, horn 1, car 3, crash 2), west to the Frozen North 7 (engine, horn, 5 by the car), the rocket car 9. The car now startles flocks at 4.0–6.2 m at 22–39 km/h and 7.5–10.2 m at 58–87 km/h (rocket). The garage roof sparrows go on the engine start (5.6 m away) in every run, never at spawn. The bot's honk scattered the flock 9.4–10.2 m ahead each time. Up to 10 birds in the air at once.
+- **Screenshots**: `birds_left_168.png` (six sparrows sitting on the road ahead of the car), `birds_left_172.png` (the same flock going up, flying away ahead), `birds_world_244.png` / `_248.png` (crows on the sand by a scrap heap, then flapping off past a cactus), `birds_rocket_160.png` (crows waiting as the rocket car flies in), and run 1's `birds_left_103.png` (roof sparrows flying off over the garage as the engine starts).
+- **Nothing else changed**: 40 s positions identical to main — starter 2209.3, left 465.7, spiked 424.9, Crystal Drill 1480.1, rocket 2552.7, turbo 2302.1; Hill Climb 19.18 / 17.22 / 14.08 s. No errors.
+
+**Not verified / known issues**
+
+- Fun is my judgement (D1): whether the birds make the world feel alive or busy, and whether half a second of warning feels right, needs you to play. The sounds (flutter, chirp, caw, horn) are tuned by numbers only.
+- No still frame shows the roof sparrows sitting (the bot is down its hole when it gets in); `birds_left_103.png` shows them flying off.
+- Birds fly through terrain (no collision) and can fly in front of the HUD-free sky forever until 7 s pass; underground flocks never exist, but a flock on a spot you dug out sits on the new ground.
+- The horn does nothing else yet (no effect on anything but birds).
+
+**Next**
+
+1. Vultures circling over buried strongboxes in The Wastes (S, IDEAS #123) — the birds become a treasure hint.
+2. Biome nights (S, #117) or night owls with shining eyes (S, #127); surface ambience by day (S, #125).
+3. Overboost (S, #107), start-light gantry (S, #82), Gyro (S, #94), then the first real danger (M: night raiders or deep critters).
+
 ## 2026-11-12, about 18:20–19:20 UTC — Day and night, step 1 (PR #27)
 
 **Started by** checking for unfinished work: no open pull requests; main's build after PR #26 (run 43277162200) green.
