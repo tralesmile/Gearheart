@@ -59,6 +59,8 @@ public static class GameSession
     public static bool AutoDrive => UserArgs.Contains("--autodrive");
     public static bool AutoPlay => UserArgs.Contains("--autoplay");
     public static bool DriveLeft => UserArgs.Contains("--left");
+    /// <summary>Bot only: drop the car from high up to test crash damage and crash effects.</summary>
+    public static bool CrashTest => UserArgs.Contains("--crashtest");
     private static bool FreshStart => UserArgs.Contains("--fresh");
 
     public static void ApplyCommandLine()

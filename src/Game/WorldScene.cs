@@ -28,6 +28,8 @@ public partial class WorldScene : Node2D
     private PointLight2D _lamp;
     private Label _hint, _toast, _status;
     private Sfx _sfx;
+    private CrashFx _crashFx;
+    private bool _crashDropped;
     private float _pickTimer;
     private int _puffs;
     private readonly Label[] _counts = new Label[GameSession.Items.Length];
@@ -65,6 +67,8 @@ public partial class WorldScene : Node2D
         _physics = new SoftPhysicsWorld { Name = "SoftPhysicsWorld", Terrain = _world, Mineable = _world };
         AddChild(_physics);
 
+        _crashFx = new CrashFx { Name = "CrashFx", Log = GameSession.AutoPlay, GroundColor = GroundColorAt };
+        AddChild(_crashFx);
         SpawnCar();
 
         _player = new Player
@@ -107,6 +111,12 @@ public partial class WorldScene : Node2D
         _sfx = new Sfx { Name = "Sfx" };
         AddChild(_sfx);
         _player.Placed += () => _sfx.Play("place");
+        _crashFx.Camera = _camera;
+        _crashFx.Sfx = _sfx;
+        _crashFx.Toast = text =>
+        {
+            if (_toastTime < 1.2f) Toast(text);   // never hide a fresh stunt call-out
+        };
 
         BuildHud();
         GD.Print($"[world] ready: design=\"{GameSession.CurrentDesign.Name}\" autoplay={GameSession.AutoPlay} " +
@@ -124,7 +134,7 @@ public partial class WorldScene : Node2D
         if (what == NotificationWMCloseRequest) GameSession.SaveAll();
     }
 
-    private void SpawnCar()
+    private void SpawnCar(float dropHeight = 0f)
     {
         if (IsInstanceValid(_car)) _car.QueueFree();
         float x = (TileWorld.PadFrom + 30) * Ts;
@@ -133,11 +143,12 @@ public partial class WorldScene : Node2D
             Name = "Car",
             World = _physics,
             Design = GameSession.CurrentDesign.Clone(),
-            Spawn = new Vector2(x, _world.GroundY(x, (TileWorld.BaseSurface - 12) * Ts) - 75f),
+            Spawn = new Vector2(x, _world.GroundY(x, (TileWorld.BaseSurface - 12) * Ts) - 75f - dropHeight),
             Parked = true,
             DrillEnabled = false,
         };
         AddChild(_car);
+        _crashFx.Watch(_car);
     }
 
     // ---- Input ------------------------------------------------------------------------------
@@ -262,6 +273,7 @@ public partial class WorldScene : Node2D
         _backdrop.Underground = under;
         (_backdrop.Desert, _backdrop.Frozen) = TileWorld.BiomeBlend(focus.X);
 
+        _crashFx.Enabled = _driving;
         _sfx.UpdateCar(_driving, _car.Speed, _car.Throttle, _car.IsDrilling && _car.DrillEnabled, _car.Boosting);
         _pickTimer -= dt;
         if (!_driving && _player.IsMining && _pickTimer <= 0f)
@@ -293,18 +305,7 @@ public partial class WorldScene : Node2D
     {
         if (_puffs >= 14) return;
         _puffs++;
-        Color color = tile switch
-        {
-            Tile.Grass or Tile.Dirt => new Color(0.52f, 0.33f, 0.22f),
-            Tile.Sand => new Color(0.89f, 0.77f, 0.49f),
-            Tile.Sandstone => new Color(0.77f, 0.59f, 0.38f),
-            Tile.Snow => new Color(0.95f, 0.97f, 1f),
-            Tile.Ice => new Color(0.6f, 0.82f, 0.93f),
-            Tile.ScrapOre => new Color(0.8f, 0.82f, 0.86f),
-            Tile.IronOre => new Color(0.71f, 0.4f, 0.29f),
-            Tile.CopperOre => new Color(0.91f, 0.55f, 0.24f),
-            _ => new Color(0.47f, 0.49f, 0.52f),
-        };
+        Color color = TileColor(tile);
         var puff = new CpuParticles2D
         {
             Position = new Vector2((x + 0.5f) * Ts, (y + 0.5f) * Ts),
@@ -319,6 +320,27 @@ public partial class WorldScene : Node2D
             if (IsInstanceValid(puff)) puff.QueueFree();
         };
     }
+
+    private Color GroundColorAt(Vector2 point)
+    {
+        int tx = Mathf.FloorToInt(point.X / Ts), ty = Mathf.FloorToInt(point.Y / Ts);
+        Tile tile = _world.Get(tx, ty);
+        if (tile == Tile.Air) tile = _world.Get(tx, ty + 1);
+        return tile == Tile.Air ? new Color(0.6f, 0.55f, 0.48f) : TileColor(tile);
+    }
+
+    private static Color TileColor(Tile tile) => tile switch
+        {
+            Tile.Grass or Tile.Dirt => new Color(0.52f, 0.33f, 0.22f),
+            Tile.Sand => new Color(0.89f, 0.77f, 0.49f),
+            Tile.Sandstone => new Color(0.77f, 0.59f, 0.38f),
+            Tile.Snow => new Color(0.95f, 0.97f, 1f),
+            Tile.Ice => new Color(0.6f, 0.82f, 0.93f),
+            Tile.ScrapOre => new Color(0.8f, 0.82f, 0.86f),
+            Tile.IronOre => new Color(0.71f, 0.4f, 0.29f),
+            Tile.CopperOre => new Color(0.91f, 0.55f, 0.24f),
+            _ => new Color(0.47f, 0.49f, 0.52f),
+        };
 
     // ---- HUD --------------------------------------------------------------------------------
 
@@ -457,7 +479,16 @@ public partial class WorldScene : Node2D
 
     private void RunBot()
     {
-        if (!_driving)
+        // --crashtest: skip the walk, drop the car from about 15 m up with the bot at the wheel.
+        if (GameSession.CrashTest && !_crashDropped && _elapsed > 0.5f)
+        {
+            _crashDropped = true;
+            SpawnCar(900f);
+            EnterCar();
+            GD.Print("[crash] test: car dropped from about 15 m");
+        }
+
+        if (!_driving && !GameSession.CrashTest)
         {
             Vector2 feet = _player.Position + new Vector2(0f, Player.HalfHeight);
             if (_elapsed < 3f)
@@ -486,7 +517,8 @@ public partial class WorldScene : Node2D
         GD.Print($"[autoplay] t={_elapsed:0}s {(_driving ? "driving" : "on foot")} biome={TileWorld.BiomeAt(Mathf.FloorToInt(c.X / Ts))} grip={_world.GripAt(c + new Vector2(0f, 60f)):0.00} player=({p.X / Ts:0.0},{p.Y / Ts:0.0}) grounded={_player.Grounded} " +
                  $"car=({c.X / Ts:0.0},{c.Y / Ts:0.0}) surfaceRow={surface} depth={(c.Y / Ts - surface) * 0.25f:0.0}m speed={_car.Speed / PixelsPerMeter * 3.6f:0}km/h pitch={_car.PitchDegrees():0} " +
                  $"fuel={_car.Fuel:0} damage={_car.Damage:0} drilling={_car.IsDrilling} boosting={_car.Boosting} boostTotal={_boostSeconds:0.0}s " +
-                 $"top={_topSpeed / PixelsPerMeter * 3.6f:0}km/h longestAir={_longestAir:0.0}s | " +
+                 $"top={_topSpeed / PixelsPerMeter * 3.6f:0}km/h longestAir={_longestAir:0.0}s " +
+                 $"crashes={_crashFx.Hits} hardest={_crashFx.HardestHit / PixelsPerMeter * 3.6f:0}km/h sparks={_crashFx.SparkBursts} | " +
                  string.Join(" ", System.Array.ConvertAll(GameSession.Items, i => $"{i}={GameSession.Count(i)}")));
     }
 }

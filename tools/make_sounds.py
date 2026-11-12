@@ -69,6 +69,51 @@ def pickup():
     return np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t * 14)
 
 
+def tail_fade(s, ms=40):
+    """Fades the last few milliseconds to silence so a one-shot never ends on a click."""
+    k = int(SR * ms / 1000)
+    s[-k:] *= np.linspace(1, 0, k)
+    return s
+
+
+def thud():
+    """A heavy landing: a low pitch-dropping boom with a short dirty knock on top."""
+    n = int(SR * 0.45); t = np.arange(n) / SR
+    f = 95 * np.exp(-t * 5) + 38
+    s = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t * 9)
+    s += 0.6 * lowpass(crash_rng.standard_normal(n), 40) / 0.15 * np.exp(-t * 30)
+    return s
+
+
+def metal(n, partials, decay):
+    """Inharmonic ringing, like struck sheet metal."""
+    t = np.arange(n) / SR
+    return sum(a * np.sin(2 * np.pi * f * t + crash_rng.uniform(0, 6)) * np.exp(-t * decay * (1 + f / 2000))
+               for f, a in partials)
+
+
+def crunch():
+    """Body slam: grinding noise bursts plus a dull metal ring."""
+    n = int(SR * 0.6); t = np.arange(n) / SR
+    grit = crash_rng.standard_normal(n) * (crash_rng.random(n) < 0.25)       # crackle
+    s = lowpass(grit, 6) / 0.12 * np.exp(-t * 9)
+    s += lowpass(crash_rng.standard_normal(n), 25) / 0.2 * np.exp(-t * 14)  # body of the hit
+    s += 0.8 * metal(n, [(173, 1), (419, 0.7), (787, 0.5), (1312, 0.35), (2210, 0.2)], 7)
+    s += 0.7 * np.sin(2 * np.pi * 60 * t) * np.exp(-t * 12)
+    return s
+
+
+def snap():
+    """A beam or bolt letting go: a sharp crack and a bright ringing ping."""
+    n = int(SR * 0.5); t = np.arange(n) / SR
+    s = crash_rng.standard_normal(n) * np.exp(-t * 90)
+    s += 0.9 * metal(n, [(1180, 1), (1873, 0.8), (2950, 0.5), (4120, 0.3)], 9)
+    return s
+
+
+crash_rng = np.random.default_rng(31)   # separate stream: adding sounds never changes the older ones
+
+
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
     save("engine", engine(), 0.7)
@@ -78,4 +123,7 @@ if __name__ == "__main__":
     save("place", burst(0.12, 30, 30, tone=140), 0.8)
     save("pickup", pickup(), 0.6)
     save("boost", boost(), 0.75)   # last, so the shared random stream of the older sounds is unchanged
+    save("thud", tail_fade(thud()), 0.85)
+    save("crunch", tail_fade(crunch()), 0.8)
+    save("snap", tail_fade(snap()), 0.6)
     print("sounds written to", os.path.abspath(OUT))
