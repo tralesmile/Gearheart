@@ -59,6 +59,14 @@ public partial class WorldScene : Node2D
     private float _toastTime, _elapsed, _nextLog, _saveTimer;
     private float _airTime, _airStartSpeed, _boostSeconds, _topSpeed, _longestAir;
 
+    // Landing grades: PERFECT (speed kick), CLEAN, rough, or a botched one on the body.
+    private readonly LandingJudge _judge = new();
+    private bool _bodyDown;                // lying on the body after a botched landing: that is not air time
+    private float _kickGlow;               // seconds of warm speed streaks left after a perfect-landing kick
+    private float _kickCheckAt = -1f, _kickKmhBefore;
+    private bool _bodyHitTick;             // the body hit the ground since the last stunt update
+    private int _perfectLandings, _cleanLandings, _roughLandings, _flops;
+
     // Trips: leave the garage grounds, come back, get a report card with a score and a best to beat.
     private const float TripLeave = 18f, TripHome = 8f;   // metres from the middle of the garage pad
     private Trip _trip;
@@ -207,6 +215,10 @@ public partial class WorldScene : Node2D
         };
         AddChild(_car);
         _crashFx.Watch(_car);
+        _car.Crashed += OnCarCrash;
+        _judge.Cancel();
+        _airTime = 0f;
+        _bodyDown = false;
     }
 
     // ---- Input ------------------------------------------------------------------------------
@@ -306,6 +318,8 @@ public partial class WorldScene : Node2D
         _elapsed += dt;
         if (GameSession.AutoPlay) RunBot();
         if (_driving) TrackStunts(dt);
+        else _judge.Cancel();
+        _bodyHitTick = false;
         _spray.Track(_car, dt, _driving);
         CheckPickups();
         UpdateTrip();
@@ -715,7 +729,7 @@ public partial class WorldScene : Node2D
             _status.Modulate = _car.Boosting ? new Color(1f, 0.8f, 0.4f) : Colors.White;
             _dash.Visible = true;
             _dash.Set(kmh, _car.Fuel, _car.FuelCapacity, _car.Damage, _car.Boosting);
-            _lines.Set(_carVx / PixelsPerMeter * 3.6f, _carDir, _car.Boosting);
+            _lines.Set(_carVx / PixelsPerMeter * 3.6f, _carDir, _car.Boosting || _kickGlow > 0f);
             _peakLines = Mathf.Max(_peakLines, _lines.Intensity);
             if (GameSession.AutoPlay && !_linesLogged && _lines.Intensity > 0.6f)
             {
@@ -906,7 +920,7 @@ public partial class WorldScene : Node2D
         {
             string records = string.Join(",", rows.FindAll(r => r.Record).ConvertAll(r => r.Label.ToLowerInvariant().Replace(' ', '_')));
             GD.Print($"[trip] report {number}: score={score} best_before={(before == null ? "none" : before.Score.ToString())} newBest={(before != null && score > before.Score)} " +
-                     $"farthest={t.Farthest:0}m side={(t.FarthestSide < 0 ? "west" : "east")} reached=\"{BiomeName(t.FarthestX)}\" time={t.Seconds:0.0}s top={t.TopKmh:0}km/h air={t.LongestAir:0.0}s " +
+                     $"farthest={t.Farthest:0}m side={(t.FarthestSide < 0 ? "west" : "east")} reached=\"{BiomeName(t.FarthestX)}\" time={t.Seconds:0.0}s top={t.TopKmh:0}km/h air={t.LongestAir:0.0}s landings={t.PerfectLandings}perfect/{t.CleanLandings}clean " +
                      $"heaps={t.Heaps} streak={t.BestStreak} cans={t.Cans} stashes={t.Stashes} haul=\"{t.HaulText()}\" crashes={t.Crashes} rollOvers={t.RollOvers} " +
                      $"records=[{records}] goal=\"{t.Goal?.Text}\" goalDone={t.Goal?.Done} goalBonus={(t.Goal?.Done == true ? t.Goal.Bonus : 0)} frame={Engine.GetFramesDrawn()}");
             foreach (TripRow r in rows) GD.Print($"[trip]   {r.Label}: {r.Value} -> +{r.Points}{(r.Record ? " NEW BEST" : "")}{(r.Tag != null ? " " + r.Tag : "")}");
@@ -932,25 +946,108 @@ public partial class WorldScene : Node2D
         if (_car.SelfRighting)
         {
             _airTime = 0f;
+            _judge.Cancel();
             return;
         }
+
+        if (_kickGlow > 0f) _kickGlow -= dt;
+        if (_kickCheckAt >= 0f && _elapsed >= _kickCheckAt)
+        {
+            _kickCheckAt = -1f;
+            if (GameSession.AutoPlay)
+                GD.Print($"[landing] kick result: {_kickKmhBefore:0} km/h at the landing -> {_car.Speed / PixelsPerMeter * 3.6f:0} km/h half a second later (overdrive left {_car.Overdrive / PixelsPerMeter * 3.6f:0} km/h)");
+        }
+        if (_judge.Update(_car, dt) is Landing landing) Landed(landing);
+
         if (_car.Airborne)
         {
+            if (_bodyDown) return;   // on its roof or side after a botched landing
             if (_airTime == 0f) _airStartSpeed = _car.Speed;
             _airTime += dt;
             return;
         }
+        _bodyDown = false;
         if (_airTime > 0.3f) _trip?.NoteAir(_airTime);
-        if (_airTime > 0.9f)
+        if (_airTime > 0.9f) _longestAir = Mathf.Max(_longestAir, _airTime);
+        if (_airTime >= LandingJudge.MinAir)
         {
-            _longestAir = Mathf.Max(_longestAir, _airTime);
-            string praise = _airTime > 2.5f ? "MONSTER AIR" : _airTime > 1.6f ? "HUGE AIR" : "BIG AIR";
-            if (!_goalToast || _toastTime < 1.2f) Toast($"{praise}!  {_airTime:0.0} s");   // let a fresh goal call-out be read first
-            _sfx.Play("pickup", -6f);
-            if (GameSession.AutoPlay)
-                GD.Print($"[stunt] {praise.ToLowerInvariant()}: airborne {_airTime:0.00}s, took off at {_airStartSpeed / PixelsPerMeter * 3.6f:0} km/h, damage={_car.Damage:0}");
+            _judge.Start(_car, _airTime);   // the cheer waits for the verdict
+            if (_bodyHitTick) _judge.NoteBodyHit();
         }
         _airTime = 0f;
+    }
+
+    private static string AirPraise(float air) => air > 2.5f ? "MONSTER AIR" : air > 1.6f ? "HUGE AIR" : "BIG AIR";
+
+    /// <summary>The landing has been judged: cheer it, and kick the car forward if it was perfect.</summary>
+    private void Landed(Landing l)
+    {
+        bool bigAir = l.Air > 0.9f;
+        bool mayToast = !_goalToast || _toastTime < 1.2f;   // let a fresh goal call-out be read first
+        float kmh = _car.Speed / PixelsPerMeter * 3.6f;
+        float kick = 0f;
+        switch (l.Grade)
+        {
+            case LandingGrade.Perfect:
+                kick = LandingJudge.KickFor(l.Air);
+                _car.Kick(kick);
+                _kickGlow = 0.8f;
+                _kickCheckAt = _elapsed + 0.5f;
+                _kickKmhBefore = kmh;
+                _perfectLandings++;
+                if (_trip != null) _trip.PerfectLandings++;
+                if (mayToast) Toast($"PERFECT LANDING!\n{l.Air:0.0} s air   +{kick / PixelsPerMeter * 3.6f:0} km/h");
+                _sfx.Play("land", -4f, 0.2f, 1f);
+                break;
+            case LandingGrade.Clean:
+                _cleanLandings++;
+                if (_trip != null) _trip.CleanLandings++;
+                if (mayToast) Toast(bigAir ? $"{AirPraise(l.Air)}!  {l.Air:0.0} s\nclean landing" : "CLEAN LANDING");
+                _sfx.Play("pickup", -6f);
+                break;
+            default:
+                _roughLandings++;
+                if (bigAir)
+                {
+                    if (mayToast) Toast($"{AirPraise(l.Air)}!  {l.Air:0.0} s");
+                    _sfx.Play("pickup", -6f);
+                }
+                break;
+        }
+        if (GameSession.AutoPlay)
+        {
+            if (bigAir)
+                GD.Print($"[stunt] {AirPraise(l.Air).ToLowerInvariant()}: airborne {l.Air:0.00}s, took off at {_airStartSpeed / PixelsPerMeter * 3.6f:0} km/h, damage={_car.Damage:0}");
+            GD.Print($"[landing] {l.Grade.ToString().ToLowerInvariant()}: air={l.Air:0.00}s allWheelsDownAfter={(l.AllDownAfter < 0f ? "never" : $"{l.AllDownAfter:0.00}s")} " +
+                     $"mismatch={l.Mismatch:0}deg bodyHit={l.BodyHit} damage+={l.DamageTaken:0.0} speed={kmh:0}km/h kick={kick / PixelsPerMeter * 3.6f:0}km/h " +
+                     $"at x={_car.CenterPosition.X / Ts:0} frame={Engine.GetFramesDrawn()} | perfect={_perfectLandings} clean={_cleanLandings} rough={_roughLandings} flops={_flops}");
+        }
+    }
+
+    /// <summary>The body slammed into the ground. After a real jump that is a botched landing with a name.</summary>
+    private void OnCarCrash(CrashEvent e)
+    {
+        if (!e.BodyHit || !_driving) return;
+        _judge.NoteBodyHit();
+        _bodyHitTick = true;
+        if (_airTime < LandingJudge.MinAir || _bodyDown || _car.SelfRighting) return;
+
+        float pitch = _car.PitchDegrees();
+        float lead = pitch * _carDir;   // positive: the end you are driving towards points down
+        // All wheels down and fairly level: a hard but proper landing, judged (as rough) by the judge.
+        bool botched = Mathf.Abs(pitch) > 100f || _car.Airborne || (_car.WheelsGrounded < _car.WheelsAttached && Mathf.Abs(lead) > 25f);
+        if (!botched) return;
+        string what = Mathf.Abs(pitch) > 100f ? "ROOF LANDING" : lead > 25f ? "NOSE DIVE" : lead < -25f ? "TAIL SLAM" : "BELLY FLOP";
+        float air = _airTime;
+        _flops++;
+        _trip?.NoteAir(air);
+        if (air > 0.9f) _longestAir = Mathf.Max(_longestAir, air);
+        _airTime = 0f;
+        _bodyDown = true;
+        if (!_goalToast || _toastTime < 1.2f) Toast($"{what}!\n{air:0.0} s of air");
+        if (GameSession.AutoPlay)
+            GD.Print($"[landing] flop: {what.ToLowerInvariant()} after air={air:0.00}s pitch={pitch:0} hit={e.Strength / PixelsPerMeter * 3.6f:0}km/h " +
+                     $"at x={_car.CenterPosition.X / Ts:0} frame={Engine.GetFramesDrawn()} | perfect={_perfectLandings} clean={_cleanLandings} rough={_roughLandings} flops={_flops}");
     }
 
     // ---- Automated playtest -----------------------------------------------------------------
@@ -1117,7 +1214,7 @@ public partial class WorldScene : Node2D
         GD.Print($"[autoplay] t={_elapsed:0}s {(_driving ? "driving" : "on foot")} biome={TileWorld.BiomeAt(Mathf.FloorToInt(c.X / Ts))} grip={_world.GripAt(c + new Vector2(0f, 60f)):0.00} player=({p.X / Ts:0.0},{p.Y / Ts:0.0}) grounded={_player.Grounded} " +
                  $"car=({c.X / Ts:0.0},{c.Y / Ts:0.0}) surfaceRow={surface} depth={(c.Y / Ts - surface) * 0.25f:0.0}m speed={_car.Speed / PixelsPerMeter * 3.6f:0}km/h pitch={_car.PitchDegrees():0} " +
                  $"fuel={_car.Fuel:0} damage={_car.Damage:0} drilling={_car.IsDrilling} boosting={_car.Boosting} boostTotal={_boostSeconds:0.0}s " +
-                 $"top={_topSpeed / PixelsPerMeter * 3.6f:0}km/h longestAir={_longestAir:0.0}s " +
+                 $"top={_topSpeed / PixelsPerMeter * 3.6f:0}km/h longestAir={_longestAir:0.0}s landings={_perfectLandings}/{_cleanLandings}/{_roughLandings}/{_flops} " +
                  $"crashes={_crashFx.Hits} hardest={_crashFx.HardestHit / PixelsPerMeter * 3.6f:0}km/h sparks={_crashFx.SparkBursts} " +
                  $"cans={_cansTaken} heaps={_heapsTaken} smashed={_heapsSmashed} bestStreak={_bestStreak} " +
                  $"dash={(_dash.Visible ? $"{_dash.ShownKmh:0}km/h" : "hidden")} lines={_lines.Intensity:0.00} peakLines={_peakLines:0.00} wind={_sfx.WindLevel:0.00} rollOvers={_rollOvers} ice={_spray.IceSeconds:0.0}s slip={_spray.SlipSeconds:0.0}s bite={_spray.BiteSeconds:0.0}s trip={tripNow} reports={_tripsReported} card={(_card.Showing ? _card.ShownScore.ToString() : "hidden")} | " +

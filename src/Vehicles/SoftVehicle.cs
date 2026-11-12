@@ -64,6 +64,65 @@ public partial class SoftVehicle : Node2D, IVehicle
         }
     }
 
+    /// <summary>Wheels still bolted on (lost wheels do not count).</summary>
+    public int WheelsAttached
+    {
+        get
+        {
+            int n = 0;
+            foreach (var w in _wheels)
+                if (w.Attached) n++;
+            return n;
+        }
+    }
+
+    /// <summary>Attached wheels touching the ground right now.</summary>
+    public int WheelsGrounded
+    {
+        get
+        {
+            int n = 0;
+            foreach (var w in _wheels)
+                if (w.Attached && w.Grounded) n++;
+            return n;
+        }
+    }
+
+    /// <summary>
+    /// Degrees between the car's "up" and the ground under its grounded wheels: 0 when the car sits
+    /// flat on the slope it touched, large when it lands nose-first or tail-first. -1 with no wheel down.
+    /// </summary>
+    public float GroundMismatchDegrees()
+    {
+        Vector2 n = Vector2.Zero;
+        foreach (var w in _wheels)
+            if (w.Attached && w.Grounded) n += w.GroundNormal;
+        if (n == Vector2.Zero) return -1f;
+        Vector2 d = Forward();
+        Vector2 up = new Vector2(d.Y, -d.X);
+        return Mathf.Abs(Mathf.RadToDeg(up.AngleTo(n.Normalized())));
+    }
+
+    /// <summary>
+    /// A short shove along the way the car is already rolling (a perfect landing), in px/s.
+    /// Spread over <see cref="KickTime"/> seconds (a jolt); the tyres spin up with it
+    /// so they do not brake it away.
+    /// </summary>
+    public void Kick(float speed)
+    {
+        _kickPending += speed;
+        _kickRate = _kickPending / KickTime;
+        // Overdrive: the engine may spin past its normal top speed by the kick for a moment,
+        // or it would stop pushing and the kick would bleed away at once.
+        _overdrive = Mathf.Max(_overdrive, speed);
+    }
+
+    /// <summary>Extra top speed (px/s at the tyre) the engine is allowed right now after a kick; fades in about 1.5 s.</summary>
+    public float Overdrive => _overdrive;
+    private const float OverdriveFade = 180f;   // px/s lost per second
+
+    public const float KickTime = 0.05f;   // near-instant: in A/B bot runs a 0.3 s spread was weaker
+
     /// <summary>Shows the driver in the cab window.</summary>
     public bool Occupied { get; set; }
     public SoftPhysicsWorld World { get; set; }
@@ -145,6 +204,7 @@ public partial class SoftVehicle : Node2D, IVehicle
     private bool _selfRighting;
     private float _rightingTime;
     private bool _hopPending;
+    private float _kickPending, _kickRate, _overdrive;
     private const float AirSpinDamping = 0.003f;   // share of spin removed per substep while airborne
     private float _autoStuckTime, _autoReverseTime;
     private int _rearHub = -1, _frontHub = -1;
@@ -489,6 +549,12 @@ public partial class SoftVehicle : Node2D, IVehicle
 
         StabiliseInAir();
         if (Boosting) ApplyBoost(dt);
+        if (_kickPending > 0f)
+        {
+            float add = Mathf.Min(_kickPending, _kickRate * dt);
+            _kickPending -= add;
+            ApplyKick(add, dt);
+        }
         if (_hopPending)
         {
             _hopPending = false;
@@ -592,6 +658,19 @@ public partial class SoftVehicle : Node2D, IVehicle
         return new Vector2(1f, 0f);
     }
 
+    private void ApplyKick(float speed, float dt)
+    {
+        Vector2 forward = Forward();
+        Vector2 velocity = Vector2.Zero;
+        for (int i = 0; i < BodyNodeCount; i++) velocity += Pos[i] - Prev[i];
+        float along = velocity.Dot(forward) / Mathf.Max(1, BodyNodeCount) / dt;
+        if (Mathf.Abs(along) < 40f) return;   // nearly stopped: no direction to push in
+        Vector2 dir = forward * Mathf.Sign(along);
+        for (int i = 0; i < Pos.Length; i++) Prev[i] -= dir * speed * dt;
+        float ratio = (Mathf.Abs(along) + speed) / Mathf.Abs(along);
+        foreach (var wheel in _wheels) wheel.Spin *= ratio;
+    }
+
     private bool BoosterIntact(Cell cell)
     {
         int[] c = cell.Corners;
@@ -667,6 +746,7 @@ public partial class SoftVehicle : Node2D, IVehicle
 
     public void EndTick(float delta)
     {
+        _overdrive = Mathf.Max(0f, _overdrive - OverdriveFade * delta);
         // Self-righting kicks in after lying upside down, nearly still, for a moment.
         bool upsideDown = Mathf.Abs(PitchDegrees()) > 110f;
         _upsideDownTime = upsideDown && Speed < 60f ? _upsideDownTime + delta : 0f;
@@ -783,7 +863,7 @@ public partial class SoftVehicle : Node2D, IVehicle
             }
             else if (drive && attachedWheels > 0 && (wheel.Grounded || drivenWheels == 0))
             {
-                bool belowTopSpeed = Mathf.Abs(wheel.Spin) < _engineMaxSpin || Mathf.Sign(wheel.Spin) != Mathf.Sign(_input.Throttle);
+                bool belowTopSpeed = Mathf.Abs(wheel.Spin) < _engineMaxSpin + _overdrive / wheel.Radius || Mathf.Sign(wheel.Spin) != Mathf.Sign(_input.Throttle);
                 float share = drivenWheels > 0 ? drivenWheels : attachedWheels;
                 float torque = _engineTorque / share * _input.Throttle;
                 if (belowTopSpeed) wheel.Spin += torque / inertia * dt;

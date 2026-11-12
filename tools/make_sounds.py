@@ -181,8 +181,29 @@ def record():
     return s
 
 
+def land():
+    """A perfect landing: a soft low thump, a rising whoosh of air, and a bright two-note ta-DING."""
+    n = int(SR * 0.75); t = np.arange(n) / SR
+    thump = np.sin(2 * np.pi * (70 + 50 * np.exp(-t * 30)) * t) * np.exp(-t * 22)
+    noise = land_rng.standard_normal(n)
+    sweep = np.zeros(n)
+    # Band of noise whose centre slides up (crude moving filter: two low-passes of different width).
+    for i, k in enumerate((40, 24, 14, 8, 5)):
+        u = np.clip((t - 0.03 * i) / 0.14, 0, 1)
+        seg = np.sin(np.pi * u) ** 2          # smooth swell in and out, no clicks
+        band = lowpass(noise, k) - lowpass(noise, k * 3)
+        sweep += band * seg
+    s = 0.8 * thump + 0.9 * sweep
+    for start_s, f, length, amp in ((0.06, 1318.5, 0.08, 0.5), (0.15, 1975.5, 0.5, 0.6)):   # E6, then B6
+        start = int(SR * start_s); tt = t[: n - start]
+        env = (1 - np.exp(-tt * 400)) * np.exp(-tt * (4.5 if length > 0.2 else 30))
+        s[start:] += amp * env * (np.sin(2 * np.pi * f * tt) + 0.3 * np.sin(2 * np.pi * 2 * f * tt) + 0.12 * np.sin(2 * np.pi * 3.01 * f * tt))
+    return s
+
+
 wind_rng = np.random.default_rng(57)    # own stream, so adding wind leaves every other sound byte-identical
 crash_rng = np.random.default_rng(31)   # separate stream: adding sounds never changes the older ones
+land_rng = np.random.default_rng(91)    # own stream for the perfect-landing whoosh
 
 
 if __name__ == "__main__":
@@ -202,4 +223,5 @@ if __name__ == "__main__":
     save("wind", wind(), 0.6)
     save("tally", tail_fade(tally(), 20), 0.5)     # deterministic: uses no random stream
     save("record", tail_fade(record(), 120), 0.6)
+    save("land", tail_fade(land(), 80), 0.6)
     print("sounds written to", os.path.abspath(OUT))

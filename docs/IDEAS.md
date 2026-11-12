@@ -14,7 +14,7 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 4 | Buried treasure: glinting stashes underground that pay a bundle of ore | S–M | **Built 2026-11-12** (PR #9) |
 | 5 | Fuel cans and scrap heaps lying on the surface between biomes, so the drive is not empty | S | **Built 2026-11-12** (PR #10) |
 | 6 | Trip summary card when you get back to the garage: distance, top speed, best air, ore, stashes, heaps smashed, best smash streak, crashes — and your best trip to beat | S | **Built 2026-11-12** (PR #12: trip report with score, NEW BEST tags, best-distance on the status line) |
-| 7 | Landing grades: "CLEAN LANDING" bonus vs "BELLY FLOP" when you land on the roof, feeding a trip score | S | Open |
+| 7 | Landing grades: "CLEAN LANDING" bonus vs "BELLY FLOP" when you land on the roof, feeding a trip score | S | **Built 2026-11-12** (PR #15, with #27: PERFECT / CLEAN / ROOF LANDING, NOSE DIVE, TAIL SLAM, BELLY FLOP) |
 | 8 | Smash streak: heaps (and later crates/cacti) smashed within a few seconds of each other chain into "SMASH x3" with rising pitch | S | **Built 2026-11-12** (PR #11, heaps only) |
 | 9 | Ore radar / "metal detector" beep that speeds up as you near a stash (car part or player tool) | S | Open |
 | 10 | Speed lines and wind sound above 60 km/h | S | **Built 2026-11-12** (PR #11, from 50 km/h) |
@@ -35,7 +35,7 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 24 | Biome welcome banner: "THE WASTES — copper country" with a sting the first time you arrive | S | Open (new 2026-11-12) |
 | 25 | Smashable roadside props: cacti in The Wastes, snowmen and ice spikes in the Frozen North, fences in the meadow, all feeding the smash streak | S | Open (new 2026-11-12) |
 | 26 | Distance flags every 50 m with your best distance marked on the road ("BEST 312 m") | S | Open (new 2026-11-12) |
-| 27 | Nitro-style "perfect landing" boost: land clean on all wheels and get a short free speed kick | S | Open (new 2026-11-12; pairs with landing grades) |
+| 27 | Nitro-style "perfect landing" boost: land clean on all wheels and get a short free speed kick | S | **Built 2026-11-12** (PR #15: +9 to +17 km/h by air time) |
 | 28 | Engine smoke and a coughing engine sound when damage is high, so the damage meter means something you can hear | S | Open (new 2026-11-12) |
 | 30 | Trip goal at the gate: one bonus objective per trip ("smash 8 heaps", "reach The Wastes", "2 s of air") worth double points on the report | S | **Built 2026-11-12** (PR #13: ten kinds, flat bonus 100–200 instead of "double", targets grow with your records) |
 | 35 | Goal streak: finish goals on consecutive trips for a growing multiplier ("GOAL STREAK x3") shown at the gate | S | Open (new 2026-11-12, sixth session; top pick next to the snow tyres) |
@@ -53,7 +53,25 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 43 | Tyre marks: dark streaks in snow and scratches on ice where wheels slid, fading after a while | S | Open (new 2026-11-12) |
 | 44 | Avalanche/snow slide: digging under a snow overhang drops a slide of snow on the car | M | Open (new 2026-11-12) |
 | 45 | Goal kinds tied to parts: "Cross the ice without sliding" or "Climb the north ridge" | S | Open (new 2026-11-12) |
+| 46 | Landing chain: perfect landings in a row stack the kick and a "PERFECT x3" call-out, like the smash streak | S | Open (new 2026-11-12, eighth session; cheapest follow-up to grades) |
+| 47 | Jump kickers by world generation: a dirt kicker every 60–90 m on the meadow road, dune lips in The Wastes, snow cornices in the north | S | Open (new 2026-11-12; replaces #13 and #32 as one item — jumps on purpose, not by luck) |
+| 48 | Flip tricks: a full backflip or frontflip in the air (Q/E) scores "BACKFLIP!" — only if you land it | S | Open (new 2026-11-12; Hill Climb's best trick, pairs with grades) |
+| 49 | Goal kind "Land 2 perfect landings" | S | Open (new 2026-11-12; tiny, but changes the trip-goal pool so bot goals shift) |
+| 50 | Wheelie meter: back wheel only for 2+ s scores "WHEELIE 2.3 s" | S | Open (new 2026-11-12) |
+| 51 | Suspension squash: wheels visibly compress and the body bobs on landing, with a creak | S | Open (new 2026-11-12; feel polish, cheap if the soft body already squashes) |
 | 29 | Speedometer redline overdrive: holding the needle in the red for 3 s with the booster unlocks a "SONIC" call-out and a sonic-boom puff | S | Open (new 2026-11-12, cheap thrill) |
+
+## 2026-11-12 (eighth session — polish)
+
+Looked at `rocket_180.png` and the bot's jump log: the road throws the car into the air all the time (0.9–1.75 s jumps in nearly every run), but what you do in the air does not matter. Landing on your wheels and landing on your roof both end with the same "BIG AIR" cheer — or none — and the drive carries on. Three feature sessions since the last polish pass, so this one is feel. The most boring second right now is the touchdown: the most exciting moment of a jump ends with nothing. Hill Climb Racing turns exactly this moment into the game (air time, flips, "perfect landing" bonus); Trials makes the landing the skill.
+
+- **Landing grades + perfect-landing kick** (S): PERFECT (all wheels at once, matching the slope) gives a burst of speed, warm streaks and a ta-DING; CLEAN scores; ROOF LANDING / NOSE DIVE / TAIL SLAM / BELLY FLOP get named. Why fun: Q/E tilt in the air finally has a purpose, and a skill reward you feel in the car within the first minute. *Built.*
+- **Perfect chain** (S): several perfect landings in a row stack the kick, "PERFECT x3". Why fun: a flow state on the hills, like the smash streak.
+- **Jump kickers from world generation** (S): a dirt ramp every so often on the road, dune lips, snow cornices. Why fun: jumps on purpose, a reason to line up and use the landing skill.
+- **Flip tricks** (S): a full backflip counts only if you land it. Why fun: risk and reward in one, the best Hill Climb moment.
+- **Wheelie meter** (S): back wheel only for 2+ s. Why fun: a trick for flat stretches.
+- **Suspension squash on landing** (S): visible compression and a creak. Why fun: landings feel heavy and physical.
+- **"Land 2 perfect landings" goal** (S): ties the new skill into trip goals.
 
 ## 2026-11-12 (seventh session)
 
