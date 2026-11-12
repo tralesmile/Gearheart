@@ -203,8 +203,8 @@ public partial class Player : Node2D
         _grappleHeld = hookKey;
         if (padHook && input.Grapple)
         {
-            var stick = new Vector2(Input.GetJoyAxis(0, JoyAxis.LeftX), Input.GetJoyAxis(0, JoyAxis.LeftY));
-            Vector2 dir = stick.Length() > 0.3f ? stick.Normalized() : new Vector2(_facingLeft ? -0.35f : 0.35f, -1f).Normalized();
+            var aimStick = new Vector2(Input.GetJoyAxis(0, JoyAxis.LeftX), Input.GetJoyAxis(0, JoyAxis.LeftY));
+            Vector2 dir = aimStick.Length() > 0.3f ? aimStick.Normalized() : new Vector2(_facingLeft ? -0.35f : 0.35f, -1f).Normalized();
             input.Aim = Hand + dir * HookRange;
         }
         return input;
