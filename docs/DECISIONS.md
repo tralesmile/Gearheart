@@ -2,6 +2,13 @@
 
 Newest first. One entry per big decision: what, why, and what would make us revisit it.
 
+## 2026-11-12 — Air cam: the camera looks where you are going and frames the landing
+
+- **What:** while driving, the camera aims ahead of the car by 0.22 s of travel (at most 220 px, about 3.4 m), plus the distance the Camera2D's own smoothing would otherwise trail behind (speed / smoothing speed), so the car sits left of centre driving right and the road ahead gets the room. On a jump, a plain ballistic arc (gravity only, from the body centre 44 px down, against the tiles and kicker ramps) predicts the landing; if the whole flight is predicted to last 0.7 s or more, the camera eases (over about a third of a second) toward the midpoint of car and landing and zooms out until both fit with a margin, but never below 0.85 zoom. A soft dark shadow sits on the ground at the predicted landing. On touchdown it eases back in. The car is always clamped to stay on screen.
+- **Why:** at 1280x720 and zoom 1.1–1.5 a big jump hid the landing, and since flip tricks the player is spinning blind. Chase cams in racing games and Trials look ahead; the shadow is the platformer trick for judging where you come down. The prediction ignores the booster and air drag on purpose: it is a hint, and it updates every frame.
+- **Not gameplay:** nothing in physics or the bots reads the camera, so playtest numbers are unchanged (the starter's 40 s position matched main to 0.1 px).
+- **Revisit when:** you have played (D1). If the look-ahead feels seasick or too far, lower `AirCam.LeadPerSpeed`; if the zoom-out feels too much, raise `AirZoomMin` or `BigAir`. If the shadow makes landings too easy, drop it.
+
 ## 2026-11-12 — Flip tricks, and spin that belongs to the driver
 
 - **What:** while every wheel is off the ground the car's rotation is added up. A full turn (less 60°, so a landing onto a slope counts) that ends with the car judged on its wheels is a **BACKFLIP** (the end you drive towards goes up and over) or **FRONTFLIP**, DOUBLE / TRIPLE for more. It pays a speed kick of 150 px/s (about 8 km/h) per turn, up to three, on top of a perfect-landing kick, and 60 points per turn on the trip report's Jumps row. Ending on the roof, nose or tail, or wheels first but with the body slamming down more than 35° off the slope, does not count ("…, but it doesn't count"). A bounce while the landing is still being judged adds to the same jump's rotation.

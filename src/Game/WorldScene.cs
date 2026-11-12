@@ -49,6 +49,7 @@ public partial class WorldScene : Node2D
     private const float StreakWindow = 2.5f;     // seconds between smashes that still chain
     private Dashboard _dash;
     private SpeedLines _lines;
+    private AirCam _airCam;
     private float _carDir = 1f, _dirCarX, _carVx;
     private float _peakLines;
     private bool _linesLogged, _wasRighting;
@@ -139,6 +140,8 @@ public partial class WorldScene : Node2D
 
         _crashFx = new CrashFx { Name = "CrashFx", Log = GameSession.AutoPlay, GroundColor = GroundColorAt };
         AddChild(_crashFx);
+        _airCam = new AirCam { Name = "AirCam", World = _world };
+        AddChild(_airCam);   // before the car: the landing shadow is drawn under it
         SpawnCar();
 
         _player = new Player
@@ -153,8 +156,7 @@ public partial class WorldScene : Node2D
         {
             Position = _player.Position,
             Zoom = new Vector2(FootZoom, FootZoom),
-            PositionSmoothingEnabled = true,
-            PositionSmoothingSpeed = 7f,
+            PositionSmoothingEnabled = false,   // AirCam eases the position itself (it knows the car's speed)
         };
         AddChild(_camera);
         _camera.MakeCurrent();
@@ -563,12 +565,18 @@ public partial class WorldScene : Node2D
     {
         float dt = (float)delta;
         Vector2 focus = Focus;
-        _camera.Position = focus;
-        _view.Focus = focus;
-        // Pull the camera back at speed so jumps and what is ahead stay in view.
+        // Pull the camera back at speed so jumps and what is ahead stay in view; look ahead the
+        // way the car is going, and frame the landing on a big jump (AirCam).
         float driveZoom = DriveZoom - 0.4f * Mathf.Clamp((_car.Speed - 500f) / 1000f, 0f, 1f);
-        float zoom = Mathf.Lerp(_camera.Zoom.X, _driving ? driveZoom : FootZoom, 1f - Mathf.Exp(-2f * dt));
+        bool flying = _driving && _car.Airborne && !_bodyDown && !_car.SelfRighting;
+        _airCam.Step(dt, _driving, focus, _car.CenterVelocity, flying, flying ? _airTime : 0f,
+                     _driving ? driveZoom : FootZoom, _camera.Zoom.X, GetViewportRect().Size);
+        _camera.Position = _airCam.Target;
+        _view.Focus = _airCam.Target;
+        float zoomRate = _airCam.Zoom < _camera.Zoom.X - 0.01f && _airCam.Blend > 0.05f ? 3f : 2f;
+        float zoom = Mathf.Lerp(_camera.Zoom.X, _airCam.Zoom, 1f - Mathf.Exp(-zoomRate * dt));
         _camera.Zoom = new Vector2(zoom, zoom);
+        if (GameSession.AutoPlay) LogAirCam(flying);
 
         // Darkness grows with depth below the surface.
         float depth = focus.Y / Ts - _world.SurfaceRow(Mathf.FloorToInt(focus.X / Ts));
@@ -1761,7 +1769,7 @@ public partial class WorldScene : Node2D
                     _player.Position = at;
                     _player.Velocity = Vector2.Zero;
                     _camera.Position = at;
-                    _camera.ResetSmoothing();
+                    _airCam.Snap(at);
                     GD.Print($"[deep] test: player placed in a cavern at tile ({x},{y}) depth={(y - _world.SurfaceRow(x)) * 0.25f:0.0}m " +
                              $"{(x - mid) * 0.25f:0} m from the garage, biome={TileWorld.BiomeAt(x)} frame={Engine.GetFramesDrawn()}");
                     return;

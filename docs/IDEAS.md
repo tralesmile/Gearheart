@@ -104,10 +104,30 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 94 | Gyro part (Crystal + Copper): stronger air rotation, so flips and landings get easier with a part you earn | S | Open (new 2026-11-12, sixteenth session; a part that changes how the car flies, a second Crystal use) |
 | 95 | Mega kicker: one rare 3 m ramp per biome with a red sign, built for flips and long flags | S | Open (new 2026-11-12; gives flips a place made for them) |
 | 96 | Trick goals: "Land a backflip", "Land a flip off a kicker" in the trip-goal pool | S | Open (new 2026-11-12; shifts the bot's goal order, needs a check of every goal-dependent test) |
-| 97 | Air cam: the camera eases out a little during long jumps so you can see where you will land | S | Open (new 2026-11-12; clarity — at 1280x720 a big jump hides the landing) |
+| 97 | Air cam: the camera eases out a little during long jumps so you can see where you will land | S | **Built 2026-11-12** (PR #25: look-ahead on the road, the camera frames car + predicted landing on jumps of 0.7 s+, a landing shadow on the ground) |
 | 98 | Trick combo: flip + long-jump record + perfect landing in one jump multiply ("COMBO x3") on the trip report | S | Open (new 2026-11-12; rewards stacking skills in one moment) |
 | 99 | Wreck scrap: a really hard crash sheds a few scrap bits you can collect (cheap repair material from your own disasters) | S | Open (new 2026-11-12; makes a spectacular crash pay a little, Hill Climb's "the crash is part of the fun") |
+| 100 | Near-miss flags: "CLOSE CALL" when you land a big jump within a car length of a drop, a heap or a wall | S | Open (new 2026-11-12, seventeenth session; rewards the lucky landing the air cam now lets you see) |
+| 101 | Landing target ring: some kickers get a painted ring in the landing zone; touch down inside it for "BULLSEYE" and a bonus | S | Open (new 2026-11-12; the shadow makes aiming a jump a skill) |
+| 102 | Photo mode on the trip card: the frame of your biggest air saved as the card's background | S–M | Open (new 2026-11-12; folds #33; the air cam frames nice shots already) |
+| 103 | Wheel-touch sparks and a tyre chirp on hard landings, scaled by impact | S | Open (new 2026-11-12; landings are mostly silent unless you crash) |
+| 104 | Tail-wind kicker: a fan sign before some kickers that gives a free boost on take-off ("WIND ASSIST") so the starter car can reach flips | S | Open (new 2026-11-12; the starter cannot flip; this gives it a place to try) |
+| 105 | Camera kick on landings: a short downward dip and squash on a hard touchdown, separate from crash shake | S | Open (new 2026-11-12; weight on landing, cheap) |
 | 29 | Speedometer redline overdrive: holding the needle in the red for 3 s with the booster unlocks a "SONIC" call-out and a sonic-boom puff | S | Open (new 2026-11-12, cheap thrill) |
+
+## 2026-11-12 (seventeenth session — feel)
+
+Looked at `flip_mid_47.png` and `kicker_trip_77.png`: the car fills a fifth of the screen, the camera sits dead on it, and on a big jump half the view is the road behind you while the landing is off the edge. Flips made this matter: you now spin around in the air without seeing where you will come down, so a perfect landing is guesswork. Trials, Hill Climb Racing and every NFS chase cam look ahead. The most boring (or most frustrating) second right now is the blind half of every jump. Flips were a feature, so this session is feel and clarity.
+
+- **Air cam** (S, #97): look ahead on the road, ease out to frame car + landing on big jumps, a shadow where you will land. Why fun: you can aim a landing and see what's coming. *Built.*
+- **Near-miss call-out** (S, #100): a big landing a car length from a drop or heap. Why fun: a lucky escape becomes a moment.
+- **Landing target ring** (S, #101): BULLSEYE for landing in a painted ring. Why fun: the shadow turns aiming into a skill with a reward.
+- **Biggest-air photo on the trip card** (S–M, #102). Why fun: the best moment of the trip is what you see last.
+- **Landing sparks and tyre chirp** (S, #103). Why fun: landings get weight and sound.
+- **Wind-assist kicker** (S, #104). Why fun: the starter car gets a place to try a flip before you build a booster.
+- **Landing camera dip** (S, #105). Why fun: weight on every touchdown, cheap.
+
+Best open picks for fun per effort now: #82 start lights (S), #94 Gyro part (S), #104 wind-assist kicker (S), #96 trick goals (S), #64 Crystal Lamp (S), #89 hydraulics (S–M), #68 surface lift (S–M), then #65 deep critters and #56 lava (M).
 
 ## 2026-11-12 (sixteenth session)
 
