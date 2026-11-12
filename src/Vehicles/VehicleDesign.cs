@@ -279,4 +279,13 @@ public sealed class VehicleDesign
         d.SetBlock(2, 3, "booster_rocket");
         return d;
     }
+
+    /// <summary>The starter car with a Turbocharger bolted on top of the V6.</summary>
+    public static VehicleDesign Turbo()
+    {
+        var d = Default();
+        d.Name = "Turbo Pickup";
+        d.SetBlock(7, 2, "turbo");
+        return d;
+    }
 }

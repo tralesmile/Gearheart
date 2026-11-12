@@ -320,6 +320,40 @@ def creak():
 creak_rng = np.random.default_rng(141)   # own stream for the rock-it-free creak
 
 
+turbo_rng = np.random.default_rng(273)   # own stream for the turbo whistle and blow-off
+
+
+def band_noise_loop(n, lo, hi):
+    """Seamlessly looping noise with only the frequencies lo..hi Hz (n = one second, so bin = Hz)."""
+    spectrum = np.fft.rfft(turbo_rng.standard_normal(n))
+    spectrum[:lo] = 0
+    spectrum[hi:] = 0
+    x = np.fft.irfft(spectrum, n)
+    return x / (np.std(x) + 1e-9)
+
+
+def turbo():
+    """Turbo whistle: a thin high whine (whole cycles in one second so it loops) with a breathy hiss.
+    The game raises its pitch and volume as the boost builds."""
+    t = np.arange(SR) / SR
+    s = np.sin(2 * np.pi * 2300 * t) + 0.35 * np.sin(2 * np.pi * 4600 * t + 1.0) + 0.18 * np.sin(2 * np.pi * 3450 * t + 2.0)
+    s *= 1.0 + 0.08 * np.sin(2 * np.pi * 7 * t)                  # a slow waver, like blades and air
+    s += 0.55 * band_noise_loop(SR, 1800, 3200)                   # rushing air through the compressor
+    return s
+
+
+def blowoff():
+    """Blow-off valve: a sharp 'pssh' of high hiss that fades, with a fluttering 'tu-tu-tu' tail."""
+    n = int(SR * 0.5); t = np.arange(n) / SR
+    noise = turbo_rng.standard_normal(n)
+    hiss = noise - lowpass(noise, 6)                               # crude high-pass: keep the fizz
+    env = np.minimum(1.0, t / 0.006) * np.exp(-t * 7.5)
+    flutter = 1.0 - 0.55 * (t > 0.12) * (0.5 + 0.5 * np.sign(np.sin(2 * np.pi * 26 * t)))
+    s = hiss * env * flutter
+    s += 0.25 * lowpass(noise, 40) / 0.15 * env                    # a little body under the hiss
+    return s
+
+
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
     save("engine", engine(), 0.7)
@@ -344,4 +378,6 @@ if __name__ == "__main__":
     save("start", tail_fade(start(), 120), 0.6)
     save("pop", tail_fade(pop(), 30), 0.7)
     save("creak", tail_fade(creak(), 40), 0.6)
+    save("turbo", turbo(), 0.5)
+    save("blowoff", tail_fade(blowoff(), 60), 0.6)
     print("sounds written to", os.path.abspath(OUT))

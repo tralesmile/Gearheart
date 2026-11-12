@@ -53,6 +53,8 @@ A 2D side-view sandbox where you mine, craft and build vehicles part by part, th
 
 **Rocket Booster:** 2 Scrap, 2 Iron and 3 Copper buy a booster for the back of the car. Hold Shift (or RB / X on a gamepad) for thrust: long jumps, steep hills and spectacular crashes. Long jumps get a "BIG AIR" call-out with the airtime, and hard landings and crashes shake the screen and throw sparks.
 
+**Turbocharger:** 2 Iron and 3 Copper buy a turbo; bolt it on top of the engine. Floor it and the boost builds (slowly at low revs, fast near the redline): you hear a whistle that climbs with it, the compressor wheel on the bonnet spins up and a BOOST arc fills on the speedometer. At full boost the engine has up to 40% more torque and a higher top speed (and drinks a little more fuel). Lift off and it blows off with a "pssh" and a puff of air; every upshift costs a little boost. Holding launch control on the line spools it up before you go.
+
 **Buried stashes:** something glints in the rock? Dig towards it. Old Toolboxes lie shallow, Lost Supply Crates deeper, and Ancient Strongboxes (a pile of Iron and Copper) deep down or out in the far biomes. The pickaxe and the drill both open them. There is one a short walk from the garage on each side.
 
 **On the road:** fuel cans and scrap heaps lie along the surface every 10–19 m. Drive through a can for +18 fuel (it stays put if your tank is nearly full). Plough through a scrap heap at speed to smash it for Scrap (sometimes Iron in the meadow and the north, Copper in The Wastes), or walk into it to pick it up. Both come back a couple of minutes after you take them. The fuel readout blinks LOW FUEL under 20%.

@@ -63,7 +63,7 @@ public partial class OreField : Node2D, IMineable
     /// <summary>Places boulders on the ground between two x positions. Further away = rarer materials.</summary>
     public void Scatter(TestTerrain terrain, float fromX, float toX, float spacing, ulong seed, params float[] keepClear)
     {
-        var rng = new RandomNumberGenerator { Seed = seed };
+        using var rng = new RandomNumberGenerator { Seed = seed };
         for (float x = fromX; x < toX; x += spacing * rng.RandfRange(0.7f, 1.3f))
         {
             bool blocked = false;

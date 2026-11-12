@@ -163,7 +163,7 @@ public sealed class TileWorld : ITerrainCollider, IMineable, ISurfaceInfo
     /// <summary>What a stash holds. Fixed per stash (seeded by its position), richer for the deeper kinds.</summary>
     public static List<(string Item, int Amount)> StashLoot(Tile tile, int x, int y)
     {
-        var rng = new RandomNumberGenerator { Seed = (ulong)(uint)(x * 73856093 ^ y * 19349663) };
+        using var rng = new RandomNumberGenerator { Seed = (ulong)(uint)(x * 73856093 ^ y * 19349663) };
         int R(int lo, int hi) => lo + (int)(rng.Randi() % (uint)(hi - lo + 1));
         return tile switch
         {
@@ -451,13 +451,13 @@ public sealed class TileWorld : ITerrainCollider, IMineable, ISurfaceInfo
     public static TileWorld Generate(int seed)
     {
         var world = new TileWorld();
-        var caves = new FastNoiseLite { Seed = seed, Frequency = 0.045f, NoiseType = FastNoiseLite.NoiseTypeEnum.Simplex };
-        var ore = new FastNoiseLite { Seed = seed + 1, Frequency = 0.16f, NoiseType = FastNoiseLite.NoiseTypeEnum.Simplex };
-        var hills = new FastNoiseLite { Seed = seed + 2, Frequency = 0.012f, NoiseType = FastNoiseLite.NoiseTypeEnum.Simplex };
-        var patches = new FastNoiseLite { Seed = seed + 3, Frequency = 0.03f, NoiseType = FastNoiseLite.NoiseTypeEnum.Simplex };
-        var deepLine = new FastNoiseLite { Seed = seed + 4, Frequency = 0.02f, NoiseType = FastNoiseLite.NoiseTypeEnum.Simplex };
-        var glow = new FastNoiseLite { Seed = seed + 5, Frequency = 0.11f, NoiseType = FastNoiseLite.NoiseTypeEnum.Simplex };
-        var rng = new RandomNumberGenerator { Seed = (ulong)seed };
+        using var caves = new FastNoiseLite { Seed = seed, Frequency = 0.045f, NoiseType = FastNoiseLite.NoiseTypeEnum.Simplex };
+        using var ore = new FastNoiseLite { Seed = seed + 1, Frequency = 0.16f, NoiseType = FastNoiseLite.NoiseTypeEnum.Simplex };
+        using var hills = new FastNoiseLite { Seed = seed + 2, Frequency = 0.012f, NoiseType = FastNoiseLite.NoiseTypeEnum.Simplex };
+        using var patches = new FastNoiseLite { Seed = seed + 3, Frequency = 0.03f, NoiseType = FastNoiseLite.NoiseTypeEnum.Simplex };
+        using var deepLine = new FastNoiseLite { Seed = seed + 4, Frequency = 0.02f, NoiseType = FastNoiseLite.NoiseTypeEnum.Simplex };
+        using var glow = new FastNoiseLite { Seed = seed + 5, Frequency = 0.11f, NoiseType = FastNoiseLite.NoiseTypeEnum.Simplex };
+        using var rng = new RandomNumberGenerator { Seed = (ulong)seed };
 
         // Surface line: flat at the garage pad, hillier the further you go.
         // Desert dunes are long and smooth; the frozen land is rugged.
@@ -589,7 +589,7 @@ public sealed class TileWorld : ITerrainCollider, IMineable, ISurfaceInfo
     /// </summary>
     private static void PlaceKickers(TileWorld world, int seed)
     {
-        var rng = new RandomNumberGenerator { Seed = (ulong)seed + 91 };
+        using var rng = new RandomNumberGenerator { Seed = (ulong)seed + 91 };
         int middle = (PadFrom + PadTo) / 2;
         foreach (int dir in new[] { 1, -1 })
         {
@@ -684,7 +684,7 @@ public sealed class TileWorld : ITerrainCollider, IMineable, ISurfaceInfo
     /// </summary>
     private static void PlaceStashes(TileWorld world, int seed)
     {
-        var rng = new RandomNumberGenerator { Seed = (ulong)seed + 77 };
+        using var rng = new RandomNumberGenerator { Seed = (ulong)seed + 77 };
         float padMiddle = (PadFrom + PadTo) / 2f;
         for (int x = 8 + (int)(rng.Randi() % 30); x < Width - 8; x += 34 + (int)(rng.Randi() % 30))
         {
@@ -708,7 +708,7 @@ public sealed class TileWorld : ITerrainCollider, IMineable, ISurfaceInfo
 
         // One shallow toolbox on each side of the garage, a short walk away, so a new player spots
         // a glint in the first minute and learns what it means. Its own random stream keeps the others put.
-        var near = new RandomNumberGenerator { Seed = (ulong)seed + 78 };
+        using var near = new RandomNumberGenerator { Seed = (ulong)seed + 78 };
         for (int side = -1; side <= 1; side += 2)
         {
             int x = Mathf.RoundToInt(padMiddle) + side * (60 + (int)(near.Randi() % 14));

@@ -113,7 +113,30 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 103 | Wheel-touch sparks and a tyre chirp on hard landings, scaled by impact | S | Open (new 2026-11-12; landings are mostly silent unless you crash) |
 | 104 | Tail-wind kicker: a fan sign before some kickers that gives a free boost on take-off ("WIND ASSIST") so the starter car can reach flips | S | Open (new 2026-11-12; the starter cannot flip; this gives it a place to try) |
 | 105 | Camera kick on landings: a short downward dip and squash on a hard touchdown, separate from crash shake | S | Open (new 2026-11-12; weight on landing, cheap) |
+| 106 | Turbocharger part (2 Iron + 3 Copper): boost spools with the revs after a lag, up to +40% torque, a whistle that rises with it and a blow-off "pssh" when you lift | S | **Built 2026-11-12** (PR #26: on top of the engine, BOOST arc on the speedometer, compressor wheel that spins with the boost, launch control spools it on the line) |
+| 107 | Overboost: holding full boost for 4+ s heats the turbo (glows red, the whistle screams); keep going and it blows (smoke, half power until repaired) | S | Open (new 2026-11-12, eighteenth session; risk and reward for the turbo, lift-off becomes a choice) |
+| 108 | Wastes trading post: a shack in The Wastes that swaps Copper for Iron or Scrap, with a sign on the road | M | Open (new 2026-11-12; a destination 95 m out, a reason to drive there with a full load) |
+| 109 | Billboards past some kickers: fly through one for "BILLBOARD!" and points, it bursts into planks | S | Open (new 2026-11-12; Burnout's billboards, an aim for every big jump) |
+| 110 | Cave bats: dark shapes that scatter, squeaking, when your lamp reaches them in a cavern | S | Open (new 2026-11-12; first living thing underground, harmless, sets up the cave creatures) |
+| 111 | Paint shop: pick the body colour in the garage (a handful of colours, free) | S | Open (new 2026-11-12; your car, not the starter car; Sims-style ownership) |
+| 112 | New-part roll-out: the first time you build a part, the car rolls out of the garage with a fanfare and a short camera hold on the part | S | Open (new 2026-11-12; makes earning a part an event) |
+| 113 | Part-specific trip goals: "Hit full boost 5 times", "Clear a kicker at 70 km/h" when you own the part | S | Open (new 2026-11-12; ties trips to the car you built) |
 | 29 | Speedometer redline overdrive: holding the needle in the red for 3 s with the booster unlocks a "SONIC" call-out and a sonic-boom puff | S | Open (new 2026-11-12, cheap thrill) |
+
+## 2026-11-12 (eighteenth session)
+
+Merged PR #25 (air cam) first. Looked at `world_130.png` and `aircam_flip_69.png`: the car reads well, the camera now looks ahead, the dashboard is clear. Seven sessions in a row were about the first ten seconds of a drive and tricks in the air (launch, sprint, rock it free, flips, air cam). What has not moved since PR #19 is the *garage*: there are three engines and the last new part that changes how the car drives was the Rocket Booster. Copper from The Wastes buys only the booster and the V8. The roadmap says each biome should feed a part, and the best moment in a car game is often the first drive after an upgrade (Need for Speed's turbo spool and blow-off is a sound people remember). The most boring minute now: driving the same V6 after a few trips, with nothing new to save for.
+
+- **Turbocharger** (S, #106): Wastes copper, spools with the revs, whistle, blow-off, more torque. Why fun: a part you hear and feel in the first second, a new reason to fetch copper. *Built.*
+- **Overboost** (S, #107): hold full boost too long and it overheats. Why fun: risk and reward; lifting off becomes a choice.
+- **Wastes trading post** (M, #108). Why fun: a place to drive to with a load.
+- **Billboards past kickers** (S, #109). Why fun: a target for every big jump.
+- **Cave bats** (S, #110). Why fun: life underground, first creature, no danger yet.
+- **Paint shop** (S, #111). Why fun: your car looks like yours.
+- **New-part roll-out** (S, #112). Why fun: earning a part becomes a moment.
+- **Part goals** (S, #113). Why fun: trips about the car you built.
+
+Best open picks for fun per effort now: #107 overboost (S), #82 start lights (S), #94 Gyro part (S), #64 Crystal Lamp (S), #112 new-part roll-out (S), #110 cave bats (S), #89 hydraulics (S–M), #68 surface lift (S–M), then #65 deep critters and #56 lava (M).
 
 ## 2026-11-12 (seventeenth session — feel)
 

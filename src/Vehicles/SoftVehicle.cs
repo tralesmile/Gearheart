@@ -429,7 +429,7 @@ public partial class SoftVehicle : Node2D, IVehicle
         // Lights go on the frontmost and rearmost body blocks (the lowest one when several tie).
         foreach (var cell in _cells)
         {
-            if (cell.Part.Category is PartCategory.Drill or PartCategory.Booster) continue;
+            if (cell.Part.Category is PartCategory.Drill or PartCategory.Booster or PartCategory.Turbo) continue;
             if (_frontCell == null || cell.GridX > _frontCell.GridX || (cell.GridX == _frontCell.GridX && cell.GridY > _frontCell.GridY)) _frontCell = cell;
             if (_rearCell == null || cell.GridX < _rearCell.GridX || (cell.GridX == _rearCell.GridX && cell.GridY > _rearCell.GridY)) _rearCell = cell;
         }
@@ -478,6 +478,7 @@ public partial class SoftVehicle : Node2D, IVehicle
             },
         };
         AddChild(_boostSmoke);
+        CreateTurboEffects();
 
         World?.Register(this);
     }
@@ -559,7 +560,10 @@ public partial class SoftVehicle : Node2D, IVehicle
             _boostFuelUse += part.BoostFuelUse;
         }
         foreach (var cell in _cells)
+        {
             if (cell.Part.Category == PartCategory.Booster) _boosters.Add(cell);
+            SetUpTurbo(cell);
+        }
 
         // Drill tips: a point in front of each drill block's right edge.
         var drillSetups = new List<(int Tip, Cell Cell)>();
@@ -993,6 +997,7 @@ public partial class SoftVehicle : Node2D, IVehicle
         if (_rearCell != null) _exhaust.Position = ToLocal((Pos[_rearCell.Corners[0]] + Pos[_rearCell.Corners[3]]) / 2f);
         UpdateLaunch(delta);
         UpdateGearbox(delta);
+        UpdateTurbo(delta);
         Recenter();
         QueueRedraw();
     }
@@ -1174,9 +1179,9 @@ public partial class SoftVehicle : Node2D, IVehicle
             }
             else if (drive && attachedWheels > 0 && (wheel.Grounded || drivenWheels == 0))
             {
-                bool belowTopSpeed = Mathf.Abs(wheel.Spin) < _engineMaxSpin + _overdrive / wheel.Radius || Mathf.Sign(wheel.Spin) != Mathf.Sign(_input.Throttle);
+                bool belowTopSpeed = Mathf.Abs(wheel.Spin) < _engineMaxSpin + TurboExtraSpin + _overdrive / wheel.Radius || Mathf.Sign(wheel.Spin) != Mathf.Sign(_input.Throttle);
                 float share = drivenWheels > 0 ? drivenWheels : attachedWheels;
-                float torque = _engineTorque / share * _input.Throttle;
+                float torque = _engineTorque * TurboTorqueFactor / share * _input.Throttle;
                 if (belowTopSpeed) wheel.Spin += torque / inertia * dt;
             }
         }
@@ -1666,6 +1671,8 @@ public partial class SoftVehicle : Node2D, IVehicle
             FillTriangleLocal(ToLocal(mouth - across * 0.45f), ToLocal(mouth + back * 28f * flicker), ToLocal(mouth + across * 0.45f), new Color(1f, 0.85f, 0.3f));
             FillTriangleLocal(ToLocal(mouth - across * 0.2f), ToLocal(mouth + back * 12f * flicker), ToLocal(mouth + across * 0.2f), new Color(1f, 1f, 0.9f));
         }
+
+        DrawTurbo();
 
         // Dark outline around the body silhouette.
         var outlineColor = new Color(0.13f, 0.11f, 0.16f);

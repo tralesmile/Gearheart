@@ -14,7 +14,7 @@ public partial class Sfx : Node
     private readonly Dictionary<string, AudioStream> _streams = new();
     private readonly List<AudioStreamPlayer> _voices = new();
     private readonly Dictionary<string, double> _lastPlayed = new();
-    private AudioStreamPlayer _engine, _drill, _boost, _wind;
+    private AudioStreamPlayer _engine, _drill, _boost, _wind, _turbo;
     private readonly Dictionary<string, AudioStreamPlayer> _engines = new();
     private double _crankUntil;          // the starter is cranking: engine loop silent until then
     private int _nextVoice;
@@ -22,7 +22,7 @@ public partial class Sfx : Node
 
     public override void _Ready()
     {
-        foreach (string name in new[] { "pick", "break", "place", "pickup", "thud", "crunch", "snap", "treasure", "fuel", "tally", "record", "land", "shift", "pop", "start", "creak" })
+        foreach (string name in new[] { "pick", "break", "place", "pickup", "thud", "crunch", "snap", "treasure", "fuel", "tally", "record", "land", "shift", "pop", "start", "creak", "blowoff" })
             _streams[name] = GD.Load<AudioStream>($"res://assets/audio/{name}.wav");
 
         for (int i = 0; i < 6; i++)
@@ -37,7 +37,22 @@ public partial class Sfx : Node
         _drill = Loop("drill");
         _boost = Loop("boost");
         _wind = Loop("wind");
+        _turbo = Loop("turbo");
     }
+
+    /// <summary>
+    /// The turbo's whistle: silent without boost, rising in pitch and loudness as it spools
+    /// (and a touch with the revs). Call every frame; <paramref name="boost"/> is 0..1.
+    /// </summary>
+    public void UpdateTurbo(bool driving, float boost, float rpm)
+    {
+        bool on = driving && boost > 0.03f;
+        TurboWhistle = on ? boost : 0f;
+        SetLoop(_turbo, on, Mathf.LinearToDb(Mathf.Max(0.001f, boost)) - 15f + 3f * rpm, 0.55f + 0.6f * boost + 0.15f * rpm);
+    }
+
+    /// <summary>How loud the turbo whistle is, 0..1 (for the bot log).</summary>
+    public float TurboWhistle { get; private set; }
 
     private AudioStreamPlayer Loop(string name)
     {

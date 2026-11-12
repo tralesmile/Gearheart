@@ -116,6 +116,7 @@ public static class GameSession
         if (UserArgs.Contains("--design=crystal")) CurrentDesign = VehicleDesign.CrystalDriller();
         if (UserArgs.Contains("--design=v8")) CurrentDesign = VehicleDesign.V8();
         if (UserArgs.Contains("--design=scrap4")) CurrentDesign = VehicleDesign.Scrap4();
+        if (UserArgs.Contains("--design=turbo")) CurrentDesign = VehicleDesign.Turbo();
     }
 
     private static string[] UserArgs => OS.GetCmdlineUserArgs();
