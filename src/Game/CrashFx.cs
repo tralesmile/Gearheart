@@ -13,7 +13,7 @@ namespace Gearheart.Game;
 /// </summary>
 public partial class CrashFx : Node2D
 {
-    private const float MaxShake = 18f;        // screen pixels at full trauma
+    private const float MaxShake = 22f;        // screen pixels at full trauma
     private const float TraumaDecay = 1.5f;    // per second
     private const int MaxBursts = 10;
 
@@ -74,14 +74,17 @@ public partial class CrashFx : Node2D
         Hits++;
         HardestHit = Mathf.Max(HardestHit, e.Strength);
         float kmh = e.Strength / 64f * 3.6f;
-        // 0 at a light knock (about 13 km/h of sudden speed change), 1 at about 60 km/h.
-        float power = Mathf.Clamp((e.Strength - 230f) / 850f, 0f, 1f);
+        // 0 at a light knock, 1 at a brutal one. The body hitting the ground hurts sooner (13 to
+        // 50 km/h) than landing on the wheels, which the suspension softens (21 to 74 km/h).
+        float power = e.BodyHit
+            ? Mathf.Clamp((e.Strength - 230f) / 670f, 0f, 1f)
+            : Mathf.Clamp((e.Strength - 380f) / 940f, 0f, 1f);
 
         if (Enabled)
         {
-            AddTrauma(0.12f + 0.55f * power + 0.12f * Mathf.Min(e.Snapped, 4) + (e.WheelLost ? 0.3f : 0f));
+            AddTrauma((e.BodyHit ? 0.15f + 0.7f * power : 0.1f + 0.6f * power) + 0.12f * Mathf.Min(e.Snapped, 4) + (e.WheelLost ? 0.3f : 0f));
             if (e.WheelLost) Toast?.Invoke("LOST A WHEEL!");
-            else if (e.Snapped >= 3 || (e.BodyHit && power > 0.75f)) Toast?.Invoke(e.Snapped >= 3 ? "WRECKED!" : "CRASH!");
+            else if (e.Snapped >= 3 || (e.BodyHit && power > 0.6f)) Toast?.Invoke(e.Snapped >= 3 ? "WRECKED!" : "CRASH!");
         }
 
         // Dust kicked up wherever the car hits the ground.
@@ -91,7 +94,7 @@ public partial class CrashFx : Node2D
         if (e.BodyHit || e.Snapped > 0)
         {
             SparkBursts++;
-            Burst(e.Point, e.Normal, new Color(1f, 0.85f, 0.35f), 14 + (int)(26 * power) + 6 * Mathf.Min(e.Snapped, 4), 160f + 320f * power, 0.45f, 1.5f, 3f, 700f, 75f, dust: false);
+            Burst(e.Point, e.Normal, new Color(1f, 0.85f, 0.35f), 18 + (int)(30 * power) + 6 * Mathf.Min(e.Snapped, 4), 180f + 360f * power, 0.5f, 2.5f, 4.5f, 700f, 75f, dust: false);
         }
         if (e.Snapped > 0)
             Burst(e.Point, e.Normal, new Color(0.38f, 0.39f, 0.42f), 4 + 2 * Mathf.Min(e.Snapped, 4), 140f + 160f * power, 1.0f, 3f, 5f, 900f, 60f, dust: false);

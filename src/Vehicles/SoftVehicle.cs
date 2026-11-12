@@ -142,7 +142,8 @@ public partial class SoftVehicle : Node2D, IVehicle
     private Vector2 _centerAtTickStart;
 
     // Impact detection (see DetectImpact).
-    private const float ImpactThreshold = 230f;   // px/s (about 13 km/h)
+    private const float ImpactThreshold = 230f;   // px/s (about 13 km/h): body slams and scrapes
+    private const float LandingThreshold = 380f;  // px/s (about 21 km/h): small hops on the suspension are not hits
     private const int ImpactGatherTicks = 4;      // a hit's dents and snaps arrive over a few ticks
     private float _age, _impactCooldown, _impactPeak, _dentThisHit, _subDt = 1f / 960f, _airTimer;
     private float _bodyImpact, _landing;
@@ -799,7 +800,7 @@ public partial class SoftVehicle : Node2D, IVehicle
         }
 
         bool started = _impactTicks >= 0;
-        bool trigger = body > ImpactThreshold || _landing > ImpactThreshold || snaps > 0 || wheelLost;
+        bool trigger = body > ImpactThreshold || _landing > LandingThreshold || snaps > 0 || wheelLost;
         if (!started && (!trigger || (_impactCooldown > 0f && snaps == 0 && !wheelLost)))
         {
             _dentThisHit = 0f;
@@ -819,7 +820,7 @@ public partial class SoftVehicle : Node2D, IVehicle
             _bodyHit = true;
             _impactPeak = Mathf.Max(_impactPeak, body);
         }
-        _impactPeak = Mathf.Max(_impactPeak, _landing);
+        if (_landing > LandingThreshold) _impactPeak = Mathf.Max(_impactPeak, _landing);
         _snapsThisHit += snaps;
         _wheelLostThisHit |= wheelLost;
         _impactTicks++;
