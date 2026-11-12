@@ -45,7 +45,7 @@ jobs:
             name="$1"; shift
             echo "=== $name"
             timeout 300 godot --headless --path . --fixed-fps 120 "$@" > smoke.log 2>&1
-            grep -E "\[(world|autoplay|drive|race|mining|autodrive|stunt|crash)\]" smoke.log | tail -45
+            grep -E "\[(world|autoplay|drive|race|mining|autodrive|stunt|crash|stash)\]" smoke.log | tail -45
             # "resources still in use at exit" is a shutdown notice about cached textures and sounds, not a fault.
             if grep -E "ERROR|Unhandled exception|SCRIPT ERROR|System\.[A-Za-z]*Exception" smoke.log | grep -v "still in use at exit" | grep .; then
               echo "::error::Smoke test failed: $name"
@@ -58,6 +58,7 @@ jobs:
           run "world: drive left to the Frozen North"  res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --left --design=starter
           run "world: rocket booster car"             res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --design=rocket
           run "world: crash test (15 m drop, then drive)" res://scenes/world.tscn --quit-after 2400 -- --fresh --autoplay --crashtest --design=starter
+          run "world: buried stash test (dig up planted stashes)" res://scenes/world.tscn --quit-after 1800 -- --fresh --autoplay --stashtest --design=starter
           run "garage"            res://scenes/garage.tscn --quit-after 300
           run "physics lab"       res://scenes/tests/physics_test.tscn --quit-after 600
           run "hill climb, starter car, 40 s" res://scenes/drive.tscn --quit-after 4800 -- --hillclimb --autodrive --design=starter
@@ -70,12 +71,13 @@ jobs:
         run: |
           sudo apt-get update -qq > /dev/null 2>&1 || true
           sudo apt-get install -y -qq xvfb libgl1-mesa-dri > /dev/null 2>&1 || true
-          mkdir -p shots/world shots/left shots/drill shots/rocket shots/crash shots/garage keep
+          mkdir -p shots/world shots/left shots/drill shots/rocket shots/crash shots/stash shots/garage keep
           xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/world/f.png --quit-after 400 res://scenes/world.tscn -- --fresh --autoplay --design=starter > shots/world.log 2>&1 || true
           xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/left/f.png --quit-after 400 res://scenes/world.tscn -- --fresh --autoplay --left --design=starter > shots/left.log 2>&1 || true
           xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/drill/f.png --quit-after 400 res://scenes/world.tscn -- --fresh --autoplay --design=driller > shots/drill.log 2>&1 || true
           xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/rocket/f.png --quit-after 400 res://scenes/world.tscn -- --fresh --autoplay --design=rocket > shots/rocket.log 2>&1 || true
           xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/crash/f.png --quit-after 200 res://scenes/world.tscn -- --fresh --autoplay --crashtest --design=starter > shots/crash.log 2>&1 || true
+          xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/stash/f.png --quit-after 110 res://scenes/world.tscn -- --fresh --autoplay --stashtest --design=starter > shots/stash.log 2>&1 || true
           xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/garage/f.png --quit-after 12 res://scenes/garage.tscn > shots/garage.log 2>&1 || true
           for run in world left drill rocket; do
             for i in 25 98 130 180 230 280 330 390; do
@@ -91,6 +93,10 @@ jobs:
               done
             done
           done
+          for i in 28 32 36 40 45 50 60 75 95; do
+            f=$(printf "shots/stash/f%08d.png" $i); [ -f "$f" ] && cp "$f" keep/stash_$i.png
+          done
+          grep "\[stash\]" shots/stash.log | head -10
           for i in 8 15 30 60 120; do
             f=$(printf "shots/crash/f%08d.png" $i); [ -f "$f" ] && cp "$f" keep/crashrun_$i.png
           done

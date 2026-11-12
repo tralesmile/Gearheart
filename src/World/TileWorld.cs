@@ -20,6 +20,9 @@ public enum Tile : byte
     Sandstone,
     Snow,
     Ice,
+    StashSmall,   // Old Toolbox: shallow
+    StashMid,     // Lost Supply Crate
+    StashBig,     // Ancient Strongbox: deep, or out in the far biomes
 }
 
 public enum Biome
@@ -41,11 +44,15 @@ public sealed class TileWorld : ITerrainCollider, IMineable, ISurfaceInfo
     public const int Height = 192;
     public const int BaseSurface = 64;       // surface row at the spawn pad
     public const int PadFrom = 1258, PadTo = 1302;   // flat ground for the garage (tile columns)
-    private const uint SaveMagic = 0x35574847;   // "GHW5": bump when generation changes
+    private const uint SaveMagic = 0x36574847;   // "GHW6": bump when generation changes
 
     private readonly byte[] _tiles = new byte[Width * Height];
     private readonly int[] _surface = new int[Width];
     private readonly Dictionary<int, float> _damage = new();
+    private readonly List<Vector2I> _stashes = new();
+
+    /// <summary>Where buried stashes were placed (some may have been dug up since; check the tile).</summary>
+    public IReadOnlyList<Vector2I> Stashes => _stashes;
 
     /// <summary>A tile changed (broken, placed or damaged): redraw it.</summary>
     public event Action<int, int> Changed;
@@ -85,6 +92,9 @@ public sealed class TileWorld : ITerrainCollider, IMineable, ISurfaceInfo
         Tile.ScrapOre => 32f,
         Tile.IronOre => 40f,
         Tile.CopperOre => 48f,
+        Tile.StashSmall => 20f,
+        Tile.StashMid => 30f,
+        Tile.StashBig => 38f,
         _ => float.PositiveInfinity,
     };
 
@@ -98,6 +108,45 @@ public sealed class TileWorld : ITerrainCollider, IMineable, ISurfaceInfo
         Tile.CopperOre => ("Copper", 1),
         _ => (null, 0),
     };
+
+    // ---- Buried stashes ------------------------------------------------------------------------
+
+    public static bool IsStash(Tile tile) => tile is Tile.StashSmall or Tile.StashMid or Tile.StashBig;
+
+    public static string StashName(Tile tile) => tile switch
+    {
+        Tile.StashBig => "ANCIENT STRONGBOX",
+        Tile.StashMid => "LOST SUPPLY CRATE",
+        _ => "OLD TOOLBOX",
+    };
+
+    /// <summary>What a stash holds. Fixed per stash (seeded by its position), richer for the deeper kinds.</summary>
+    public static List<(string Item, int Amount)> StashLoot(Tile tile, int x, int y)
+    {
+        var rng = new RandomNumberGenerator { Seed = (ulong)(uint)(x * 73856093 ^ y * 19349663) };
+        int R(int lo, int hi) => lo + (int)(rng.Randi() % (uint)(hi - lo + 1));
+        return tile switch
+        {
+            Tile.StashBig => new List<(string, int)> { ("Scrap", R(4, 6)), ("Iron", R(4, 6)), ("Copper", R(4, 6)) },
+            Tile.StashMid => new List<(string, int)> { ("Scrap", R(3, 5)), ("Iron", R(3, 5)), ("Copper", R(1, 2)) },
+            _ => new List<(string, int)> { ("Scrap", R(5, 8)), ("Iron", R(1, 2)) },
+        };
+    }
+
+    private void IndexStashes()
+    {
+        _stashes.Clear();
+        for (int y = 0; y < Height; y++)
+            for (int x = 0; x < Width; x++)
+                if (IsStash((Tile)_tiles[y * Width + x])) _stashes.Add(new Vector2I(x, y));
+    }
+
+    /// <summary>Test hook: puts a stash at a tile (the bot uses it to check the payout).</summary>
+    public void PlaceStash(int x, int y, Tile kind)
+    {
+        Set(x, y, kind);
+        _stashes.Add(new Vector2I(x, y));
+    }
 
     /// <summary>0..1 damage progress of a tile, for the crack overlay.</summary>
     public float DamageOf(int x, int y) =>
@@ -434,11 +483,44 @@ public sealed class TileWorld : ITerrainCollider, IMineable, ISurfaceInfo
                     world._tiles[y * Width + x] = (byte)Tile.Bedrock;
         }
 
+        PlaceStashes(world, seed);
+
         // A wooden floor under the garage, so the pad never gets dug away by accident.
         for (int x = PadFrom + 1; x < PadFrom + 15; x++)
             world._tiles[BaseSurface * Width + x] = (byte)Tile.Planks;
 
+        world.IndexStashes();
         return world;
+    }
+
+    /// <summary>
+    /// Buries a stash every 34-63 tiles (9-16 m) across the world, 2 to about 28 m deep. The kind
+    /// depends on depth (toolboxes shallow, strongboxes deep), and the far biomes are richer.
+    /// Never near the garage, never floating in a cave.
+    /// </summary>
+    private static void PlaceStashes(TileWorld world, int seed)
+    {
+        var rng = new RandomNumberGenerator { Seed = (ulong)seed + 77 };
+        float padMiddle = (PadFrom + PadTo) / 2f;
+        for (int x = 8 + (int)(rng.Randi() % 30); x < Width - 8; x += 34 + (int)(rng.Randi() % 30))
+        {
+            if (Mathf.Abs(x - padMiddle) < 40f) continue;
+            int surface = world._surface[x];
+            int maxDepth = Mathf.Min(112, Height - 4 - surface);
+            float roll = rng.Randf();
+            int depth = 8 + (int)(roll * roll * (maxDepth - 8));   // more shallow ones than deep ones
+            for (int attempt = 0; attempt < 6; attempt++, depth += 3)
+            {
+                int y = surface + depth;
+                if (y >= Height - 3) break;
+                Tile here = (Tile)world._tiles[y * Width + x];
+                if (here == Tile.Air || here == Tile.Bedrock) continue;
+                int tier = depth < 26 ? 0 : depth < 60 ? 1 : 2;
+                if (BiomeAt(x) != Biome.Meadow && tier < 2 && rng.Randf() < 0.35f) tier++;
+                world._tiles[y * Width + x] = (byte)(tier == 0 ? Tile.StashSmall : tier == 1 ? Tile.StashMid : Tile.StashBig);
+                break;
+            }
+        }
     }
 
     // ---- Saving -----------------------------------------------------------------------------
@@ -466,6 +548,7 @@ public sealed class TileWorld : ITerrainCollider, IMineable, ISurfaceInfo
         if (tiles.Length != Width * Height) return null;
         Array.Copy(tiles, world._tiles, tiles.Length);
         for (int x = 0; x < Width; x++) world._surface[x] = (int)file.Get32();
+        world.IndexStashes();
         return world;
     }
 }

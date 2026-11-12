@@ -189,7 +189,59 @@ def make_tiles():
     put(icon((180, 186, 196), (236, 240, 246), (90, 94, 104)), 2, 6)   # scrap
     put(icon((181, 101, 74), (240, 176, 140), (96, 50, 36)), 3, 6)     # iron
     put(icon((232, 140, 60), (255, 214, 130), (120, 66, 24)), 4, 6)    # copper
+    # Buried stashes (row 7), drawn last with their own random stream so older tiles stay identical.
+    srng = random.Random(777)
+    for i in range(2):
+        put(stash_toolbox(srng, STONE), i, 7)
+        put(stash_crate(srng, STONE), 2 + i, 7)
+        put(stash_strongbox(srng, STONE), 4 + i, 7)
     sheet.save(os.path.join(OUT, "tiles.png"))
+
+
+# Buried stashes: a box sitting in a dark pocket of rock, so it reads as "something hidden here".
+
+def stash_base(rng, palette):
+    img = darken(noise_tile(rng, palette, [12, 4, 3, 2]), 0.45)
+    return img, ImageDraw.Draw(img)
+
+
+def stash_toolbox(rng, palette):
+    """Old Toolbox: a dented red metal box with a handle."""
+    img, d = stash_base(rng, palette)
+    d.rectangle([2, 6, 13, 13], fill=(196, 52, 44), outline=(70, 18, 16))
+    d.line([(3, 7), (12, 7)], fill=(236, 100, 84))                          # lid highlight
+    d.line([(2, 9), (13, 9)], fill=(120, 30, 26))                           # lid seam
+    d.rectangle([6, 3, 9, 5], outline=(150, 150, 160))                      # handle
+    d.rectangle([7, 9, 8, 10], fill=(232, 200, 90))                         # latch
+    d.point((4, 12), fill=(120, 30, 26)); d.point((11, 11), fill=(236, 100, 84))   # dents
+    return img
+
+
+def stash_crate(rng, palette):
+    """Lost Supply Crate: planks with iron bands and a stencilled mark."""
+    img, d = stash_base(rng, palette)
+    d.rectangle([1, 3, 14, 14], fill=(160, 112, 62), outline=(64, 40, 20))
+    for y in (6, 10):
+        d.line([(2, y), (13, y)], fill=(118, 80, 42))                       # plank gaps
+    d.line([(4, 3), (4, 14)], fill=(110, 116, 128)); d.line([(11, 3), (11, 14)], fill=(110, 116, 128))   # iron bands
+    d.line([(2, 4), (13, 4)], fill=(196, 150, 92))                          # top highlight
+    d.line([(6, 7), (9, 9)], fill=(230, 200, 120)); d.line([(9, 7), (6, 9)], fill=(230, 200, 120))      # stencil X
+    return img
+
+
+def stash_strongbox(rng, palette):
+    """Ancient Strongbox: dark iron with gold trim and a keyhole, glinting."""
+    img, d = stash_base(rng, palette)
+    d.rectangle([1, 4, 14, 14], fill=(58, 52, 70), outline=(20, 16, 26))
+    d.rectangle([1, 4, 14, 7], fill=(78, 70, 94), outline=(20, 16, 26))    # domed lid
+    d.line([(2, 5), (13, 5)], fill=(110, 100, 130))
+    gold, gold_l = (226, 176, 56), (255, 230, 130)
+    for x in (3, 12):
+        d.line([(x, 4), (x, 14)], fill=gold)                                # gold straps
+    d.rectangle([6, 8, 9, 11], fill=gold, outline=(140, 96, 20))            # lock plate
+    d.point((7, 9), fill=(20, 16, 26)); d.point((7, 10), fill=(20, 16, 26))  # keyhole
+    d.point((3, 5), fill=gold_l); d.point((12, 12), fill=gold_l); d.point((6, 8), fill=gold_l)
+    return img
 
 
 # ---------------------------------------------------------------------------- player

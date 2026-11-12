@@ -61,6 +61,8 @@ public static class GameSession
     public static bool DriveLeft => UserArgs.Contains("--left");
     /// <summary>Bot only: drop the car from high up to test crash damage and crash effects.</summary>
     public static bool CrashTest => UserArgs.Contains("--crashtest");
+    /// <summary>Bot only: bury stashes right where the bot digs, to check the payout and the effects.</summary>
+    public static bool StashTest => UserArgs.Contains("--stashtest");
     private static bool FreshStart => UserArgs.Contains("--fresh");
 
     public static void ApplyCommandLine()
@@ -81,11 +83,23 @@ public static class GameSession
         public Dictionary<string, int> Materials { get; set; } = new();
         public Dictionary<string, int> Built { get; set; }
         public List<RaceRecord> Records { get; set; } = new();
+        public int StashesFound { get; set; }
     }
 
     private static Progress Data => _progress ??= LoadProgress();
 
     public static readonly string[] Items = { "Dirt", "Stone", "Scrap", "Iron", "Copper" };
+
+    /// <summary>Buried stashes dug up so far (all worlds).</summary>
+    public static int StashesFound
+    {
+        get => Data.StashesFound;
+        set
+        {
+            Data.StashesFound = value;
+            _dirty = true;
+        }
+    }
 
     public static int Count(string item) => Data.Materials.GetValueOrDefault(item);
 
