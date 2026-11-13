@@ -22,6 +22,7 @@ public partial class WorldScene
     private int _veinX, _veinY;
     private float _veinDoneAt = -1f;
     private int _veinTestRuns;
+    private float _veinSettleAt;
 
     // A major scale, so a long run climbs like a xylophone (semitones above the first note).
     private static readonly int[] VeinScale = { 0, 2, 4, 5, 7, 9, 11, 12, 14, 16, 17, 19 };
@@ -174,6 +175,14 @@ public partial class WorldScene
                 _veinTestRuns = 2;
                 GD.Print($"[vein] test: done. best={_vein.Best} bonuses={_vein.Bonuses} runs={_vein.Runs} Iron={GameSession.Count("Iron")} Scrap={GameSession.Count("Scrap")} " +
                          $"ripples={_veinRipples} pops={_pops.PopsShown} sparkles={_pops.SparklesShown} frame={Engine.GetFramesDrawn()}");
+                GD.Print($"[flyhome] test: right after the last tile: {FlightSummary()} Iron shown {ShownCount(3)} of {GameSession.Count("Iron")}, Scrap shown {ShownCount(2)} of {GameSession.Count("Scrap")} frame={Engine.GetFramesDrawn()}");
+                _veinSettleAt = _elapsed + 1.5f;
+            }
+            else if (_veinTestRuns == 2 && _elapsed >= _veinSettleAt)
+            {
+                _veinTestRuns = 3;
+                GD.Print($"[flyhome] test: 1.5 s later: {FlightSummary()} Iron shown {ShownCount(3)} of {GameSession.Count("Iron")}, Scrap shown {ShownCount(2)} of {GameSession.Count("Scrap")}, " +
+                         $"Dirt shown {ShownCount(0)} of {GameSession.Count("Dirt")} frame={Engine.GetFramesDrawn()}");
             }
         }
 

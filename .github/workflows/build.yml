@@ -61,6 +61,7 @@ jobs:
             grep "\[devil\]" smoke.log | head -30
             grep "\[hook\]" smoke.log | head -40
             grep "\[vein\]" smoke.log | head -40
+            grep "\[flyhome\]" smoke.log | head -30
             # "resources still in use at exit" is a shutdown notice about cached textures and sounds, not a fault.
             if grep -E "ERROR|Unhandled exception|SCRIPT ERROR|System\.[A-Za-z]*Exception" smoke.log | grep -v "still in use at exit" | grep .; then
               echo "::error::Smoke test failed: $name"
@@ -293,6 +294,13 @@ jobs:
             f=$(printf "shots/vein/f%08d.png" $((n + 2))); [ -f "$f" ] && cp "$f" keep/vein_$((n + 2)).png
           done
           grep "\[vein\]" shots/vein.log | head -30
+          # Ore flies home: the first ores' icons in the air (0.1, 0.3, 0.5 s after the break) and the slot popping when they land.
+          grep "\[vein\] Iron at" shots/vein.log | head -3 | sed -E 's/.*frame=([0-9]+).*/\1/' | while read n; do
+            for d in 1 3 5 7; do
+              f=$(printf "shots/vein/f%08d.png" $((n + d))); [ -f "$f" ] && cp "$f" keep/flyhome_$((n + d)).png
+            done
+          done
+          grep "\[flyhome\]" shots/vein.log | head -20
           # Crash frames: the frame of each of the first hits (from "[crash] ... frame=N") and the next two.
           for run in crash rocket; do
             grep "\[crash\] hit" shots/$run.log | head -4 | sed -E 's/.*frame=([0-9]+).*/\1/' | while read n; do
@@ -384,6 +392,12 @@ jobs:
             f=$(printf "shots/stash/f%08d.png" $i); [ -f "$f" ] && cp "$f" keep/stash_$i.png
           done
           grep "\[stash\]" shots/stash.log | head -10
+          # Ore flies home from a dug-up stash: a fan of icons with x-tags in the air, then the slots popping.
+          grep "\[flyhome\] launched" shots/stash.log | grep -v Dirt | head -1 | sed -E 's/.*frame=([0-9]+).*/\1/' | while read n; do
+            for d in 1 3 5 7; do
+              f=$(printf "shots/stash/f%08d.png" $((n + d))); [ -f "$f" ] && cp "$f" keep/flyhome_stash_$((n + d)).png
+            done
+          done
           for i in 8 15 30 60 120; do
             f=$(printf "shots/crash/f%08d.png" $i); [ -f "$f" ] && cp "$f" keep/crashrun_$i.png
           done
