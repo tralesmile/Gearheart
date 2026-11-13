@@ -81,7 +81,7 @@ public partial class HomeArrow : Control
             {
                 float pulse = 0.5f + 0.5f * Mathf.Sin(_time * 5f);
                 col = new Color(1f, 0.82f, 0.3f).Lerp(Colors.White, pulse * 0.35f);
-                glow = new Color(1f, 0.75f, 0.2f, 0.25f + 0.25f * pulse);
+                glow = new Color(1f, 0.75f, 0.2f, 0.10f + 0.10f * pulse);
                 size = 19f + 2f * pulse;
                 wobble = 6f * pulse;   // nudges toward home, like a finger tapping
                 break;
@@ -90,13 +90,13 @@ public partial class HomeArrow : Control
             {
                 bool on = Mathf.PosMod(_time, 0.9f) < 0.6f;
                 col = on ? new Color(1f, 0.45f, 0.2f) : new Color(0.7f, 0.3f, 0.15f);
-                glow = new Color(1f, 0.3f, 0.1f, on ? 0.35f : 0.1f);
+                glow = new Color(1f, 0.3f, 0.1f, on ? 0.16f : 0.05f);
                 size = 18f;
                 break;
             }
             default:
                 col = new Color(0.86f, 0.92f, 1f, 0.85f);
-                glow = new Color(0.6f, 0.75f, 1f, 0.12f);
+                glow = new Color(0.6f, 0.75f, 1f, 0.08f);
                 break;
         }
         size *= 1f + 0.45f * _pop * Mathf.Sin(_pop * Mathf.Pi);
@@ -109,7 +109,9 @@ public partial class HomeArrow : Control
         Vector2 back = tip - d * size * 1.5f;
 
         // Soft glow, then the arrowhead with a dark outline.
-        DrawCircle(back + d * size * 0.5f, size * 1.6f, glow);
+        // A soft glow (two faint discs, so it reads as light rather than a solid badge).
+        DrawCircle(back + d * size * 0.6f, size * 1.45f, glow);
+        DrawCircle(back + d * size * 0.6f, size * 1.05f, glow);
         var head = new[] { tip, back + n * size, back + d * size * 0.4f, back - n * size };
         var outline = new[] { tip + d * 3f, back + n * (size + 3f) - d * 1.5f, back + d * (size * 0.4f - 3f), back - n * (size + 3f) - d * 1.5f };
         DrawColoredPolygon(outline, new Color(0f, 0f, 0f, 0.75f * _alpha));

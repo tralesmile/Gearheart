@@ -104,14 +104,14 @@ public partial class BeaconGlow : Node2D
         Vector2 origin = Searchlight + up * 15f;   // the drum's face
         Vector2 side = new(-up.Y, up.X);
         Vector2 far = origin + up * BeamLength;
-        var beamNear = new Color(1f, 0.92f, 0.7f, 0.30f * l);
-        var beamMid = new Color(1f, 0.9f, 0.65f, 0.12f * l);
+        var beamNear = new Color(1f, 0.92f, 0.7f, 0.38f * l);
+        var beamMid = new Color(1f, 0.9f, 0.65f, 0.16f * l);
         var beamFar = new Color(1f, 0.9f, 0.65f, 0f);
         Vector2 mid = origin + up * BeamLength * 0.35f;
         DrawPolygon(new[] { origin - side * 7f, origin + side * 7f, mid + side * 80f, mid - side * 80f },
                     new[] { beamNear, beamNear, beamMid, beamMid });
         DrawPolygon(new[] { mid - side * 80f, mid + side * 80f, far + side * 220f, far - side * 220f },
                     new[] { beamMid, beamMid, beamFar, beamFar });
-        DrawCircle(origin, 12f, new Color(1f, 0.95f, 0.8f, 0.5f * l));
+        DrawCircle(origin, 7f, new Color(1f, 0.95f, 0.8f, 0.3f * l));
     }
 }

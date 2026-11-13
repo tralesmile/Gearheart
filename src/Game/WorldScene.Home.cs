@@ -12,7 +12,8 @@ namespace Gearheart.Game;
 /// </summary>
 public partial class WorldScene
 {
-    private const float HomeArrowFrom = 10f;       // metres from the door before the arrow shows
+    private const float HomeArrowFrom = 10f;       // metres from the door before the arrow shows (driving)
+    private const float HomeArrowFromOnFoot = 18f; // on foot the garage leaves the screen sooner; mining next door needs no arrow
     private const float LowFuelShare = 0.25f;      // of the tank
 
     private HomeArrow _homeArrow;
@@ -93,7 +94,7 @@ public partial class WorldScene
         Vector2 size = GetViewportRect().Size;
         bool visible = new Rect2(-40f, -40f, size.X + 80f, size.Y + 80f).HasPoint(onScreen);
         float meters = MetersToDoor();
-        bool show = !visible && meters > HomeArrowFrom && !_card.Showing;
+        bool show = !visible && meters > (_driving ? HomeArrowFrom : HomeArrowFromOnFoot) && !_card.Showing;
         bool lowFuel = _driving && _car.Fuel < _car.FuelCapacity * LowFuelShare;
         var mode = lowFuel ? HomeArrow.Mode.LowFuel : _partGoal != null && _partGoal.Ready ? HomeArrow.Mode.Ready : HomeArrow.Mode.Plain;
         _homeArrow.Set(onScreen, show, meters, mode);
@@ -131,7 +132,7 @@ public partial class WorldScene
         GD.Print(show
             ? $"[home] arrow {mode} {meters:0} m to the door, points {deg:0} deg ({(Mathf.Cos(_homeArrow.Angle) < 0f ? "west" : "east")}), tip=({_homeArrow.Tip.X:0},{_homeArrow.Tip.Y:0}) " +
               $"{(_driving ? $"driving fuel={_car.Fuel:0}/{_car.FuelCapacity:0}" : "on foot")} x={Focus.X / Ts:0} t={_elapsed:0.0}s frame={Engine.GetFramesDrawn()}"
-            : $"[home] arrow hidden: {meters:0} m to the door, {(_card.Showing ? "report up" : meters <= HomeArrowFrom ? "close" : "garage on screen")} t={_elapsed:0.0}s frame={Engine.GetFramesDrawn()}");
+            : $"[home] arrow hidden: {meters:0} m to the door, {(_card.Showing ? "report up" : meters <= (_driving ? HomeArrowFrom : HomeArrowFromOnFoot) ? "close" : "garage on screen")} t={_elapsed:0.0}s frame={Engine.GetFramesDrawn()}");
     }
 
     private string HomeSummary() =>

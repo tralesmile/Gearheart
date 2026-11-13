@@ -2,6 +2,13 @@
 
 Newest first. One entry per big decision: what, why, and what would make us revisit it.
 
+## 2026-11-13 — The home arrow is always there when the garage is off screen; the beacon is local
+
+- **What:** the home arrow shows whenever the garage door is off screen and 10 m+ away, not only when a part is ready (the IDEAS #162 version). It is pale by default and only takes colour when it means something: gold for PART READY, orange for LOW FUEL (under a quarter tank; low fuel wins). It sits on the line from the screen centre to the door, inside a box clear of the hint lines (top 128 px) and the bar, card and dashboard (bottom 138 px).
+- **Why:** the garage leaves the screen after about 7 m of driving at the drive zoom, and every trip is an out-and-back; a pointer that appears only sometimes teaches nothing. A pale arrow is quiet enough to ignore.
+- **Beacon:** a side view cannot show a light "from far away" — at the drive zoom you see about 13–20 m of road — so the searchlight sweeps up to 55 degrees off vertical to reach a little further (about 15 m), and the arrow does the real long-range work. The lights are drawn additively on the glint layer (not darkened by the night tint) plus two real `PointLight2D`s that light the pad and the shed.
+- **Revisit when:** the world gets more than one base or a map screen; or playtesters find the arrow nagging (then show it only at night, when ready or on low fuel).
+
 ## 2026-11-13 — Esc pauses; settings live apart from the save
 
 - **What:** Esc (and Start on a gamepad) opens a pause menu that stops the whole scene tree (`GetTree().Paused`); the menu runs with `ProcessMode.Always`. It used to save and quit at once. The trip report keeps the first Esc. Volumes (Master, Effects, Engine) and fullscreen are stored in `user://settings.cfg` (a Godot ConfigFile), not in the save, so a save version bump or a new world never resets them.
