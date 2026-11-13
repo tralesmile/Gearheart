@@ -179,9 +179,35 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 169 | Lucky strikes on the trip report and a "Find a lucky strike" trip goal | S | Open (new 2026-11-13; ties the jackpot to the trip score; shifts the bot's goal order) |
 | 170 | Cave bats: bats roost on cavern ceilings and burst out past you, squeaking, when you dig into their cavern or your lamp reaches them | S | Open (new 2026-11-13; folds #110; first life underground, harmless) |
 | 171 | Dowsing rod: a hand tool (Iron + Crystal) whose tip dips toward the nearest lucky tile or stash within 20 m | S–M | Open (new 2026-11-13; turns the hunt into hot/cold, folds #9) |
-| 172 | Pause menu (Esc): resume, volume sliders, the key list, quit to desktop | S | Open (new 2026-11-13; nobody can turn the sound down or look up a key in-game; needed before outside testers) |
+| 172 | Pause menu (Esc): resume, volume sliders, the key list, quit to desktop | S | **Built 2026-11-13** (PR #37: Esc / Start pauses; Master, Effects and Engine sliders on two new audio buses, fullscreen, the key list, Save and quit; settings in `user://settings.cfg`) |
 | 173 | Crumbling ledges in The Wastes: sandstone lips that crack and fall a second after the car lands on them | M | Open (new 2026-11-13; terrain that reacts, a reason to keep moving) |
+| 174 | Garage beacon: at dusk the garage switches on a lamp post and a lit window, with a soft light cone you can see from far away | S | Open (new 2026-11-13, twenty-eighth session; home is a light in the dark, a reason to drive back at night) |
+| 175 | Fumes finish: below 10% fuel the dash blinks and beeps; reaching home that way scores "MADE IT ON FUMES" on the trip report | S | Open (new 2026-11-13; tension on the drive home, a story every few trips) |
+| 176 | Photo mode from the pause menu: hide the HUD, nudge the camera, save a PNG | S | Open (new 2026-11-13; builds on the menu; players love sharing crashes and their car) |
+| 177 | Instant replay: after a big crash or flip, Tab replays the last 4 s at half speed from a side camera | M | Open (new 2026-11-13; the best moments become ones you watch twice) |
+| 178 | Cave echo: a reverb on the Effects bus that fades in underground, so the pickaxe and crystals ring in the Deep | S | Open (new 2026-11-13; uses the new buses; the Deep sounds like a cave for almost no work) |
+| 179 | Tumbleweeds in The Wastes that roll across the road with the wind, bounce off the car and count for the smash streak | S | Open (new 2026-11-13; something moving on the empty desert road) |
+| 180 | Moles in the meadow: dig near one and it pops up, squeaks and burrows away, sometimes dropping the scrap it was hoarding | S–M | Open (new 2026-11-13; life in the dirt you dig every minute, a tiny surprise) |
 | 29 | Speedometer redline overdrive: holding the needle in the red for 3 s with the booster unlocks a "SONIC" call-out and a sonic-boom puff | S | Open (new 2026-11-12, cheap thrill) |
+
+## 2026-11-13 (twenty-eighth session — polish: a pause menu)
+
+Merged PR #36 (lucky strikes) first: its build was green, the `[lucky]` lines showed the census (30 lucky tiles of 437 near the garage) and strikes paying x3 (`+2 +4 extra = 6 Scrap`), and `lucky_114.png` shows LUCKY STRIKE! with the gold ring.
+
+Looked as a player. The last three sessions were features (next part card, hydraulics, lucky strikes), so this one is polish. The roughest minute is not in the play at all: press Esc and the game simply quits; there is no way to turn the engine down, and the key list is only in the README. The Deep (`deep_120.png`) is still silent and empty, the Wastes at night (`night_230.png`) a lone road with no sense of where home is.
+
+| # | Idea | Why it would be fun | Size |
+| --- | --- | --- | --- |
+| 172 | Pause menu with volumes, fullscreen, keys, save and quit (built today) | Basic respect for a player; the first thing a tester reaches for | S |
+| 174 | Garage beacon at night | Home becomes a light on the horizon; driving back in the dark feels like coming home | S |
+| 175 | Fumes finish | The drive home gets tension and a story: "made it on fumes" | S |
+| 176 | Photo mode from the pause menu | Spectacular crashes and proud builds get shared | S |
+| 177 | Instant replay of the last big moment | Watch the flip you just landed again, slower | M |
+| 178 | Cave echo on the Effects bus | The Deep sounds like a cave; nearly free now the buses exist | S |
+| 179 | Tumbleweeds in The Wastes | Motion and a smash target on an empty road | S |
+| 180 | Moles in the meadow | A small surprise in the dirt you dig every minute | S–M |
+
+Ranking for the next sessions (fun for the effort): homeward arrow (#162) and garage beacon (#174) together as "find your way home"; cave echo (#178, tiny); fumes finish (#175); cave bats (#170); then a first creature that bites (#65).
 
 ## 2026-11-13 (twenty-seventh session — a jackpot in the rock)
 

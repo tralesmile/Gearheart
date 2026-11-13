@@ -2,6 +2,13 @@
 
 Newest first. One entry per big decision: what, why, and what would make us revisit it.
 
+## 2026-11-13 — Esc pauses; settings live apart from the save
+
+- **What:** Esc (and Start on a gamepad) opens a pause menu that stops the whole scene tree (`GetTree().Paused`); the menu runs with `ProcessMode.Always`. It used to save and quit at once. The trip report keeps the first Esc. Volumes (Master, Effects, Engine) and fullscreen are stored in `user://settings.cfg` (a Godot ConfigFile), not in the save, so a save version bump or a new world never resets them.
+- **Buses:** the audio buses are created in code at start (`Settings.Apply()` from `Sfx._Ready`) rather than in a `default_bus_layout.tres`, so the layout lives next to the code that uses it and nothing binary is added. One-shots, crickets and dust devils go to `Effects`; engine, drill, boost, wind and turbo loops to `Car` ("Engine" in the menu). Sliders work on loudness (value squared before dB).
+- **Not done (yet):** key rebinding, a main menu, a separate music bus (there is no music). The garage keeps Esc as "back to the world".
+- **Revisit when:** music arrives (#159: add a Music bus and slider), or the game gets a main menu (move Settings there and keep the pause menu as a short version).
+
 ## 2026-11-13 — Lucky strikes: chosen by a position hash, 1 in 16, pays x3
 
 - **What:** an ore tile (scrap, iron, copper, crystal) is lucky when a fixed hash of its tile position is divisible by 16 (`src/World/LuckyOre.cs`). It gleams (gold halo and rim, a shine sweep every 2.2 s, a star) within 27 m, through the rock like a stash glint, and pays 3x its normal drop when broken, by pickaxe or drill.
