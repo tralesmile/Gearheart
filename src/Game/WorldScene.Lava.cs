@@ -26,11 +26,10 @@ public partial class WorldScene
 
     // Bot (--lavatest)
     private bool _lavaPlaced, _lavaCarDropped, _lavaWalkBack, _lavaDone;
-    private int _lavaLakeFrom, _lavaLakeTo, _lavaCarLakeFrom, _lavaCarLakeTo;
+    private int _lavaLakeFrom, _lavaLakeTo, _lavaCarLakeFrom, _lavaCarLakeTo, _lavaCarDropX = -1;
     private float _lavaPlacedAt, _lavaCarAt;
 
     private static readonly string[] BurnOrder = { "Crystal", "Copper", "Iron", "Scrap" };
-    private const float ScorchUp = 620f;   // px/s: about 2.3 m up
     private const float BurnGap = 3f;      // s between burnt ores
     private const int CrustWidth = 3;      // a pool this narrow (a shaft you dug) crusts over after a dip
 
@@ -73,11 +72,7 @@ public partial class WorldScene
         {
             Vector2 feet = _player.Position + new Vector2(0f, Player.HalfHeight - 4f);
             bool inLava = Lava.AtPoint(_world, feet) || Lava.AtPoint(_world, _player.Position);
-            if (inLava)
-            {
-                if (_scorchCooldown <= 0f) Scorch();
-                else _player.Velocity.Y = Mathf.Min(_player.Velocity.Y, -ScorchUp * 0.6f);   // still in it: keep rising
-            }
+            if (inLava && _scorchCooldown <= 0f) Scorch();
             if (_scorchLandWatch >= 0f && GameSession.AutoPlay)
             {
                 _scorchLandWatch += dt;
@@ -157,8 +152,12 @@ public partial class WorldScene
             else if (!Lava.At(_world, tx - d, Lava.Row)) { shoreDir = -1; shoreDist = d; }
         }
         if (shoreDir == 0) shoreDir = _player.Velocity.X < 0f ? -1 : 1;
-        // Long enough a throw to clear the edge: flight time is about 2 * up / gravity (about 1 s).
-        float vx = Mathf.Clamp((shoreDist * Ts + 24f) / 0.95f, 110f, 360f) * shoreDir;
+        // A low, shore-ward hop: up just enough to clear the lip (about 1.1 m), strong sideways so you skip
+        // onto the shore instead of launching into the cavern ceiling and dropping straight back in. A wide
+        // lake takes several hops (an ore is lost at most every 3 s), each one landing you nearer the edge.
+        float up = 300f;
+        float flight = 2f * up / 1250f;                                   // Player.Gravity; time to fall back to this height
+        float vx = Mathf.Clamp((shoreDist * Ts + 20f) / flight, 240f, 560f) * shoreDir;
         // A pool only a few tiles wide (usually your own shaft into the magma) crusts over once you are out,
         // so you cannot bounce in it forever.
         int width = LakeWidthAt(tx);
@@ -167,8 +166,8 @@ public partial class WorldScene
             _crustX = tx;
             _crustAt = _elapsed + 0.3f;
         }
-        _player.Velocity = new Vector2(vx, -ScorchUp);
-        _player.Stagger = 1.2f;
+        _player.Velocity = new Vector2(vx, -up);
+        _player.Stagger = flight + 0.3f;
         _scorchFrom = p;
         _scorchLandWatch = 0f;
 
@@ -192,7 +191,7 @@ public partial class WorldScene
         if (_toastTime < 1.2f && _scorches == 1) Toast("LAVA!\nevery dip burns one of your ores");
         if (GameSession.AutoPlay)
             GD.Print($"[lava] scorch #{_scorches}: at tile ({tx},{Mathf.FloorToInt(p.Y / Ts)}) burnt={burnt ?? "nothing"} left: crystal={GameSession.Count("Crystal")} copper={GameSession.Count("Copper")} " +
-                     $"iron={GameSession.Count("Iron")} scrap={GameSession.Count("Scrap")}; shore {(shoreDir > 0 ? "east" : "west")} {shoreDist * 0.25f:0.0} m, thrown vx={vx / PixelsPerMeter:0.0} m/s up={ScorchUp / PixelsPerMeter:0.0} m/s frame={Engine.GetFramesDrawn()}");
+                     $"iron={GameSession.Count("Iron")} scrap={GameSession.Count("Scrap")}; shore {(shoreDir > 0 ? "east" : "west")} {shoreDist * 0.25f:0.0} m, thrown vx={vx / PixelsPerMeter:0.0} m/s up={up / PixelsPerMeter:0.0} m/s frame={Engine.GetFramesDrawn()}");
     }
 
     /// <summary>Width in tiles of the lake top through column x (0 if x is not over open lava at the line).</summary>
@@ -279,14 +278,17 @@ public partial class WorldScene
                 (_lavaLakeFrom, _lavaLakeTo) = (from, to);
                 break;
             }
-            // The car's lake: the widest within 150 m (the car is about 12 tiles long).
+            // The car's lake: the widest lake that has a clear drop column (11 tiles wide, 8 rows tall) over
+            // open lava, anywhere within it (a wide lake can have rock pillars poking up, so scan for a gap).
             int bestW = 0;
             foreach (var (from, to) in lakes)
-                if (to - from + 1 > bestW && CarRoom((from + to) / 2))
-                {
-                    bestW = to - from + 1;
-                    (_lavaCarLakeFrom, _lavaCarLakeTo) = (from, to);
-                }
+            {
+                if (to - from + 1 <= bestW) continue;
+                int drop = CarDropColumn(from, to);
+                if (drop < 0) continue;
+                bestW = to - from + 1;
+                (_lavaCarLakeFrom, _lavaCarLakeTo, _lavaCarDropX) = (from, to, drop);
+            }
             if (spot is not Vector2 s)
             {
                 GD.Print($"[lava] test: NO lake of {lakes.Count} within 150 m has room above it");
@@ -321,10 +323,10 @@ public partial class WorldScene
                 Jump = walk && _player.Grounded && Mathf.Abs(_player.Velocity.X) < 5f,
                 Aim = _player.Position + new Vector2(dir * 40f, 0f),
             };
-            if (t < 8f || _lavaCarLakeTo <= 0) return;
+            if (t < 8f || _lavaCarDropX < 0) return;
             _lavaCarDropped = true;
-            int cx = (_lavaCarLakeFrom + _lavaCarLakeTo) / 2;
-            var at = new Vector2((cx + 0.5f) * Ts, (Lava.Row - 6) * Ts);
+            int cx = _lavaCarDropX;
+            var at = new Vector2((cx + 0.5f) * Ts, (Lava.Row - 5) * Ts);
             SpawnCar(at: at);
             EnterCar();
             _car.DrillEnabled = false;
@@ -352,13 +354,22 @@ public partial class WorldScene
         }
     }
 
-    /// <summary>Open air over the lava line at column x for a car: 11 tiles wide, 2.5 m (10 rows) tall.</summary>
-    private bool CarRoom(int x)
+    /// <summary>
+    /// A column inside [from,to] where a car can be dropped: 11 tiles of open air (5 each side), 8 rows tall
+    /// above the line, and open lava below it. Returns the column, or -1 if the lake has no such gap.
+    /// </summary>
+    private int CarDropColumn(int from, int to)
     {
-        for (int y = Lava.Row - 10; y < Lava.Row; y++)
-            for (int dx = -5; dx <= 5; dx++)
-                if (_world.Solid(x + dx, y)) return false;
-        return true;
+        for (int x = from + 5; x <= to - 5; x++)
+        {
+            if (!Lava.At(_world, x, Lava.Row)) continue;
+            bool clear = true;
+            for (int y = Lava.Row - 8; y < Lava.Row && clear; y++)
+                for (int dx = -5; dx <= 5; dx++)
+                    if (_world.Solid(x + dx, y)) { clear = false; break; }
+            if (clear) return x;
+        }
+        return -1;
     }
 
     /// <summary>A free spot for the player <paramref name="rows"/> or more rows above the lava line at column x (or null).</summary>
