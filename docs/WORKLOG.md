@@ -16,7 +16,7 @@ Newest entry first. Each session: what was built and why, how it was verified, w
 
 **Why this** — Brainstorm in `docs/IDEAS.md` (twenty-seventh session). Mining now has a combo (vein runs), a payoff picture (ore flies home) and a target (next part card), but no surprise: every iron tile is worth one iron, so the fifth minute of digging is the first one again. Every game this borrows from hides a jackpot in the routine (Minecraft's diamond in a cave wall, Terraria's glinting gems). It is felt in the first minutes (six lucky tiles in the top 3 m near the garage) and fitted one session. The last session was a UI feature and the one before a car part, so a small feature on the mining side.
 
-**CI runs**: 43354044562 (green), a second for the halo and the natural-gleam screenshots, and one for this log.
+**CI runs**: 43354044562 (green), 43356684152 (green: a halo around the gleam, and a log line plus screenshots for the first natural lucky tile in the walk, drill and left runs), and one for this log.
 
 **Verified (run 43354044562)**
 
@@ -24,12 +24,14 @@ Newest entry first. Each session: what was built and why, how it was verified, w
 - **Vein test**: the test vein unchanged (Iron 0 → 8 for 7 tiles, x7, one bonus); the lone scrap tile: hint "Something gleams gold..." at 0.5 m, then `STRIKE ScrapOre at (1317,64) by pickaxe: +2 +4 extra = 6 Scrap`; `[flyhome]` right after: Scrap shown 0 of 6 (6 icons in the air), 1.5 s later 6 of 6, bar settled.
 - **Natural strikes**: the drill car hit lucky scrap twice in its runs (`+2 +4 extra = 6 Scrap`), the Deep test a lucky crystal (`+1 +2 extra = 3 Crystal`).
 - **Screenshots**: `lucky_gleam_106.png` (the gold-rimmed scrap tile at the mechanic's feet, the hint call-out), `lucky_112.png` / `lucky_114.png` (LUCKY STRIKE! in gold, "x3 +6 Scrap", the gold ring, the fountain, six scrap icons leaving).
-- **Nothing else changed**: every 40 s position identical to main (starter 2209.3, drill 1414.8, Crystal Drill 1480.1, left 465.7, spiked 424.9, turbo 2302.1, devils 2173.2 / 2533.3, rocket 2552.7, flip 2543.3, hopper 2392.4, trip 1629.2). No errors.
+- **Run 2 (43356684152)**: the same strikes and numbers; the first natural gleam in every world run is lucky scrap at (1293,73), **4.9 m from the mechanic at spawn**, under the garage pad 2.3 m down. It sits just below the bottom edge of the screen at the walk zoom (`lucky_world_15.png` shows the garage and an ordinary scrap tile; the lucky one is off screen), so a player finds it by digging down at the garage, not at a glance. `lucky_gleam_106.png` shows the halo around the gold rim.
+- **Nothing else changed** (both runs): every 40 s position identical to main (starter 2209.3, drill 1414.8, Crystal Drill 1480.1, left 465.7, spiked 424.9, turbo 2302.1, devils 2173.2 / 2533.3, rocket 2552.7, flip 2543.3, hopper 2392.4, trip 1629.2). No errors.
 
 **Not verified / known issues**
 
 - Fun is my judgement (D1): whether 1 in 16 is a treat or too common, and whether the gleam reads as different from a stash glint (both are gold; stashes twinkle as stars, lucky ore is a gold-framed tile).
 - The jingle is tuned by numbers only.
+- No screenshot of a gleam underground in the dark (the Deep test struck a lucky crystal but takes no frames of it); the gleam is on the same layer as the stash glints, which do show in the dark.
 - The first-strike explanation call-out did not show in the vein test because the hint was still on screen; the pops say LUCKY STRIKE anyway.
 - The ore's own "+2 Scrap" pop sits behind the flying icons for a moment (`lucky_112.png`); older behaviour, more visible here.
 
