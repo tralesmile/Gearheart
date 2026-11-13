@@ -315,6 +315,6 @@
       }
     },
     {"id": "turbo", "name": "Turbocharger", "short": "TB", "category": "Turbo", "description": "Bolt it on top of the engine. Floor it and it spools up with a whistle: up to 40% more torque and a higher top speed at full boost. Lift off and it blows off. Wastes copper.", "mass": 0.4, "color": "#c87a3a", "yield": 0.035, "breakLimit": 0.22, "turboTorque": 0.4, "turboSpin": 0.12, "spoolTime": 0.9, "sprite": 13, "cost": {"Iron": 2, "Copper": 3}},
-    {"id": "hydraulics", "name": "Hydraulics", "short": "HY", "category": "Hydraulics", "description": "Lowrider rams on the springs. Hold W to squat, let go to hop: the longer you squat, the higher you go (up to about 2 m). Hop a ditch, a rock or a kicker's lip for extra air. Wastes copper.", "mass": 0.35, "color": "#9aa4b4", "yield": 0.035, "breakLimit": 0.22, "hopSpeed": 560, "hopTapSpeed": 330, "sprite": 14, "cost": {"Iron": 3, "Copper": 2}}
+    {"id": "hydraulics", "name": "Hydraulics", "short": "HY", "category": "Hydraulics", "description": "Lowrider rams on the springs. Hold W to squat, let go to hop: the longer you squat, the higher you go (from half a metre to over 2 m). Hop a ditch, a rock or a kicker's lip for extra air. Wastes copper.", "mass": 0.35, "color": "#9aa4b4", "yield": 0.035, "breakLimit": 0.22, "hopSpeed": 560, "hopTapSpeed": 270, "sprite": 14, "cost": {"Iron": 3, "Copper": 2}}
   ]
 }

@@ -9,7 +9,7 @@ namespace Gearheart.Vehicles;
 /// Hold the key and the rams pull the body down onto its springs (a visible squat) while a charge
 /// builds to full in <see cref="HopChargeTime"/>; let go and the whole car is thrown upwards along
 /// its own "up" (mostly) at HopTapSpeed..HopSpeed. A quick tap is a small hop (about 0.5 m), a full
-/// squat about 2 m. You can squat in the air and let go just as the wheels touch: the hop fires on
+/// squat over 2 m (2.4 m measured in CI). You can squat in the air and let go just as the wheels touch: the hop fires on
 /// touchdown (a short buffer), which turns a landing into a bounce. One hop per touchdown, a short
 /// recharge after each, and a little fuel per hop, so it cannot climb walls on its own.
 /// Only the strongest Hydraulics on a car count: two do not stack.

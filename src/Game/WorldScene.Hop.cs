@@ -118,12 +118,14 @@ public partial class WorldScene
             return;
         }
 
-        // Charging for a kicker: let go at the crest (or as soon as the front wheel leaves the lip).
+        // Charging for a kicker: let go with the middle of the car two tiles short of the crest, when the
+        // front wheel has just gone over the lip and the rear one still pushes on the face. Bumps on the
+        // run-up that lift a wheel for a moment do not count (the first CI run let go on those, early).
         if (_hopBotKicker != int.MinValue)
         {
             float crestX = _hopBotKicker * Ts + Ts * 0.5f;
             float toCrest = (crestX - x) * _carDir;
-            if (toCrest <= 6f || _car.WheelsGrounded < _car.WheelsAttached || !grounded)
+            if (toCrest <= 2f * Ts)
             {
                 _car.AutoHop = false;
                 GD.Print($"[hop] bot: let go {toCrest / Ts:0.0} tiles before the crest at x={_hopBotKicker}, wheels {_car.WheelsGrounded}/{_car.WheelsAttached}, " +
