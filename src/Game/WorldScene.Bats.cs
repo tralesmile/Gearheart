@@ -17,7 +17,8 @@ public partial class WorldScene
     private readonly Dictionary<string, int> _batCauses = new();
     private float _firstBurstDistance = -1f;
     private Roost _batTarget;
-    private bool _batPlaced, _batWatchLogged;
+    private bool _batPlaced, _batWatchLogged, _batBurstViewLogged;
+    private int _batsMostOnScreen;
     private float _batPlacedAt;
 
     private void SetupBats(CanvasLayer glintLayer)
@@ -139,9 +140,23 @@ public partial class WorldScene
                 GD.Print($"[bats] test: all bats gone by t={_elapsed:0.0}s mostInAir={_bats.MostInAir} wallBounces={_bats.WallBounces} echo={_echo:0.00} frame={Engine.GetFramesDrawn()}");
             }
         }
+        int onScreen = _bats.CountIn(CameraView());
+        _batsMostOnScreen = Mathf.Max(_batsMostOnScreen, onScreen);
+        if (_batTarget.Burst && !_batBurstViewLogged)
+        {
+            _batBurstViewLogged = true;
+            GD.Print($"[bats] test: at the burst {onScreen} of {_batTarget.Bats.Count} bats are on screen frame={Engine.GetFramesDrawn()}");
+        }
         if (_elapsed >= _nextLog)
-            GD.Print($"[bats] t={_elapsed:0}s burst={_batTarget.Burst} inAir={_bats.InAir} player=({me.X / Ts:0.0},{me.Y / Ts:0.0}) " +
+            GD.Print($"[bats] t={_elapsed:0}s burst={_batTarget.Burst} inAir={_bats.InAir} onScreen={onScreen} mostOnScreen={_batsMostOnScreen} player=({me.X / Ts:0.0},{me.Y / Ts:0.0}) " +
                      $"toRoost={me.DistanceTo(_batTarget.Center) / PixelsPerMeter:0.0}m echo={_echo:0.00} effectsWet={Settings.CaveEchoWet:0.00} frame={Engine.GetFramesDrawn()}");
+    }
+
+    /// <summary>The part of the world the camera shows (world pixels).</summary>
+    private Rect2 CameraView()
+    {
+        Vector2 size = GetViewport().GetVisibleRect().Size / _camera.Zoom;
+        return new Rect2(_camera.GetScreenCenterPosition() - size / 2f, size);
     }
 
     private int RockOnLine(Vector2 a, Vector2 b)
@@ -164,6 +179,6 @@ public partial class WorldScene
     {
         var causes = new List<string>();
         foreach (var (k, v) in _batCauses) causes.Add($"{k}:{v}");
-        return $"bats={_bats.Bursts} ({string.Join(",", causes)}) batsInAir={_bats.InAir} mostBats={_bats.MostInAir} firstBat={_firstBurstDistance:0.0}m echo={_echo:0.00} peakEcho={_peakEcho:0.00}";
+        return $"bats={_bats.Bursts} ({string.Join(",", causes)}) batsInAir={_bats.InAir} mostBats={_bats.MostInAir} batsOnScreen={_batsMostOnScreen} firstBat={_firstBurstDistance:0.0}m echo={_echo:0.00} peakEcho={_peakEcho:0.00}";
     }
 }

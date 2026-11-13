@@ -39,7 +39,7 @@ public sealed class Roost
 public partial class Bats : Node2D
 {
     public const double RespawnSeconds = 90.0;
-    public const float SightReachFoot = 4.5f * 64f, SightReachCar = 6f * 64f, DigReach = 3f * 64f;
+    public const float SightReachFoot = 3.2f * 64f, SightReachCar = 5f * 64f, DigReach = 3f * 64f;
     private const float Ts = TileWorld.TileSize;
     private const float DrawDistance = 1400f, HiddenDistance = 1800f;
     private const int Cell = 16, Row = 3;   // the bat row of the birds sheet
@@ -106,10 +106,10 @@ public partial class Bats : Node2D
             if (h % 100 >= 12) continue;   // try only a few columns, so roosts spread out
             int y = CeilingRow(world, x, 0);
             if (y < 0) continue;
-            // Room for at least two bats on the same ceiling row.
+            // Room for at least three bats on the same ceiling row (a pair reads as a smudge, not a colony).
             int room = 0;
             for (int dx = -3; dx <= 3; dx++) if (CeilingRow(world, x + dx, y) == y) room++;
-            if (room < 2) continue;
+            if (room < 3) continue;
             list.Add(new Roost { Index = list.Count, X = x, Y = y });
             last = x;
         }
@@ -183,7 +183,7 @@ public partial class Bats : Node2D
         {
             float side = b.Hang.X - from.X;
             b.Dir = Mathf.Abs(side) > 6f ? Mathf.Sign(side) : (_rng.Randf() < 0.5f ? -1 : 1);
-            if (_rng.Randf() < 0.3f) b.Dir = -b.Dir;   // a few dart the other way, past you
+            if (_rng.Randf() < 0.5f) b.Dir = -b.Dir;   // half of them dart the other way, right past you
             b.Flying = true;
             b.Delay = i++ * 0.07f + _rng.RandfRange(0f, 0.15f);
             b.Pos = b.Hang + new Vector2(0f, 8f);
@@ -242,6 +242,16 @@ public partial class Bats : Node2D
         InAir = inAir;
         MostInAir = Math.Max(MostInAir, inAir);
         QueueRedraw();
+    }
+
+    /// <summary>Bats (hanging or flying) inside a world-space rectangle, e.g. the camera's view.</summary>
+    public int CountIn(Rect2 view)
+    {
+        int n = 0;
+        foreach (var r in _all)
+            foreach (var b in r.Bats)
+                if (!b.Gone && b.Delay <= 0f && view.HasPoint(b.Flying ? b.Pos : b.Hang + new Vector2(0f, 12f))) n++;
+        return n;
     }
 
     private void Fly(Bat b, float dt)
