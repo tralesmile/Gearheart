@@ -196,7 +196,7 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 186 | Delivery bonus: come home with a part ready and the report adds "DELIVERED: Drill Head +50" | S | Open (new 2026-11-13; rewards following the gold arrow) |
 | 187 | Dusk flight: at sunset bats pour out of cave mouths and open shafts into the sky for a minute | S | Open (new 2026-11-13, thirtieth session; the night gets its own living moment and shows where the caves are) |
 | 188 | Shout (a key underground): your call echoes back, and caverns within 15 m flash faintly on screen for a second | S–M | Open (new 2026-11-13; dig toward a hollow you heard, not at random; uses the echo) |
-| 189 | Lava sea at the bottom of the world: the flat bedrock band becomes glowing lava with heat shimmer that burns the car | M | Open (new 2026-11-13; folds #148/#56; the bottom of the world gets an ending and a danger) |
+| 189 | Lava sea at the bottom of the world: the flat bedrock band becomes glowing lava with heat shimmer that burns the car | M | **Step 1 built 2026-11-13** (PR #43: every open tile from row 180, about 29 m down, is lava (no save change); glowing lakes with crust, bubbles, embers and glow; on foot you are thrown out towards the shore and one ore burns; the car floats half sunk and cooks; ore in the 2 m above is lucky 1 in 4. No heat shimmer yet, no part to cross it: #210, #211) |
 | 190 | Bounce mushrooms: rare glowing mushroom caverns whose caps fling you (or the car) up like a trampoline | S–M | Open (new 2026-11-13; a toy underground, a big moment when you fall into one) |
 | 191 | Torches you place (1 Scrap + 2 Dirt): light that stays where you put it, so deep tunnels become yours | S | Open (new 2026-11-13; Terraria's best small habit; makes the dark a building choice; folds #85) |
 | 192 | Guano pocket under every roost: dig the floor below a colony for a rich ore pocket | S | Open (new 2026-11-13, thirty-first session; bats become a sign that says "dig here") |
@@ -217,7 +217,35 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 207 | Cargo that can spill: ore carried in the car pops out on a really hard crash (you can pick it up), so the drive home carefully matters | M | Open (new 2026-11-13; risk on the way home, Death Stranding-lite; needs owner's feel check) |
 | 208 | Radar detector part (Copper + Scrap): a dash light that beeps faster as a speed trap gets close, so you can line up your run | S | Open (new 2026-11-13; a joke part with a use, NFS's radar; small once #203 exists) |
 | 209 | Trap rating: the reading's colour climbs white → gold → red, and over 100 km/h the camera "overexposes" (whole screen white for a beat) | S | Open (new 2026-11-13; partly built in #181: colours by speed; the overexposure is the rest) |
+| 210 | Heat Shield part (Iron + Crystal, or obsidian once it exists): no lava damage, and the car paddles across lava like a boat | S–M | Open (new 2026-11-13, thirty-fourth session; turns the lava from a wall into a road, a part that changes where you can go) |
+| 211 | Obsidian: a block placed on lava hisses and cools into obsidian, a hard black block you can bridge with, and a material for #210 | S–M | Open (new 2026-11-13; Minecraft's lava + water trick without water; building over danger) |
+| 212 | Lava vents: now and then a lake spits a fountain 3–4 m up; drive over a vent as it fires for a free (hot) jump | S | Open (new 2026-11-13; a kicker that lives underground, timing and risk) |
+| 213 | Magma slugs: slow glowing slugs that crawl the hot band and scorch you on touch (pickaxe kills one, drops 1 Copper) | S–M | Open (new 2026-11-13; a first creature with teeth, readable and slow; folds part of #65) |
+| 214 | Lift home from the bottom: a rope-and-bucket block you place at the top of a shaft; ride it up with your haul | S–M | Open (new 2026-11-13; the climb back from 29 m is now the most boring minute of a deep trip; folds #68) |
+| 215 | Trip goal "Reach the magma sea" and a depth gauge with a red line at the lava | S | Open (new 2026-11-13; tells players the bottom exists; cheap; shifts the goal pool) |
+| 216 | Heat haze: the air over a lake ripples (a screen-space shimmer shader) and the camera shakes faintly near big lakes | S | Open (new 2026-11-13; polish, the screenshot-able look of a lava cave) |
 | 29 | Speedometer redline overdrive: holding the needle in the red for 3 s with the booster unlocks a "SONIC" call-out and a sonic-boom puff | S | Open (new 2026-11-12, cheap thrill) |
+
+## 2026-11-13 (thirty-fourth session — feature: the magma sea)
+
+Started by checking for unfinished work: PR #42 (speed traps) was open; its docs run (43424791310) was still going when I started and went green at about 12:42 (the run before it, 43422210716, held the `[trap]` evidence). Squash-merged (eced66b).
+
+Looked as a player. `deep_200.png`: the miner at 30 m, two metres from the end of the world, and the end of the world is a flat dark band of nothing. The road has had ten sessions of love (kickers, flags, traps, plants); the bottom of the Deep has had none. The deepest point of a deep trip should be the best moment, not the dullest. Every game this one borrows from (Terraria's underworld, Minecraft's lava lakes, Starbound's core) puts something hot and bright at the bottom: you see the glow before you see the lake, it is dangerous, and it is where the good stuff is.
+
+What would make "one more dig"? A glow below you; a reason to get close to it (rich ore); a real but fair cost for a mistake (an ore, not the run).
+
+| # | Idea | Why it would be fun | Size |
+| --- | --- | --- | --- |
+| 189 (step 1) | Magma sea (built today) | The bottom of the world becomes a place: a glow to dig towards, a danger, rich ore beside it | M |
+| 210 | Heat Shield part | A part that turns the lava from a wall into a road | S–M |
+| 211 | Obsidian from lava | Build bridges over danger; a material only the bottom gives | S–M |
+| 212 | Lava vents | A hot kicker underground: timing and risk | S |
+| 213 | Magma slugs | A first creature with teeth, slow and readable | S–M |
+| 214 | Lift home from the bottom | Removes the climb back up, the new most boring minute | S–M |
+| 215 | "Reach the magma sea" goal + depth gauge | Tells players the bottom exists | S |
+| 216 | Heat haze | The lava cave looks hot in a screenshot | S |
+
+Ranking for the next sessions (fun for the effort): speed traps on the trip report (#203); hit-stop (#199); "reach the magma sea" goal (#215) with cave goals (#196); then the Heat Shield (#210) and obsidian (#211) as the lava's step 2; lift home (#214).
 
 ## 2026-11-13 (thirty-third session — feature: speed traps on the road)
 

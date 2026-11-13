@@ -2,6 +2,15 @@
 
 Newest first. One entry per big decision: what, why, and what would make us revisit it.
 
+## 2026-11-13 — Lava is a rule, not a tile; a dip costs one ore, not the run
+
+- **What:** every open (air) tile at or below row 180 (`Lava.Row`, about 29 m under the pad and 2.5 m above the bedrock floor) is lava. Nothing is stored: a cavern that reaches the line holds a lake with a flat top, and a tile dug out below the line fills at once.
+- **Why a rule:** no new tile type, no world-generation change and no save version bump; collision, mining and saving are untouched, and the lake top is always flat (lava finds its level). The cost: lava never flows across a shelf above the line, and a sealed pocket you dig into below it is already lava ("the magma was right under it").
+- **On foot:** touching it throws you about 2.3 m up and towards the nearest edge of the lake (horizontal control is off until you land), with a hiss, and burns one ore, the most valuable you hold (Crystal, Copper, Iron, Scrap). No health bar and no death: the game has none, and losing a whole haul at the bottom of a 29 m shaft would feel cruel. One ore is a sting you remember.
+- **The car:** nodes under the line are pushed up at 2.3 g with strong drag, so it floats about half sunk and bobs; it takes up to 2.5 damage a second (damage has no ceiling and repair at the garage is free, D6) — a meter that climbs, not a wreck.
+- **The reward:** ore in the 8 rows above the line is lucky one time in four (1 in 16 elsewhere), by the same position hash, so it needs nothing saved.
+- **Revisit when:** a Heat Shield part (#210) or obsidian (#211) arrives; if players find the lakes too rare (they come from the existing cave noise) the next world-generation change should open more caverns near the line, with a save bump.
+
 ## 2026-11-13 — Speed traps are placed at load and their bests are records, not world data
 
 - **What:** up to four camera posts per side, aimed at 40, 125, 210 and 295 m from the garage; each walks outwards (up to 20 m) to the first column whose surface is flat within one tile for 2.5 m either way and with no kicker within 3 m. A pass is measured when the car's middle crosses the post's column at 5 km/h or more (once per 3 s per post), with the dashboard's speed. Faster than the best on the sign = NEW BEST (record chime, gold sign); the first pass sets the best.

@@ -46,7 +46,7 @@ public sealed class TileWorld : ITerrainCollider, IMineable, ISurfaceInfo
     public const int Height = 192;
     public const int BaseSurface = 64;       // surface row at the spawn pad
     public const int PadFrom = 1258, PadTo = 1302;   // flat ground for the garage (tile columns)
-    private const uint SaveMagic = 0x41574847;   // "GHWA" (10): bump when generation or the save layout changes
+    private const uint SaveMagic = 0x42574847;   // "GHWB" (11): bump when generation or the save layout changes
 
     private readonly byte[] _tiles = new byte[Width * Height];
     private readonly int[] _surface = new int[Width];
@@ -462,6 +462,7 @@ public sealed class TileWorld : ITerrainCollider, IMineable, ISurfaceInfo
         using var patches = new FastNoiseLite { Seed = seed + 3, Frequency = 0.03f, NoiseType = FastNoiseLite.NoiseTypeEnum.Simplex };
         using var deepLine = new FastNoiseLite { Seed = seed + 4, Frequency = 0.02f, NoiseType = FastNoiseLite.NoiseTypeEnum.Simplex };
         using var glow = new FastNoiseLite { Seed = seed + 5, Frequency = 0.11f, NoiseType = FastNoiseLite.NoiseTypeEnum.Simplex };
+        using var halls = new FastNoiseLite { Seed = seed + 6, Frequency = 0.05f, NoiseType = FastNoiseLite.NoiseTypeEnum.Simplex };
         using var rng = new RandomNumberGenerator { Seed = (ulong)seed };
 
         // Surface line: flat at the garage pad, hillier the further you go.
@@ -529,7 +530,12 @@ public sealed class TileWorld : ITerrainCollider, IMineable, ISurfaceInfo
                 // Caves, away from the surface and the garage. The frozen land has more of them,
                 // and the Deep opens into wider caverns.
                 float caveLimit = (biome == Biome.Frozen ? 0.36f : 0.42f) - (deep ? 0.08f : 0f);
-                if (depth > 7 && !(nearPad && depth < 14) && caves.GetNoise2D(x, y * 1.6f) > caveLimit) tile = Tile.Air;
+                // The magma halls: over the last few metres above the lava line the caverns grow wide and
+                // flat-bottomed, so the line cuts them into real lakes instead of puddles in crevices.
+                float hall = Mathf.Clamp((y - (Lava.Row - 14)) / 10f, 0f, 1f);
+                bool open = caves.GetNoise2D(x, y * 1.6f) > caveLimit
+                            || (hall > 0f && halls.GetNoise2D(x * 0.55f, y * 2.2f) > 0.5f - 0.42f * hall);
+                if (depth > 7 && !(nearPad && depth < 14) && open) tile = Tile.Air;
 
                 // Ore pockets: scrap is shallow and common, iron deeper, copper deepest.
                 // The frozen land is rich in iron; the desert has copper close to the surface.

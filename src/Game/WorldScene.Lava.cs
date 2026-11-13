@@ -20,6 +20,9 @@ public partial class WorldScene
     private float _lavaLevel, _peakLava;
     private float _scorchLandWatch = -1f;
     private Vector2 _scorchFrom;
+    private float _lastBurnAt = -99f;
+    private int _crustX = int.MinValue, _crusts;
+    private float _crustAt;
 
     // Bot (--lavatest)
     private bool _lavaPlaced, _lavaCarDropped, _lavaWalkBack, _lavaDone;
@@ -28,6 +31,8 @@ public partial class WorldScene
 
     private static readonly string[] BurnOrder = { "Crystal", "Copper", "Iron", "Scrap" };
     private const float ScorchUp = 620f;   // px/s: about 2.3 m up
+    private const float BurnGap = 3f;      // s between burnt ores
+    private const int CrustWidth = 3;      // a pool this narrow (a shaft you dug) crusts over after a dip
 
     private void SetupLava(CanvasLayer glintLayer)
     {
@@ -63,6 +68,7 @@ public partial class WorldScene
     private void UpdateLava(float dt)
     {
         _scorchCooldown -= dt;
+        if (_crustX != int.MinValue && _elapsed >= _crustAt && _player.Position.Y + Player.HalfHeight < Lava.Row * Ts - 2f) Crust();
         if (!_driving && _player.Active)
         {
             Vector2 feet = _player.Position + new Vector2(0f, Player.HalfHeight - 4f);
@@ -153,18 +159,29 @@ public partial class WorldScene
         if (shoreDir == 0) shoreDir = _player.Velocity.X < 0f ? -1 : 1;
         // Long enough a throw to clear the edge: flight time is about 2 * up / gravity (about 1 s).
         float vx = Mathf.Clamp((shoreDist * Ts + 24f) / 0.95f, 110f, 360f) * shoreDir;
+        // A pool only a few tiles wide (usually your own shaft into the magma) crusts over once you are out,
+        // so you cannot bounce in it forever.
+        int width = LakeWidthAt(tx);
+        if (width > 0 && width <= CrustWidth)
+        {
+            _crustX = tx;
+            _crustAt = _elapsed + 0.3f;
+        }
         _player.Velocity = new Vector2(vx, -ScorchUp);
         _player.Stagger = 1.2f;
         _scorchFrom = p;
         _scorchLandWatch = 0f;
 
         string burnt = null;
+        // One ore per real dip: falling straight back in within 3 s costs nothing more.
+        if (_elapsed - _lastBurnAt >= BurnGap)
         foreach (string item in BurnOrder)
         {
             if (GameSession.Count(item) <= 0) continue;
             GameSession.Add(item, -1);
             burnt = item;
             _orebBurnt++;
+            _lastBurnAt = _elapsed;
             break;
         }
         var at = new Vector2(p.X, Lava.Row * Ts);
@@ -176,6 +193,41 @@ public partial class WorldScene
         if (GameSession.AutoPlay)
             GD.Print($"[lava] scorch #{_scorches}: at tile ({tx},{Mathf.FloorToInt(p.Y / Ts)}) burnt={burnt ?? "nothing"} left: crystal={GameSession.Count("Crystal")} copper={GameSession.Count("Copper")} " +
                      $"iron={GameSession.Count("Iron")} scrap={GameSession.Count("Scrap")}; shore {(shoreDir > 0 ? "east" : "west")} {shoreDist * 0.25f:0.0} m, thrown vx={vx / PixelsPerMeter:0.0} m/s up={ScorchUp / PixelsPerMeter:0.0} m/s frame={Engine.GetFramesDrawn()}");
+    }
+
+    /// <summary>Width in tiles of the lake top through column x (0 if x is not over open lava at the line).</summary>
+    private int LakeWidthAt(int x)
+    {
+        if (!Lava.At(_world, x, Lava.Row)) return 0;
+        int from = x, to = x;
+        while (from - x < 40 && Lava.At(_world, from - 1, Lava.Row)) from--;
+        while (to - x < 40 && Lava.At(_world, to + 1, Lava.Row)) to++;
+        return to - from + 1;
+    }
+
+    /// <summary>The narrow pool the player just left cools: its top two rows of lava turn to slate.</summary>
+    private void Crust()
+    {
+        int x0 = _crustX, n = 0;
+        _crustX = int.MinValue;
+        int w = LakeWidthAt(x0);
+        if (w == 0 || w > CrustWidth) return;
+        int from = x0;
+        while (from > x0 - CrustWidth && Lava.At(_world, from - 1, Lava.Row)) from--;
+        for (int x = from; x < from + CrustWidth; x++)
+            for (int y = Lava.Row; y <= Lava.Row + 1; y++)
+                if (Lava.At(_world, x, y))
+                {
+                    _world.Set(x, y, Tile.Slate);
+                    n++;
+                }
+        if (n == 0) return;
+        _crusts++;
+        var at = new Vector2((x0 + 0.5f) * Ts, Lava.Row * Ts);
+        _lavaView.Splash(at, 0.3f);
+        _sfx.Play("sizzle", -10f, 0.1f, 0.6f);
+        _pops.Show(at - new Vector2(0f, 20f), "it crusts over", new Color(0.9f, 0.6f, 0.45f), 11f, 1.4f, 30f);
+        if (GameSession.AutoPlay) GD.Print($"[lava] crust: {n} lava tiles at column {x0} cooled to slate (pool {CrustWidth} or fewer wide) frame={Engine.GetFramesDrawn()}");
     }
 
     /// <summary>Every frame: the view follows the focus and the rumble follows how close the lake is.</summary>
@@ -199,7 +251,7 @@ public partial class WorldScene
     }
 
     private string LavaSummary() =>
-        $"lava: scorches={_scorches} oreBurnt={_orebBurnt} carDips={_carDips} carLavaDamage={_car.LavaDamage:0.0} rumble={_peakLava:0.00} hinted={_lavaHinted}";
+        $"lava: scorches={_scorches} oreBurnt={_orebBurnt} crusts={_crusts} carDips={_carDips} carLavaDamage={_car.LavaDamage:0.0} rumble={_peakLava:0.00} hinted={_lavaHinted}";
 
     // ---- Test bot (--lavatest) ------------------------------------------------------------------
 
@@ -300,11 +352,11 @@ public partial class WorldScene
         }
     }
 
-    /// <summary>Open air over the lava line at column x for a car: 13 tiles wide, 4 m (16 rows) tall.</summary>
+    /// <summary>Open air over the lava line at column x for a car: 11 tiles wide, 2.5 m (10 rows) tall.</summary>
     private bool CarRoom(int x)
     {
-        for (int y = Lava.Row - 16; y < Lava.Row; y++)
-            for (int dx = -6; dx <= 6; dx++)
+        for (int y = Lava.Row - 10; y < Lava.Row; y++)
+            for (int dx = -5; dx <= 5; dx++)
                 if (_world.Solid(x + dx, y)) return false;
         return true;
     }
