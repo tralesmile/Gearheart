@@ -22,12 +22,13 @@ public partial class Sfx : Node
 
     public override void _Ready()
     {
+        Settings.Apply();   // the Effects and Car buses, at the saved volumes
         foreach (string name in new[] { "pick", "break", "place", "pickup", "thud", "crunch", "snap", "treasure", "fuel", "tally", "record", "land", "shift", "pop", "start", "creak", "blowoff", "flutter", "chirp", "caw", "horn", "gust", "hook", "clank", "vein", "hop", "ready", "lucky" })
             _streams[name] = GD.Load<AudioStream>($"res://assets/audio/{name}.wav");
 
         for (int i = 0; i < 6; i++)
         {
-            var voice = new AudioStreamPlayer();
+            var voice = new AudioStreamPlayer { Bus = Settings.EffectsBus };
             AddChild(voice);
             _voices.Add(voice);
         }
@@ -38,8 +39,8 @@ public partial class Sfx : Node
         _boost = Loop("boost");
         _wind = Loop("wind");
         _turbo = Loop("turbo");
-        _crickets = Loop("crickets", 0);
-        _devil = Loop("devil", 0);
+        _crickets = Loop("crickets", 0, Settings.EffectsBus);
+        _devil = Loop("devil", 0, Settings.EffectsBus);
     }
 
     /// <summary>
@@ -84,7 +85,7 @@ public partial class Sfx : Node
     public float TurboWhistle { get; private set; }
 
     /// <summary>A looping sound; <paramref name="frames"/> is the loop length (0 = the whole file).</summary>
-    private AudioStreamPlayer Loop(string name, int frames = LoopFrames)
+    private AudioStreamPlayer Loop(string name, int frames = LoopFrames, string bus = Settings.CarBus)
     {
         var stream = GD.Load<AudioStream>($"res://assets/audio/{name}.wav");
         if (stream is AudioStreamWav wav)
@@ -93,7 +94,7 @@ public partial class Sfx : Node
             wav.LoopBegin = 0;
             wav.LoopEnd = frames > 0 ? frames : Mathf.RoundToInt((float)(wav.GetLength() * wav.MixRate));
         }
-        var player = new AudioStreamPlayer { Stream = stream, VolumeDb = -80f };
+        var player = new AudioStreamPlayer { Stream = stream, VolumeDb = -80f, Bus = bus };
         AddChild(player);
         return player;
     }

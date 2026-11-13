@@ -29,6 +29,7 @@ A 2D side-view sandbox where you mine, craft and build vehicles part by part, th
 | 1 / 2 | Choose dirt or stone |
 | F | Get in the car (when next to it) |
 | G | Open the garage (when next to it) |
+| Esc (Start on a gamepad) | Pause menu: Resume, volume sliders (Master, Effects, Engine), fullscreen, the full key list, Save and quit. Esc again resumes. Volumes are kept in `user://settings.cfg`, apart from the save |
 
 **Driving**
 

@@ -87,6 +87,7 @@ public static class GameSession
     public static bool HookTest => UserArgs.Contains("--hooktest");
     /// <summary>--veintest: a seven-tile iron vein is buried under the mechanic, who mines it out as one vein run.</summary>
     public static bool VeinTest => UserArgs.Contains("--veintest");
+    public static bool PauseTest => UserArgs.Contains("--pausetest");
     /// <summary>--launchtest: the bot gets straight in and launches with launch control, letting go in the green
     /// (--launchearly: lets go far too early for a bogged start).</summary>
     public static bool LaunchTest => UserArgs.Contains("--launchtest") || LaunchEarly;
