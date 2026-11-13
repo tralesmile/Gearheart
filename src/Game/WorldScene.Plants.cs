@@ -8,7 +8,7 @@ namespace Gearheart.Game;
 /// Roadside plants the car runs over: bushes, flowers and grass tufts in the meadow, cacti in The Wastes
 /// and snowy shrubs in the Frozen North burst into leaves, petals, cactus chunks or snow, with a rustle,
 /// and leave a stump or stubble that grows back later (see <see cref="Flora"/>). A cactus thumps the car
-/// a little. Plants flattened close together chain into "MOWER x3 ...". Pure feel: no loot, no score.
+/// a little. Plants flattened close together chain into a MOWER count, popped at x3, x5, x10 and every 10th. Pure feel: no loot, no score.
 /// </summary>
 public partial class WorldScene
 {
@@ -18,7 +18,7 @@ public partial class WorldScene
     /// <summary>Share of its speed the car keeps when it hits a cactus (a bush or flowers cost nothing).</summary>
     private const float CactusKeep = 0.97f;
 
-    private int _mowChain, _bestMow, _plantsLogged;
+    private int _mowChain, _bestMow, _plantsLogged, _mowPops;
     private float _lastMowAt = -10f;
     private float _regrowTick;
     private readonly int[] _flattened = new int[6];   // by PlantKind
@@ -79,7 +79,8 @@ public partial class WorldScene
         _flattened[(int)kind]++;
         float dir = Mathf.Sign(_car.CenterVelocity.X);
         Vector2 at = plant.GetCenter();
-        float push = 60f + kmh * 3f;
+        // A tyre throws what it runs over up and back; the bits fly from behind the wheel where you can see them.
+        float push = 140f + kmh * 4f;
 
         switch (kind)
         {
@@ -101,7 +102,7 @@ public partial class WorldScene
                 _sfx.Play("rustle", -14f, 0.04f, 1.3f + 0.15f * GD.Randf());
                 break;
             case PlantKind.Cactus:
-                Leaves(at, new[] { CactusGreen, new Color(0.41f, 0.72f, 0.43f) }, 14, push * 1.1f, dir, 700f, 0.9f, 3.5f);
+                Leaves(at, new[] { CactusGreen, new Color(0.41f, 0.72f, 0.43f) }, 14, push * 1.1f, dir, 700f, 1f, 7f);
                 Leaves(at, new[] { CactusPulp, new Color(0.94f, 0.47f, 0.63f) }, 8, push * 1.2f, dir, 500f);
                 _sfx.Play("thud", -15f, 0.05f, 1.7f);
                 _sfx.Play("rustle", -12f, 0.04f, 0.7f);
@@ -109,7 +110,7 @@ public partial class WorldScene
                 if (!_car.Airborne) _car.Slow(CactusKeep);
                 break;
             default:   // a grass tuft: a puff of blades, no sound (there are a lot of them)
-                Leaves(at, new[] { LeafGreen, LeafLight }, 5, push * 0.6f, dir, 300f);
+                Leaves(at, new[] { LeafGreen, LeafLight }, 5, push * 0.6f, dir, 300f, 0.8f, 3f);
                 break;
         }
 
@@ -118,8 +119,13 @@ public partial class WorldScene
             _mowChain = _elapsed - _lastMowAt <= MowWindow ? _mowChain + 1 : 1;
             _lastMowAt = _elapsed;
             _bestMow = Mathf.Max(_bestMow, _mowChain);
-            if (_mowChain >= 3)
-                _pops.Show(at - new Vector2(0f, plant.Size.Y), $"MOWER x{_mowChain}", MowColor, 11f + Mathf.Min(_mowChain - 3, 4), 1.1f, 30f);
+            // Milestones only: the meadow has a plant every few metres, so a pop per plant was a smear of text.
+            if (_mowChain is 3 or 5 or 10 || (_mowChain > 10 && _mowChain % 10 == 0))
+            {
+                _pops.Show(new Vector2(at.X, _car.Bounds().Position.Y - 18f), $"MOWER x{_mowChain}{(_mowChain >= 10 ? "!" : "")}", MowColor,
+                           11f + Mathf.Min(_mowChain / 5, 4), 1.3f, 34f);
+                _mowPops++;
+            }
         }
 
         if (GameSession.AutoPlay && kind != PlantKind.Tuft && _plantsLogged < 40)
@@ -130,10 +136,10 @@ public partial class WorldScene
     }
 
     /// <summary>
-    /// A one-shot spray of leaves (or petals, chunks, snow): thrown forward and up with the car, drifting
+    /// A one-shot spray of leaves (or petals, chunks, snow): thrown up and back off the tyre, drifting
     /// down slowly with drag, each bit picking one of <paramref name="colors"/>.
     /// </summary>
-    private void Leaves(Vector2 at, Color[] colors, int amount, float speed, float forward, float gravity, float life = 1.1f, float size = 2.5f)
+    private void Leaves(Vector2 at, Color[] colors, int amount, float speed, float forward, float gravity, float life = 1.2f, float size = 5f)
     {
         var offsets = new float[colors.Length];
         for (int i = 0; i < colors.Length; i++) offsets[i] = i / (float)colors.Length;
@@ -143,13 +149,14 @@ public partial class WorldScene
             Position = at,
             OneShot = true, Emitting = true, Amount = amount, Lifetime = life, Explosiveness = 0.95f,
             EmissionShape = CpuParticles2D.EmissionShapeEnum.Rectangle, EmissionRectExtents = new Vector2(8f, 6f),
-            Direction = new Vector2(forward * 0.9f, -1f).Normalized(), Spread = forward == 0f ? 70f : 45f,
+            Direction = new Vector2(-forward * 0.55f, -1f).Normalized(), Spread = 55f,
             InitialVelocityMin = speed * 0.35f, InitialVelocityMax = speed, Gravity = new Vector2(0f, gravity),
             DampingMin = 40f, DampingMax = 120f,
             AngularVelocityMin = -540f, AngularVelocityMax = 540f,
             ScaleAmountMin = size * 0.6f, ScaleAmountMax = size * 1.2f,
             ColorInitialRamp = ramp,
         };
+        burst.ZIndex = 20;   // over the car's wheels, which hide the plant at the moment it goes
         AddChild(burst);
         GetTree().CreateTimer(life + 0.4f).Timeout += () =>
         {
@@ -159,7 +166,7 @@ public partial class WorldScene
 
     private string PlantSummary() =>
         $"plants={_flattened[(int)PlantKind.Bush]}/{_flattened[(int)PlantKind.Flowers]}/{_flattened[(int)PlantKind.Cactus]}/{_flattened[(int)PlantKind.SnowShrub]}/{_flattened[(int)PlantKind.Tuft]} " +
-        $"bestMow={_bestMow} flatNow={Flora.FlatCount} regrown={Flora.Regrown}";
+        $"bestMow={_bestMow} mowPops={_mowPops} flatNow={Flora.FlatCount} regrown={Flora.Regrown}";
 
     /// <summary>Census of the plants along the road near the garage, for the bot log.</summary>
     private void LogPlantCensus()

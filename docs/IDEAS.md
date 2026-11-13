@@ -33,7 +33,7 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 22 | Main menu with Continue / New world / Settings (volume, controls) | M | Open |
 | 23 | Lava layer deep underground that damages the car | M | Open |
 | 24 | Biome welcome banner: "THE WASTES — copper country" with a sting the first time you arrive | S | Open (new 2026-11-12) |
-| 25 | Smashable roadside props: cacti in The Wastes, snowmen and ice spikes in the Frozen North, fences in the meadow, all feeding the smash streak | S | Open (new 2026-11-12) |
+| 25 | Smashable roadside props: cacti in The Wastes, snowmen and ice spikes in the Frozen North, fences in the meadow, all feeding the smash streak | S | **Step 1 built 2026-11-13** (PR #41: bushes, flowers, tufts, cacti and new snowy shrubs burst when the car runs over them, leave stubble and grow back; a MOWER x3 chain pop; not in the smash streak, no loot. Fences, snowmen and ice spikes still open: #197) |
 | 26 | Distance flags every 50 m with your best distance marked on the road ("BEST 312 m") | S | Open (new 2026-11-12) |
 | 27 | Nitro-style "perfect landing" boost: land clean on all wheels and get a short free speed kick | S | **Built 2026-11-12** (PR #15: +9 to +17 km/h by air time) |
 | 28 | Engine smoke and a coughing engine sound when damage is high, so the damage meter means something you can hear | S | Open (new 2026-11-12) |
@@ -204,7 +204,32 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 194 | Peek key: hold to look 6 m ahead (or up and down on foot), so you see roosts, landings and ore before you reach them | S | Open (new 2026-11-13; the 4.5 m bat bug showed how little of the cave a player sees at the foot zoom) |
 | 195 | Headlamp upgrade for the miner (garage, 3 Iron + 1 Crystal): a wider, brighter light cone underground | S | Open (new 2026-11-13; a part for the person, not the car; the Deep gets less grey) |
 | 196 | Cave trip goals: "Startle 3 bat colonies", "Reach 30 m deep", "Dig out a crystal cluster" | S | Open (new 2026-11-13; trip goals today are all about driving; this sends people underground) |
+| 197 | Fences and snowmen: plank fences along meadow fields and snowmen in the north that the car smashes into flying planks and snowballs, counting into the smash streak | S | Open (new 2026-11-13, thirty-second session; the rest of #25, bigger targets than plants) |
+| 198 | Rabbits in the bushes: now and then a flattened bush lets out a rabbit that zig-zags away from the bonnet (it always gets away) | S | Open (new 2026-11-13; reuses the birds' flee logic; a tiny surprise in the commonest bush) |
+| 199 | Hit-stop on big hits: 40–60 ms of frozen time on a heap smash at speed, a lucky strike or a big landing | S | Open (new 2026-11-13; the cheapest weight in any action game; must not touch physics determinism) |
+| 200 | A dirty car: dust in The Wastes, mud in the meadow, frost in the north build up on the body over a trip, washed off at the garage | S–M | Open (new 2026-11-13; the car shows where it has been, Sims-style care; folds #132) |
+| 201 | Garden at the garage: flowers you run over drop seeds that you can plant by the shed; the bed grows with every trip | M | Open (new 2026-11-13; a home that changes because of what you did out there) |
+| 202 | Speed-trap first, then a "Speed trap" trip goal and best speeds on the trip report | S | Open (new 2026-11-13; still the best road idea, #181, now three sessions running) |
 | 29 | Speedometer redline overdrive: holding the needle in the red for 3 s with the booster unlocks a "SONIC" call-out and a sonic-boom puff | S | Open (new 2026-11-12, cheap thrill) |
+
+## 2026-11-13 (thirty-second session — polish: the world reacts to the car)
+
+Started by checking for unfinished work: PR #40 (cave bats and echo) was open and its last run (43406759263) green: the bot stepped to 2.0 m of a 5-bat roost, `burst ... cause=foot`, all five in the air and on screen, and `bats_38.png` shows them streaming past the miner. Squash-merged (75cd344).
+
+Looked as a player. `world_280.png`: the starter car in The Wastes rolls straight through a cactus and nothing happens; in `world_130.png` it passes bushes and flower patches the same way. The world is pretty but the car is a ghost in it. The last three sessions were features, so this one is polish and feel, and the most-met thing in the game is the stretch of road just past the gate, full of bushes.
+
+What would make "one more trip"? Things that react to the car on every metre of road, a home that changes, and weight on every hit.
+
+| # | Idea | Why it would be fun | Size |
+| --- | --- | --- | --- |
+| 25 (step 1) | Plants the car flattens (built today) | The road reacts in the first 20 seconds; a trail of stubble shows where you drove | S |
+| 197 | Fences and snowmen to smash | Bigger targets for the streak, each biome its own | S |
+| 198 | Rabbits bolting out of bushes | A little surprise in the most common plant | S |
+| 199 | Hit-stop on big hits | Weight on every smash and landing for almost no work | S |
+| 200 | A car that gets dirty per biome | The car carries the trip home with it | S–M |
+| 201 | A garden at the garage grown from seeds | Home changes because of what you did out there | M |
+
+Ranking for the next sessions (fun for the effort): speed traps (#181), still the best road idea; hit-stop (#199); cave trip goals (#196) and the guano pocket (#192); fences and snowmen (#197); then a first creature that bites (#65).
 
 ## 2026-11-13 (thirty-first session — finishing the bats)
 
