@@ -16,7 +16,7 @@ Newest entry first. Each session: what was built and why, how it was verified, w
 
 **Why this** — Brainstorm in `docs/IDEAS.md` (thirty-second session). The last three sessions were features (way home, bats twice), so this was a polish-and-feel run. In `world_280.png` the car rolls through a cactus and nothing happens; the road past the gate is lined with bushes and flowers that ignore the car. Making the world notice the car is felt in the first 20 seconds of every drive, and costs one session.
 
-**CI runs**: 43410031396 (green), then one for the fixes below and this log.
+**CI runs**: 43410031396 (green), 43412685366 (green; bigger bits, milestone pops), and one for this log.
 
 **Verified (run 43410031396)**
 
@@ -25,6 +25,7 @@ Newest entry first. Each session: what was built and why, how it was verified, w
 - **Drive west to the Frozen North**: `plants=13/17/0/12/49` — 12 snowy shrubs flattened.
 - Deep, hook, vein and bat tests: census only, nothing flattened (on foot), as intended.
 - **Frames**: `plants_world_117.png` shows petals and leaves round the wheels and stubble behind; but in run 1 the bits were small and mostly hidden behind the tyres (`plants_world_113.png`), and the MOWER pops overlapped ("MOWER x3" on "MOWER x4") over the car. Run 2 doubles the bit size, throws them up and back over the wheels, and pops only at x3, x5, x10, x20 above the car.
+- **Run 2 (43412685366, green)**: the same plant counts in every scenario (starter east `plants=12/24/3/0/42`, chain 36, now `mowPops=6` instead of a pop per plant). `plants_world_117.png`, `plants_left_119.png` and `plants_rocket_110.png` show a spray of petals and leaves over and behind the wheels and one "MOWER x3" above the car; no errors.
 
 **Not verified / known issues**
 
