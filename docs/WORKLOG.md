@@ -2,6 +2,42 @@
 
 Newest entry first. Each session: what was built and why, how it was verified, what is not verified, and what comes next.
 
+## 2026-11-12 23:24 – 2026-11-13 00:50 UTC — Merged vein runs (PR #31), then ore flies home (PR #32, polish and feel)
+
+**Started by** checking for unfinished work: PR #31 (vein runs) was open with run 43327542167 in progress. It finished green at 23:36 and `vein_22.png` showed the long call-out centred. My squash-merge was refused because the session that opened the PR was still running and had just pushed a worklog line; that session merged it itself at 23:48 (d6155ee), so I branched from that main.
+
+**Built — ore flies home** (`src/Game/OreFlight.cs`, `src/Game/WorldScene.FlyHome.cs`, small hooks in `WorldScene.cs`)
+
+- Everything mined (pickaxe or drill ore), dug up (stashes) or smashed (scrap heaps, combo scrap) **flies from where it broke into its slot on the inventory bar**: tossed up out of the hole, then down in an arc, with a short glow trail, on a bright disc in the ore's colour with a white rim. A bundle fans out (up to five icons, the last carrying the rest with an "x4" tag).
+- The slot's number **goes up when the icon lands** (the bar shows what you have minus what is in the air); the slot swells, a ring flashes and the number flashes in the ore's colour, with a quiet tick for ore.
+- Dirt and stone fly too on foot (smaller, faster, silent); dug by the car's drill they just count up. At most 48 icons in the air. The real counts change at once (saving, building and placing are unaffected); no save or world change; no new sound file (`tally` pitched up).
+- **CI**: `[flyhome]` lines (launch from screen point to slot point, landing with flight time and what the bar shows); `flown/landed/unitsHome/inFlight/longestFlight/barSettled` on `[autoplay]`; the vein test checks the bar right after the last tile and 1.5 s later; `flyhome_*.png` (vein) and `flyhome_stash_*.png` frames.
+
+**Why this** — Top of the last session's "Next" (IDEAS #143). After vein runs, breaking ore is loud, but the ore then vanished: the bar at the bottom, the only place your wealth lives, changed a digit nobody watched. Collecting needs a picture (Terraria's items flying to you, Hill Climb's coins zipping to the counter). Felt in the first minute: the walk bot sends dirt home within seconds of spawning. Polish two sessions running, but it was the item the last session queued.
+
+**CI runs**: 43332602108 (green; icons small and dark on dirt and barely rose, `flyhome_12/14.png`), 43335873583 (green; bigger icons on a bright disc, tossed higher), one more for these docs.
+
+**Verified (run 43335873583)**
+
+- **Vein test**: 7 iron tiles + the 4th-ore bonus = 8 iron flights, each landing in slot 4 after 0.53–0.63 s with the bar counting 1, 2, ... 8; the bonus launched separately ("bar shows 3 (have 5)"). Right after the lone scrap tile: `flown=10 landed=8 inFlight=2 barSettled=False`, Iron shown 8 of 8, Scrap shown 0 of 2; **1.5 s later** `flown=10 landed=10 unitsHome=10 inFlight=0 barSettled=True`, Scrap 2 of 2.
+- **Stashes**: the old toolbox's +8 Scrap went as 5 icons (the last "x4"), the bar counting to 8; the strongbox's +5 Copper as 5 icons counting 1..5. Stash test: 35 icons carried 38 units home.
+- **Every scenario**: launched = landed + in flight at every log line; every world run ends settled or with its last icons in the air (2–4) at the moment the run quits. Longest flight 0.75 s (a crystal from high on the screen).
+- **Screenshots**: `flyhome_14.png` (the first iron icon tossed up out of the hole on its disc), `flyhome_stash_44.png` (a fan of scrap and iron icons over the opened toolbox, "x4" on the last), `flyhome_stash_48.png` (scrap icons dropping to the bar, the scrap slot showing 1 while the rest fly, the iron slot ringing).
+- **Nothing else changed**: every 40 s position identical to main (drill 1480.1, left 465.7, spiked 424.9, turbo 2302.1, night 2209.3, devils 2173.2 / 2533.3, rocket 2552.7, flip 2543.3, trip 1629.2). No errors.
+
+**Not verified / known issues**
+
+- Fun is my judgement (D1): whether a stream of dirt icons while digging on foot is satisfying or busy (easy to switch off for dirt and stone; see DECISIONS).
+- The tick is tuned by numbers only.
+- If the window is resized during a flight the icon still lands in the slot (its target is read every frame), not checked by a bot.
+- Heap scrap smashed at speed flies from the heap, which may be off screen behind the car by then; the icon then comes in from the screen edge (fine, but unchecked in a screenshot).
+
+**Next**
+
+1. Recipe nudge (S, IDEAS #150): a slot glows "Rocket Booster ready at the garage" when you have enough — the bar now has attention, give it a goal.
+2. Lucky strike (S, #151) or pickaxe hit feel (S, #145); motherlode (S, #144).
+3. A feature next (two polish sessions in a row): pickaxe tiers (S, #139), devil rider records (S, #131), then the first creature (M: crystal mites #65) or cave-ins (M, #152).
+
 ## 2026-11-12, about 22:24–23:55 UTC — Merged the grappling hook (PR #30), then vein runs (PR #31, polish and feel)
 
 **Started by** checking for unfinished work: PR #30 (grappling hook) was open, its docs run (43319246575) still going. I waited for it past the usual 10 minutes (it was already in the screenshot step and the code commit before it was green); it finished green at 22:39 with `[hook]` lines matching the PR (out of the 12.0 m shaft in 2.23 s with 4 throws, the miss, the fling) and `hook_8.png` / `hook_50.png` looking right, so I squash-merged it (72194a5).

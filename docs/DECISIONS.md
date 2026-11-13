@@ -2,6 +2,13 @@
 
 Newest first. One entry per big decision: what, why, and what would make us revisit it.
 
+## 2026-11-13 — Ore flies home: the bar shows what has landed, not what you have
+
+- **What:** everything added to the inventory by mining, a stash or a smashed heap flies from where it broke into its slot (`OreFlight`); the slot's number is "what you have minus what is still in the air", so it ticks up as each icon lands (0.5–0.9 s later). The real count changes at once, so saving, building and placing blocks are unaffected.
+- **Why:** the bar was the only place your wealth lived and it never moved; collecting needs a picture (Terraria, Hill Climb's coin counter). Counting on landing ties the number to the thing you just watched.
+- **Limits, on purpose:** dirt and stone dug by the car's drill do not fly (a tunnel would bury the screen); at most 48 icons are in the air (any more count up at once); a bundle sends at most five icons, the last carrying the rest with an "x3" tag. Dirt and stone flights are smaller, shorter and silent; ore gets a tick (`tally`, pitched up) on landing.
+- **Revisit when:** you have played (D1). If it feels busy while digging dirt on foot, make dirt and stone count up without flying too.
+
 ## 2026-11-12 — Vein runs: a combo for ore, with a small bonus
 
 - **What:** an ore tile (Scrap, Iron, Copper or Crystal) broken within 3 s (`VeinRun.Window`) of the last one and no more than 3 tiles from it (`VeinRun.Reach`, counted as the larger of the two axis distances) continues a run; anything else starts a new one at x1. Every 4th ore of a run (`BonusEvery`) pays +1 of that ore. Any ore kind continues a run (blobs of different ores often touch). The drill counts too.
