@@ -40,6 +40,7 @@ public static class Settings
         Load();
         EnsureBus(EffectsBus);
         EnsureBus(CarBus);
+        EnsureCaveEcho();
         ApplyVolumes();
         ApplyWindow();
     }
@@ -80,6 +81,57 @@ public static class Settings
         int i = AudioServer.BusCount - 1;
         AudioServer.SetBusName(i, name);
         AudioServer.SetBusSend(i, "Master");
+    }
+
+    private static AudioEffectReverb _cave;
+    private static bool _caveOn;
+
+    /// <summary>A reverb on the Effects bus, off and dry until <see cref="SetCaveEcho"/> turns it up underground.</summary>
+    private static void EnsureCaveEcho()
+    {
+        int i = AudioServer.GetBusIndex(EffectsBus);
+        if (i < 0) return;
+        for (int e = 0; e < AudioServer.GetBusEffectCount(i); e++)
+            if (AudioServer.GetBusEffect(i, e) is AudioEffectReverb found)
+            {
+                _cave = found;
+                return;
+            }
+        _cave = new AudioEffectReverb
+        {
+            RoomSize = 0.62f,
+            Damping = 0.35f,
+            Spread = 0.8f,
+            Hipass = 0.12f,
+            PredelayMsec = 70f,
+            PredelayFeedback = 0.3f,
+            Dry = 1f,
+            Wet = 0f,
+        };
+        AudioServer.AddBusEffect(i, _cave);
+        AudioServer.SetBusEffectEnabled(i, AudioServer.GetBusEffectCount(i) - 1, false);
+        _caveOn = false;
+    }
+
+    /// <summary>The cave echo's wet level now (for the bot log).</summary>
+    public static float CaveEchoWet => _cave?.Wet ?? 0f;
+
+    /// <summary>
+    /// Underground the effects ring: <paramref name="amount"/> 0 (surface, echo off) .. 1 (the Deep).
+    /// Not a setting, so it is not saved; it follows where you are.
+    /// </summary>
+    public static void SetCaveEcho(float amount)
+    {
+        if (_cave == null) return;
+        amount = Mathf.Clamp(amount, 0f, 1f);
+        _cave.Wet = 0.3f * amount;
+        bool on = amount > 0.01f;
+        if (on == _caveOn) return;
+        _caveOn = on;
+        int i = AudioServer.GetBusIndex(EffectsBus);
+        if (i < 0) return;
+        for (int e = 0; e < AudioServer.GetBusEffectCount(i); e++)
+            if (AudioServer.GetBusEffect(i, e) == _cave) AudioServer.SetBusEffectEnabled(i, e, on);
     }
 
     private static void ApplyVolumes()

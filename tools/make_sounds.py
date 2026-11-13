@@ -590,6 +590,23 @@ def lucky():
     return s * (1 - np.exp(-t * 3000))
 
 
+def squeak():
+    """Cave bats: a scatter of tiny high squeaks (7–10 kHz chirps sweeping down, 20–35 ms each),
+    several bats out of step, over 0.5 s. Deterministic so the other sounds' random stream is untouched."""
+    n = int(SR * 0.55); t = np.arange(n) / SR
+    s = np.zeros(n)
+    for t0, f0, f1, ln, g in ((0.00, 9800, 7200, 0.028, 1.0), (0.05, 9200, 7600, 0.022, 0.7), (0.11, 10200, 7400, 0.034, 0.9),
+                              (0.19, 8800, 6900, 0.025, 0.6), (0.24, 9900, 8000, 0.020, 0.75), (0.33, 9400, 7000, 0.030, 0.5),
+                              (0.42, 9000, 7300, 0.024, 0.35)):
+        local = t - t0
+        on = (local >= 0) & (local < ln)
+        x = np.clip(local / ln, 0, 1)
+        f = f0 + (f1 - f0) * x
+        phase = 2 * np.pi * np.cumsum(np.where(on, f, 0.0)) / SR
+        s += g * np.where(on, np.sin(np.pi * x) ** 2, 0.0) * np.sin(phase)
+    return s
+
+
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
     save("engine", engine(), 0.7)
@@ -629,4 +646,5 @@ if __name__ == "__main__":
     save("hop", tail_fade(hop(), 50), 0.65)
     save("ready", tail_fade(ready(), 120), 0.55)
     save("lucky", tail_fade(lucky(), 80), 0.55)
+    save("squeak", tail_fade(squeak(), 20), 0.4)   # deterministic: uses no random stream
     print("sounds written to", os.path.abspath(OUT))

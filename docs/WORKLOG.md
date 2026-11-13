@@ -2,6 +2,10 @@
 
 Newest entry first. Each session: what was built and why, how it was verified, what is not verified, and what comes next.
 
+## 2026-11-13, 09:23–09:38 UTC — waited on PR #40, stopped (another session is driving it)
+
+Found PR #40 open; run 43398965672 finished green at 09:25 but its `[bats]` lines show no burst (player 4.0 m from roost 25, which is 3.4 m above the cavern floor, beyond the 3.2 m foot reach). Another session pushed bd70612 at 09:26 and started run 43401407653, still running after 10 minutes, so I changed nothing else and stopped. Note for whoever finishes it: with "only on screen" plus a 3.5 m round reach, a colony over a cavern floor more than about 3 m down can never see a walker (the foot view is only about ±2.3 m tall), so in tall caverns only digging or a honk sets them off. An ellipse (3.2–3.5 m sideways, about 4.8 m up) and bats that swoop down to the startler's height for the first 1.5 s would fix that; I have that change written but did not push it to avoid colliding.
+
 ## 2026-11-13, about 04:20–05:30 UTC — The way home: home arrow and the garage lit at night (PR #39)
 
 **Started by** checking for unfinished work: PR #37 (pause menu) was open, its fix run 43363343073 green and `pause_57.png` right (PAUSED panel, sliders at 80/50/30%, "Fullscreen: Off" toggle, gold focused slider name). My squash-merge was refused because the session that opened it pushed a worklog commit at that moment; it merged the PR itself at about 04:50 (9df1c95). I started this branch on top of #37's branch and merged main into it after, so the diff is only this change.

@@ -67,6 +67,7 @@ jobs:
             grep "\[pause\]" smoke.log | head -20
             grep "\[home\]" smoke.log | head -24
             grep "\[hop\]" smoke.log | head -60
+            grep "\[bats\]" smoke.log | head -24
             # "resources still in use at exit" is a shutdown notice about cached textures and sounds, not a fault.
             if grep -E "ERROR|Unhandled exception|SCRIPT ERROR|System\.[A-Za-z]*Exception" smoke.log | grep -v "still in use at exit" | grep .; then
               echo "::error::Smoke test failed: $name"
@@ -82,6 +83,7 @@ jobs:
           run "world: pause menu (Esc while mining: the world stops, sliders move, the settings file round trip, Esc resumes)" res://scenes/world.tscn --quit-after 1800 -- --fresh --autoplay --pausetest --design=starter
           run "world: low fuel (starter car with 30% fuel east: the home arrow turns orange, a fuel can turns it back)" res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --lowfuel --design=starter
           run "world: the Deep (on foot in a crystal cavern, dig out crystals)" res://scenes/world.tscn --quit-after 3600 -- --fresh --autoplay --deeptest --design=starter
+          run "world: cave bats (on foot 5.5-10 m from a roost with a clear view in the Deep, walk at it until the bats burst)" res://scenes/world.tscn --quit-after 1800 -- --fresh --autoplay --battest --design=starter
           run "world: drive left to the Frozen North"  res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --left --design=starter
           run "world: drive left to the Frozen North on Spiked Tyres" res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --left --design=spiked
           run "world: V8 swap (engine sound and gearbox, 6 gears)" res://scenes/world.tscn --quit-after 2400 -- --fresh --autoplay --design=v8
@@ -377,6 +379,19 @@ jobs:
           for i in 5 40; do
             f=$(printf "shots/dawn/f%08d.png" $i); [ -f "$f" ] && cp "$f" keep/beacon_dawn_$i.png
           done
+          # Cave bats: the roost before they see you, then the burst (+2, +5, +10 frames) and the echo level.
+          mkdir -p shots/bats
+          xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/bats/f.png --quit-after 140 res://scenes/world.tscn -- --fresh --autoplay --battest --design=starter > shots/bats.log 2>&1 || true
+          f=$(printf "shots/bats/f%08d.png" 6); [ -f "$f" ] && cp "$f" keep/bats_6.png
+          grep "\[bats\] burst" shots/bats.log | head -1 | sed -E 's/.*frame=([0-9]+).*/\1/' | while read n; do
+            for d in 2 5 10 20; do
+              f=$(printf "shots/bats/f%08d.png" $((n + d))); [ -f "$f" ] && cp "$f" keep/bats_$((n + d)).png
+            done
+          done
+          grep "\[bats\] burst" shots/deep.log | head -1 | sed -E 's/.*frame=([0-9]+).*/\1/' | while read n; do
+            f=$(printf "shots/deep/f%08d.png" $((n + 3))); [ -f "$f" ] && cp "$f" keep/bats_deep_$((n + 3)).png
+          done
+          grep "\[bats\]" shots/bats.log | head -16
           # Crash frames: the frame of each of the first hits (from "[crash] ... frame=N") and the next two.
           for run in crash rocket; do
             grep "\[crash\] hit" shots/$run.log | head -4 | sed -E 's/.*frame=([0-9]+).*/\1/' | while read n; do

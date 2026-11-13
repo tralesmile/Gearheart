@@ -855,13 +855,47 @@ def bird_frame(kind, pose):
     return outline(img)
 
 
+BAT_BODY, BAT_WING, BAT_SKIN, BAT_EAR, BAT_EYE = (74, 56, 78), (46, 34, 54), (104, 76, 108), (168, 110, 132), (255, 128, 150)
+
+
+def bat_frame(pose):
+    """Cave bat. pose: hang (upside down, wings wrapped; hangs from the top edge), stretch (hanging,
+    one wing opened), up (flying, wings raised), down (wings beating down). Flying bats face right."""
+    img = Image.new("RGBA", (BW, BH), (0, 0, 0, 0)); d = ImageDraw.Draw(img)
+    if pose in ("hang", "stretch"):
+        d.line([(7, 0), (7, 1)], fill=(36, 28, 32)); d.line([(9, 0), (9, 1)], fill=(36, 28, 32))   # feet gripping the rock
+        d.ellipse([5, 1, 11, 10], fill=BAT_WING)                                        # wings wrapped round the body
+        d.line([(8, 2), (8, 9)], fill=BAT_SKIN)                                         # the fold where the wings meet
+        d.ellipse([6, 8, 10, 12], fill=BAT_BODY)                                        # head, at the bottom
+        d.polygon([(6, 11), (5, 14), (7, 12)], fill=BAT_BODY); d.point((6, 12), fill=BAT_EAR)    # ears point down
+        d.polygon([(10, 11), (11, 14), (9, 12)], fill=BAT_BODY); d.point((10, 12), fill=BAT_EAR)
+        d.point((7, 10), fill=BAT_EYE); d.point((9, 10), fill=BAT_EYE)
+        if pose == "stretch":
+            d.polygon([(10, 2), (15, 4), (14, 6), (15, 8), (11, 8)], fill=BAT_SKIN)     # one wing opened out
+            d.line([(10, 2), (15, 4)], fill=BAT_WING)
+    else:
+        d.ellipse([6, 7, 11, 11], fill=BAT_BODY)                                        # body
+        d.ellipse([10, 6, 13, 9], fill=BAT_BODY)                                        # head
+        d.polygon([(11, 6), (11, 3), (12, 5)], fill=BAT_BODY); d.polygon([(13, 6), (14, 3), (13, 5)], fill=BAT_BODY)
+        d.point((12, 7), fill=BAT_EYE)
+        if pose == "up":
+            d.polygon([(7, 8), (11, 8), (14, 1), (11, 3), (9, 1), (6, 3), (3, 1), (1, 4)], fill=BAT_SKIN)
+            d.line([(7, 8), (3, 1)], fill=BAT_WING); d.line([(10, 8), (11, 3)], fill=BAT_WING)
+        else:
+            d.polygon([(7, 9), (11, 9), (13, 15), (10, 13), (8, 15), (5, 13), (2, 15), (1, 11)], fill=BAT_SKIN)
+            d.line([(7, 9), (2, 15)], fill=BAT_WING); d.line([(10, 9), (10, 13)], fill=BAT_WING)
+    return outline(img)
+
+
 def make_birds():
     poses = ("sit", "peck", "up", "down")
     kinds = ("sparrow", "crow", "bunting")
-    sheet = Image.new("RGBA", (BW * len(poses), BH * len(kinds)), (0, 0, 0, 0))
+    sheet = Image.new("RGBA", (BW * len(poses), BH * (len(kinds) + 1)), (0, 0, 0, 0))
     for r, k in enumerate(kinds):
         for c, pose in enumerate(poses):
             sheet.paste(bird_frame(k, pose), (c * BW, r * BH))
+    for c, pose in enumerate(("hang", "stretch", "up", "down")):   # row 3: cave bats (World/Bats.cs)
+        sheet.paste(bat_frame(pose), (c * BW, len(kinds) * BH))
     sheet.save(os.path.join(OUT, "birds.png"))
 
 
