@@ -2,6 +2,12 @@
 
 Newest first. One entry per big decision: what, why, and what would make us revisit it.
 
+## 2026-11-13 — Hydraulics: a hop on a button, charged by squatting
+
+- **What:** a new block part, Hydraulics (3 Iron + 2 Copper, mass 0.35), placed anywhere in the body. Hold W / Up / gamepad B: the body is pulled down onto its springs (1100 px/s² times the charge) and the charge fills in 0.5 s (`HopChargeTime`). Let go with a wheel on the ground: every node gets the same upward speed, 270 px/s for a tap up to 560 px/s at full charge (`hopTapSpeed` / `hopSpeed` in parts.json), along 75% the car's own up and 25% straight up; any sinking is cancelled first so every hop starts from the same footing. A release in the air is kept for 0.25 s and fires on touchdown. One hop, then 0.7 s recharge; 0.6 fuel per hop. W was free in the car (it is jump on foot), B was free on a gamepad.
+- **Why:** every earlier part made the car faster or made it dig; none gave the driver a new move. A hop is felt on the first press, gets the car over steps, ditches and out of holes, and turns a kicker into a bigger jump (the starter car's kicker jumps were too short for a flip). Copper ties it to The Wastes like the booster and turbo.
+- **No speed kick for flat hops:** a perfect landing after a hop that was not off a kicker is still graded (PERFECT HOP LANDING) but gets no speed kick and does not count for the trip's perfect landings, or hopping down the road would beat driving it. Flip kicks still count (a flip off a hop is a skill move).
+- **Revisit when:** you have played (D1). If it feels floaty or too strong, lower `hopSpeed`; if hops off kickers make every jump trivial, cap the hop's share off a kicker face.
 ## 2026-11-13 — Ore flies home: the bar shows what has landed, not what you have
 
 - **What:** everything added to the inventory by mining, a stash or a smashed heap flies from where it broke into its slot (`OreFlight`); the slot's number is "what you have minus what is still in the air", so it ticks up as each icon lands (0.5–0.9 s later). The real count changes at once, so saving, building and placing blocks are unaffected.

@@ -429,7 +429,7 @@ public partial class SoftVehicle : Node2D, IVehicle
         // Lights go on the frontmost and rearmost body blocks (the lowest one when several tie).
         foreach (var cell in _cells)
         {
-            if (cell.Part.Category is PartCategory.Drill or PartCategory.Booster or PartCategory.Turbo) continue;
+            if (cell.Part.Category is PartCategory.Drill or PartCategory.Booster or PartCategory.Turbo or PartCategory.Hydraulics) continue;
             if (_frontCell == null || cell.GridX > _frontCell.GridX || (cell.GridX == _frontCell.GridX && cell.GridY > _frontCell.GridY)) _frontCell = cell;
             if (_rearCell == null || cell.GridX < _rearCell.GridX || (cell.GridX == _rearCell.GridX && cell.GridY > _rearCell.GridY)) _rearCell = cell;
         }
@@ -479,6 +479,7 @@ public partial class SoftVehicle : Node2D, IVehicle
         };
         AddChild(_boostSmoke);
         CreateTurboEffects();
+        CreateHydraulicsEffects();
         CreateLights();
 
         World?.Register(this);
@@ -564,6 +565,7 @@ public partial class SoftVehicle : Node2D, IVehicle
         {
             if (cell.Part.Category == PartCategory.Booster) _boosters.Add(cell);
             SetUpTurbo(cell);
+            SetUpHydraulics(cell);
         }
 
         // Drill tips: a point in front of each drill block's right edge.
@@ -698,6 +700,7 @@ public partial class SoftVehicle : Node2D, IVehicle
     public void BeginTick()
     {
         _input = Parked ? new VehicleInput(0f, 0f, true) : PlayerControlled ? VehicleInput.ReadPlayer() : AutoPilot();
+        if (!Parked && !PlayerControlled && AutoHop) _input = new VehicleInput(_input.Throttle, _input.Tilt, _input.Handbrake, _input.Boost, true);
         _centerAtTickStart = BodyCenter();
         Boosting = _input.Boost && !Parked && Fuel > 0f && HasBooster;
     }
@@ -740,6 +743,7 @@ public partial class SoftVehicle : Node2D, IVehicle
             ApplyKick(add, dt);
             if (_kickPending <= 0f) _kickDir = 0f;
         }
+        UpdateHydraulics(dt);
         if (_hopPending)
         {
             _hopPending = false;
@@ -1677,6 +1681,7 @@ public partial class SoftVehicle : Node2D, IVehicle
         }
 
         DrawTurbo();
+        DrawHydraulics();
 
         // Dark outline around the body silhouette.
         var outlineColor = new Color(0.13f, 0.11f, 0.16f);

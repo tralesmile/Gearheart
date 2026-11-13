@@ -18,6 +18,7 @@ public enum PartCategory
     Wheel,
     Suspension,
     Turbo,
+    Hydraulics,
 }
 
 /// <summary>One vehicle part, loaded from data/parts/parts.json.</summary>
@@ -63,6 +64,10 @@ public sealed class PartDefinition
     public float TurboSpin { get; set; }
     public float SpoolTime { get; set; } = 1f;
 
+    // Hydraulics: upward speed (px/s) of a fully charged hop, and of a quick tap
+    public float HopSpeed { get; set; }
+    public float HopTapSpeed { get; set; }
+
     // Fuel tank
     public float FuelCapacity { get; set; }
 
@@ -82,7 +87,7 @@ public sealed class PartDefinition
     /// <summary>True for parts placed as a block in the body grid.</summary>
     [JsonIgnore]
     public bool IsBlock => Category is PartCategory.Frame or PartCategory.Cab or PartCategory.Armor or PartCategory.Engine
-        or PartCategory.FuelTank or PartCategory.Drill or PartCategory.Booster or PartCategory.Turbo;
+        or PartCategory.FuelTank or PartCategory.Drill or PartCategory.Booster or PartCategory.Turbo or PartCategory.Hydraulics;
 }
 
 /// <summary>All parts in the game, loaded once from data files.</summary>

@@ -96,7 +96,7 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 86 | Cave ambience: drips, a low hum and echoing drill in caverns; wind and birds on the surface | S | Open (new 2026-11-12; underground is silent apart from the drill) |
 | 87 | Record board by the garage: a chalkboard on the pad showing best sprint, farthest trip, deepest dig and best trip score | S | Open (new 2026-11-12; records you can see in the world, a lighter #36 trophy shelf) |
 | 88 | Dyno readout in the garage: an estimated 20 m sprint time for the design as you build it | M | Open (new 2026-11-12; tuning gets a number, NFS-style) |
-| 89 | Hydraulics part ("Bounce Kit", copper + iron): press J for a lowrider hop, hold for a bigger one; bounce over small rocks, pop wheelies, hop onto ledges | S–M | Open (new 2026-11-12, fifteenth session; the rock pulse as a part you own, changes how the car drives) |
+| 89 | Hydraulics part ("Bounce Kit", copper + iron): press J for a lowrider hop, hold for a bigger one; bounce over small rocks, pop wheelies, hop onto ledges | S–M | **Built 2026-11-13** (PR #33: Hydraulics, 3 Iron + 2 Copper; hold W to squat (charge bar), let go to hop 0.5–2 m; release in the air bounces on touchdown; hop off a kicker's lip for extra air; flat hops get no perfect-landing kick) |
 | 90 | Mud pits on the meadow road: soft dark ground that eats speed and sinks the wheels; rocking (or a run-up) gets you through, mud sprays and cakes the tyres | S–M | Open (new 2026-11-12; gives rock-it-free a place in the world on purpose) |
 | 91 | Horn (H) and birds: a honk per engine, birds on the road and on the garage roof that scatter when you honk or drive at them | S | Open (new 2026-11-12; tiny joy, life in the world) |
 | 92 | Tumbleweeds in The Wastes: they roll with the wind across the road, smash for the streak, bounce off the bonnet | S | Open (new 2026-11-12; moving things on the road, biome flavour) |
@@ -161,7 +161,27 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 151 | Lucky strike: about 1 ore tile in 60 is a gleaming variant that pays 3x with a flash, a chime and a bigger flight home | S | Open (new 2026-11-12; a slot-machine jackpot inside ordinary mining) |
 | 152 | Cave-ins: mining out stone under a wide unsupported ceiling in the Deep sometimes drops a few loose rocks after a rumble and a dust trickle warning | M | Open (new 2026-11-12; first danger underground, read the warning and jump clear) |
 | 153 | Ore voices: each ore lands in its slot with its own tick (scrap clatters, iron clinks, copper rings, crystal chimes) | S | Open (new 2026-11-12; you hear what you got without looking) |
+| 154 | Hop stomp: land a hop on a scrap heap (or a crow flock's perch) for STOMP!, a bigger smash and a smash-streak tick | S | Open (new 2026-11-13, twenty-fifth session; gives the hop a target on every road) |
+| 155 | Boulders and ditches: world generation drops a few rock lumps and 1–3 m gaps on the Wastes road, crossable with speed or a hop | S–M | Open (new 2026-11-13; a road that asks for the new verb; needs a save version bump) |
+| 156 | Lowrider show at the garage: parked on the pad, hop in a rhythm for BOUNCE x2, x3 … with a beat that climbs | S | Open (new 2026-11-13; a silly toy at home, The Sims-style showing off) |
+| 157 | Hop height pole by the garage: a striped pole with your best hop marked, like the kicker flags | S | Open (new 2026-11-13; a record you can see, one more hop) |
+| 158 | Night eyes: glowing eyes in The Wastes at night that follow the car from the dark and scatter in the headlights | S–M | Open (new 2026-11-13; folds #118; first creature without health or combat) |
+| 159 | Garage radio: a tiny procedural tune per biome that plays at the garage and fades out on the road | M | Open (new 2026-11-13; the game has no music at all) |
 | 29 | Speedometer redline overdrive: holding the needle in the red for 3 s with the booster unlocks a "SONIC" call-out and a sonic-boom puff | S | Open (new 2026-11-12, cheap thrill) |
+
+## 2026-11-13 (twenty-fifth session — a part that changes how the car moves)
+
+Merged PR #32 (ore flies home) first: its build was green, the `[flyhome]` lines matched (the bar showed 8 of 8 Iron 1.5 s after the vein test, Scrap 0 of 2 still in the air, then 2), every 40 s position equal to main, and `flyhome_14.png` / `flyhome_stash_44.png` show the icons on their bright discs. Then looked as a player. The last two sessions were mining polish; the session before that the hook. The car has not had a new part since the Turbocharger, and every part so far makes the car *faster* (engines, turbo, booster) or *dig* (drills). None gives the driver a new move. The flip test log says the starter car's kicker jumps are too short for a flip, so the best trick in the game needs the Rocket Booster. And the most boring minute of driving is a small obstacle you cannot get over: a lip, a ditch, a one-tile step that wedges the car (that is why "rock it free" exists).
+
+- **Hydraulics** (S–M, #89): hold to squat, let go to hop. Why fun: a new verb for the car, felt on the first press; hop a ditch, a step or out of a hole, and squat on a kicker's run-up for more air — the starter car gets room for a flip. Lowriders and Rocket League's jump. *Building this.*
+- **Hop stomp** (S, #154). Why fun: the hop gets a target on every road.
+- **Boulders and ditches** (S–M, #155). Why fun: a road that asks for the new move.
+- **Lowrider show** (S, #156). Why fun: a toy at home, pure showing off.
+- **Hop height pole** (S, #157). Why fun: a record to beat beside the garage.
+- **Night eyes** (S–M, #158). Why fun: night gets a little scary, no combat needed.
+- **Garage radio** (M, #159). Why fun: the game has no music; a tune makes home feel like home.
+
+Best open picks for fun per effort now: #154 hop stomp (S), #151 lucky strike (S), #150 recipe nudge (S), #145 pickaxe hit feel (S), #144 motherlode (S), #155 boulders and ditches (S–M), then the first creature (#158 night eyes or #65 crystal mites).
 
 ## 2026-11-12 (twenty-fourth session — where the ore goes)
 

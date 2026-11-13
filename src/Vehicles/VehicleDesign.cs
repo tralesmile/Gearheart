@@ -288,4 +288,13 @@ public sealed class VehicleDesign
         d.SetBlock(7, 2, "turbo");
         return d;
     }
+
+    /// <summary>The starter car with Hydraulics bolted into the body (for the hop test).</summary>
+    public static VehicleDesign Hopper()
+    {
+        var d = Default();
+        d.Name = "Hopper";
+        d.SetBlock(6, 2, "hydraulics");
+        return d;
+    }
 }

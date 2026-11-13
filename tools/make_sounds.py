@@ -535,6 +535,23 @@ def vein():
     return s * (1 - np.exp(-t * 2500))
 
 
+hop_rng = np.random.default_rng(889)   # own stream for the hydraulics, so every older sound stays the same
+
+
+def hop():
+    """Hydraulics firing: a hard pneumatic 'chk' of the valve, a deep spring 'thoomp' that drops in
+    pitch as the car leaves the ground, and a short fizzy vent of air. 0.45 s."""
+    n = int(SR * 0.45); t = np.arange(n) / SR
+    noise = hop_rng.standard_normal(n)
+    s = 0.9 * (noise - lowpass(noise, 4)) * np.exp(-t * 120)               # valve click
+    f = 95 * np.exp(-t * 3.2) + 38                                         # thump sliding down
+    s += 1.1 * np.sin(2 * np.pi * np.cumsum(f) / SR) * np.minimum(1, t / 0.004) * np.exp(-t * 11)
+    s += 0.35 * np.sin(2 * np.pi * np.cumsum(f * 2.02) / SR) * np.exp(-t * 18)
+    hiss = noise - lowpass(noise, 7)
+    s += 0.45 * hiss * np.minimum(1, t / 0.02) * np.exp(-np.maximum(0, t - 0.03) * 13)   # air vents
+    return s
+
+
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
     save("engine", engine(), 0.7)
@@ -571,4 +588,5 @@ if __name__ == "__main__":
     save("hook", tail_fade(hook(), 30), 0.55)
     save("clank", tail_fade(clank(), 40), 0.6)
     save("vein", tail_fade(vein(), 30), 0.5)
+    save("hop", tail_fade(hop(), 50), 0.65)
     print("sounds written to", os.path.abspath(OUT))

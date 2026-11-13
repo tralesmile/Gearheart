@@ -18,13 +18,15 @@ public readonly struct VehicleInput
     public readonly float Tilt;       // -1..1, positive rotates clockwise
     public readonly bool Handbrake;
     public readonly bool Boost;       // fire rocket boosters
+    public readonly bool Hop;         // hydraulics: held to squat, released to hop
 
-    public VehicleInput(float throttle, float tilt, bool handbrake, bool boost = false)
+    public VehicleInput(float throttle, float tilt, bool handbrake, bool boost = false, bool hop = false)
     {
         Throttle = throttle;
         Tilt = tilt;
         Handbrake = handbrake;
         Boost = boost;
+        Hop = hop;
     }
 
     public static VehicleInput Auto(float throttle) => new(throttle, 0f, false);
@@ -44,6 +46,7 @@ public readonly struct VehicleInput
         bool handbrake = Input.IsPhysicalKeyPressed(Key.Space) || Input.IsJoyButtonPressed(0, JoyButton.A);
         bool boost = Input.IsPhysicalKeyPressed(Key.Shift) || Input.IsJoyButtonPressed(0, JoyButton.RightShoulder)
                      || Input.IsJoyButtonPressed(0, JoyButton.X);
-        return new VehicleInput(Mathf.Clamp(throttle, -1f, 1f), Mathf.Clamp(tilt, -1f, 1f), handbrake, boost);
+        bool hop = Input.IsPhysicalKeyPressed(Key.W) || Input.IsPhysicalKeyPressed(Key.Up) || Input.IsJoyButtonPressed(0, JoyButton.B);
+        return new VehicleInput(Mathf.Clamp(throttle, -1f, 1f), Mathf.Clamp(tilt, -1f, 1f), handbrake, boost, hop);
     }
 }
