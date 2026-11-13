@@ -16,6 +16,7 @@ public sealed class Bat
     public float Anim, Life, Phase;
     public int Dir = 1;            // flying: 1 = right, -1 = left
     public float NextTwitch, TwitchLeft;
+    public float SwoopY;           // flying: the height of whatever startled it; the first second it dives toward it
 }
 
 /// <summary>A few bats hanging together from one stretch of cavern ceiling in the Deep.</summary>
@@ -160,17 +161,21 @@ public partial class Bats : Node2D
         foreach (var r in _all)
         {
             if (r.Burst || Mathf.Abs(r.Center.X - at.X) > radius + 120f || Mathf.Abs(r.Center.Y - at.Y) > radius + 120f) continue;
-            float nearest = float.MaxValue;
+            float nearest = float.MaxValue, reach = float.MaxValue;
             Bat seen = null;
             foreach (var b in r.Bats)
             {
                 float d = b.Hang.DistanceTo(at);
-                if (d < nearest) { nearest = d; seen = b; }
+                // Looking up reaches further (an ellipse 1.4x as tall): a colony high in a tall cavern still sees you.
+                Vector2 off = b.Hang - at;
+                float e = needSight && off.Y < 0f ? new Vector2(off.X, off.Y / 1.4f).Length() : d;
+                if (e < reach) { reach = e; nearest = d; seen = b; }
             }
-            if (seen == null || nearest > radius) continue;
+            if (seen == null || reach > radius) continue;
             if (needSight && RockBetween(seen.Hang + new Vector2(0f, 6f), at) > 1) continue;
-            // Seen before they go: a colony only notices you once it is on your screen (when a view is given).
-            if (onScreen is Rect2 view && !view.HasPoint(seen.Hang + new Vector2(0f, 12f))) continue;
+            // Seen before they go: a colony only notices you once it is across your screen (when a view is given).
+            // Above the top edge is fine: they swoop down into view (Fly).
+            if (onScreen is Rect2 view && (seen.Hang.X < view.Position.X || seen.Hang.X > view.End.X || seen.Hang.Y + 12f > view.End.Y)) continue;
             Burst(r, at, cause, nearest);
         }
     }
@@ -191,6 +196,7 @@ public partial class Bats : Node2D
             b.Pos = b.Hang + new Vector2(0f, 8f);
             b.Vel = new Vector2(b.Dir * _rng.RandfRange(40f, 90f), _rng.RandfRange(110f, 170f));   // drop off the ceiling first
             b.Life = _rng.RandfRange(3.2f, 4.8f);
+            b.SwoopY = from.Y + _rng.RandfRange(-28f, 4f);
             b.Anim = 0f;
         }
 
@@ -272,6 +278,10 @@ public partial class Bats : Node2D
         // A jittery weave: fast flaps, swerving up and down, now and then a sudden turn.
         float weave = Mathf.Sin(b.Anim * 7.5f + b.Phase) * 150f + Mathf.Sin(b.Anim * 17f + b.Phase * 2f) * 50f;
         var want = new Vector2(b.Dir * 250f, weave - 40f);
+        // The first second: a dive down to the height of whatever startled them, so even a colony high in a
+        // tall cavern streams past you on screen; then the weave takes over.
+        float swoop = Mathf.Clamp(1f - (b.Anim - 0.9f) / 0.4f, 0f, 1f);
+        if (swoop > 0f) want.Y = Mathf.Lerp(want.Y, Mathf.Clamp((b.SwoopY - b.Pos.Y) * 4f, -180f, 320f) + weave * 0.3f, swoop);
         b.Vel = b.Vel.MoveToward(want, 900f * dt);
         if (_rng.Randf() < 0.25f * dt) b.Dir = -b.Dir;
 
