@@ -16,7 +16,7 @@ Newest entry first. Each session: what was built and why, how it was verified, w
 
 **Why this** — Brainstorm in `docs/IDEAS.md` (twenty-seventh session). Mining now has a combo (vein runs), a payoff picture (ore flies home) and a target (next part card), but no surprise: every iron tile is worth one iron, so the fifth minute of digging is the first one again. Every game this borrows from hides a jackpot in the routine (Minecraft's diamond in a cave wall, Terraria's glinting gems). It is felt in the first minutes (six lucky tiles in the top 3 m near the garage) and fitted one session. The last session was a UI feature and the one before a car part, so a small feature on the mining side.
 
-**CI runs**: 43354044562 (green), 43356684152 (green: a halo around the gleam, and a log line plus screenshots for the first natural lucky tile in the walk, drill and left runs), and one for this log.
+**CI runs**: 43354044562 (green), 43356684152 (green: a halo around the gleam, and a log line plus screenshots for the first natural lucky tile in the walk, drill and left runs), and this log update in its own small PR: PR #36 was squash-merged at 5bd7000 (green, run 43356684152) by the next scheduled session, which started while my run-2 notes were still being written.
 
 **Verified (run 43354044562)**
 
