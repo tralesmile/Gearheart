@@ -86,10 +86,12 @@ public partial class OreFlight : Control
                 Carry = carry,
                 Icon = Art.ItemIcon(item),
                 From = screenFrom,
-                Lift = new Vector2(side, -Mathf.Clamp(dist * 0.45f, 90f, 260f)),
+                // The control point sits well above the midpoint, so the icon is tossed up out of the hole
+                // (about 60 px for a tile just above the bar) before it drops into its slot.
+                Lift = new Vector2(side, -Mathf.Clamp(dist * 0.6f, 300f, 420f)),
                 Age = -0.07f * i,
-                Life = Mathf.Clamp(0.45f + dist / 1900f, 0.5f, 0.85f) * (small ? 0.8f : 1f),
-                Size = small ? 18f : 26f,
+                Life = Mathf.Clamp(0.5f + dist / 1700f, 0.6f, 0.9f) * (small ? 0.8f : 1f),
+                Size = small ? 20f : 34f,
                 Spin = (float)GD.RandRange(-5.0, 5.0),
                 Small = small,
                 Color = color,
@@ -172,10 +174,15 @@ public partial class OreFlight : Control
                     Vector2 p = Along(f, back);
                     DrawCircle(p, half * (0.8f - 0.15f * g), new Color(f.Color, 0.22f - 0.05f * g));
                 }
-                DrawCircle(at, half * 1.05f, new Color(f.Color, 0.35f));
+                // A bright disc and a white rim, so even dark iron reads against dirt and slate.
+                DrawCircle(at, half * 1.25f, new Color(f.Color, 0.55f));
+                DrawArc(at, half * 1.25f, 0f, Mathf.Tau, 20, new Color(1f, 1f, 1f, 0.85f), 2f, true);
+            }
+            else
+            {
+                DrawCircle(at, half * 1.1f, new Color(0f, 0f, 0f, 0.35f));
             }
             DrawSetTransform(at, f.Spin * 0.08f * (1f - t), Vector2.One);
-            DrawRect(new Rect2(-half - 1.5f, -half - 1.5f, half * 2f + 3f, half * 2f + 3f), new Color(0f, 0f, 0f, 0.55f));
             DrawTextureRectRegion(tex, new Rect2(-half, -half, half * 2f, half * 2f), f.Icon);
             if (f.Carry > 1)
             {

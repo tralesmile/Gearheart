@@ -12,7 +12,7 @@ public partial class WorldScene
 {
     private OreFlight _flight;
     private readonly TextureRect[] _slotIcons = new TextureRect[GameSession.Items.Length];
-    private int _flightLogs;
+    private int _flightLogs, _valuableLogs, _landLogs;
 
     /// <summary>Called by BuildHud after the inventory bar, so the fliers draw over it.</summary>
     private void SetupFlyHome(CanvasLayer hud)
@@ -21,8 +21,8 @@ public partial class WorldScene
         _flight.SlotCenter = slot => _slotIcons[slot] != null ? _slotIcons[slot].GetGlobalRect().GetCenter() : Vector2.Zero;
         _flight.OnLanded += (slot, carry, flew) =>
         {
-            if (!GameSession.AutoPlay || _flightLogs >= 24) return;
-            _flightLogs++;
+            if (!GameSession.AutoPlay || _landLogs >= 30) return;
+            _landLogs++;
             string item = GameSession.Items[slot];
             GD.Print($"[flyhome] landed {carry} {item} in slot {slot + 1} after {flew:0.00}s: bar shows {ShownCount(slot)} (have {GameSession.Count(item)}, still flying {_flight.Pending(slot)}) frame={Engine.GetFramesDrawn()}");
         };
@@ -55,9 +55,10 @@ public partial class WorldScene
         Vector2 screen = GetViewport().GetCanvasTransform() * worldAt;
         int before = _flight.Launched;
         _flight.Launch(screen, item, amount, FlightColor(item));
-        if (GameSession.AutoPlay && _flight.Launched > before && _flightLogs < 24)
+        // Log every valuable launch (up to 40) but only the first few dirt and stone ones.
+        bool valuable = item is not ("Dirt" or "Stone");
+        if (GameSession.AutoPlay && _flight.Launched > before && (valuable ? _valuableLogs++ < 40 : _flightLogs++ < 24))
         {
-            _flightLogs++;
             int slot = System.Array.IndexOf(GameSession.Items, item);
             GD.Print($"[flyhome] launched {amount} {item} as {_flight.Launched - before} icon(s) from screen ({screen.X:0},{screen.Y:0}) to slot {slot + 1} at ({_flight.SlotCenter(slot).X:0},{_flight.SlotCenter(slot).Y:0}): " +
                      $"bar shows {ShownCount(slot)} (have {GameSession.Count(item)}) frame={Engine.GetFramesDrawn()}");
