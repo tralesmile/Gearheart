@@ -2,6 +2,43 @@
 
 Newest entry first. Each session: what was built and why, how it was verified, what is not verified, and what comes next.
 
+## 2026-11-13, about 03:20–04:20 UTC — Merged lucky strikes (PR #36), then a pause menu (PR #37)
+
+**Started by** checking for unfinished work: PR #36 (lucky strikes) was open and green (run 43356684152). Its `[lucky]` lines showed the census (437 ore tiles near the garage, 30 lucky), the test tile paying `+2 +4 extra = 6 Scrap` and natural strikes by the drill and pickaxe; `lucky_114.png` shows LUCKY STRIKE! with the gold ring and `lucky_gleam_109.png` the gold-rimmed tile. Squash-merged (e682c65). The session that opened it was still running and opened a docs PR (#38) afterwards; I left that one alone.
+
+**Built — pause menu** (`src/Game/PauseMenu.cs`, `src/Game/WorldScene.Pause.cs`, `src/Core/Settings.cs`; buses in `src/Core/Sfx.cs`)
+
+- **Esc no longer quits the game.** Esc (Start on a gamepad) stops the world and opens a menu: Resume; SOUND sliders for Master, Effects and Engine (each move plays a short preview: a pick tink, or a gear-shift for the engine); SCREEN: Fullscreen; Save and quit; and on the right the full key list for on foot and driving. Esc, Start or B resumes. The trip report keeps the first Esc.
+- Two new audio buses made in code at start: `Effects` (one-shots, crickets, dust devils) and `Car` (engine, drill, boost, wind, turbo).
+- Volumes and fullscreen are kept in `user://settings.cfg`, apart from the save (no save version change). Saved when the menu closes.
+- Arrow keys and the d-pad walk Resume → Master → Effects → Engine → Fullscreen → Save and quit (wrapping); left/right moves a slider.
+- "Esc: menu" at the end of the on-foot hint line; README key table updated.
+- **CI**: new smoke run `--pausetest` (the walk bot, which at t = 4 s sends a real Esc key event); `[pause]` lines; `pauses=` on `[autoplay]`; a screenshot run keeping `pause_*.png`.
+
+**Why this** — Brainstorm in `docs/IDEAS.md` (twenty-eighth session). The last three sessions were features, so this was the polish session. The roughest moment in the game was not in the play: Esc ended the game, nobody could turn the engine down, and the keys were only in the README. It is the first thing any tester reaches for (IDEAS #172).
+
+**CI runs**: 43359321308 (green), and one for these docs.
+
+**Verified (run 43359321308)**
+
+- **Smoke `--pausetest`**: `bot presses Esc at t=4.00s` → `world stopped … on foot` → `opened paused=True focus=Resume master=1.00 effects=1.00 engine=1.00` → `sliders master=0.80 (-3.9 dB) effects=0.50 (-12.0 dB) engine=0.30 (-20.9 dB) buses=3` → `two presses of Down: focus=Effects` → `settings saved (Ok) and read back from user://settings_pausetest.cfg: master=0.80 effects=0.50 engine=0.30` → `bot presses Esc` → `closed after 30 frames paused=False` → **`world resumed: t=4.00s -> 4.00s, player moved 0.0 px, car moved 0.0 px while paused`**. Afterwards the bot kept digging (player row 63.6 → 72.6 by t=10 s), got in and drove (31–33 km/h at t=12–14 s): the world comes back.
+- **Across processes**: the screenshot run (a new process, same user folder) opened the menu with `master=0.80 effects=0.50 engine=0.30`, the values the smoke run had saved.
+- **Nothing else changed**: every other smoke run green, no errors; the bus change only reroutes players (Master is unchanged at 100% by default).
+
+**Not verified / known issues**
+
+- Screenshots: run 43359321308 made `pause_38/44/51/57/76.png`, but two other runs finished right after it and force-pushed the screenshots branch, so they were gone before I could fetch them (the artifact download is blocked from here). The docs run should publish them again; see the PR for whether I saw them.
+- That the sounds actually get quieter is checked through the bus dB only; nobody has listened.
+- Fullscreen was not toggled in CI (it would change the screenshot size).
+- The garage screen has no pause menu: Esc there still means "back to the world". `drive.tscn` (the test track) still quits on Esc.
+- Clicking Resume with the left mouse could, in theory, start a pickaxe swing on the next frame if the button is still held; the button fires on release, so it should not.
+
+**Next**
+
+1. Homeward arrow (S, IDEAS #162) with a garage beacon at night (S, #174): "find your way home".
+2. Cave echo on the new Effects bus (S, #178), then cave bats (S, #170).
+3. Fumes finish (S, #175); a first creature that bites (M, #65).
+
 ## 2026-11-13, about 02:20–03:40 UTC — Merged the next part card (PR #35), then lucky strikes (PR #36)
 
 **Started by** checking for unfinished work: PR #35 (next part card) was open with its docs run (43351416594) in progress; it finished green at 02:40. Its `[nextpart]` lines counted with the bar (Drill Head progress 0.17 … 0.83, then READY; Hydraulics READY; Off-road Wheel counting) and `nextpart_ready_63.png` shows the gold READY card and the PART READY call-out, so I squash-merged it (8701603). The Spiked Tyre showing READY with 0 Scrap on the bar is right: the old tyres' Scrap is refunded in the swap.
