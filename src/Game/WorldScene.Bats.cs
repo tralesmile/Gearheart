@@ -19,6 +19,7 @@ public partial class WorldScene
     private Roost _batTarget;
     private bool _batPlaced, _batWatchLogged, _batBurstViewLogged, _batStepped;
     private int _batsMostOnScreen;
+    private Vector2? _batNear;
     private float _batPlacedAt;
 
     private void SetupBats(CanvasLayer glintLayer)
@@ -75,7 +76,7 @@ public partial class WorldScene
     /// <summary>
     /// --battest: put the player on a cavern floor at most 2 m under the roost's ceiling and 4–10 m from the
     /// roost nearest the garage with a clear view of it, then walk toward it (jumping steps, mining what is in
-    /// the way) until the bats go up; if they have not after 2.5 s, step to 2–2.7 m from them.
+    /// the way) until the bats go up; if they have not after 2.5 s, step to 1.5–2.8 m from them.
     /// </summary>
     private void RunBatBot()
     {
@@ -86,16 +87,22 @@ public partial class WorldScene
             int mid = (TileWorld.PadFrom + TileWorld.PadTo) / 2;
             var roosts = new List<Roost>(_bats.All);
             roosts.Sort((a, b) => Mathf.Abs(a.X - mid).CompareTo(Mathf.Abs(b.X - mid)));
-            // A clear view first (at most one tile of rock between); failing that, up to three tiles (the bot digs).
-            for (int maxRock = 1; maxRock <= 3; maxRock += 2)
+            // The roost nearest the garage that has both a floor 4-10 m out (the "hanging" frames; a clear view
+            // first, then up to three tiles of rock) and a floor 1.5-2.8 m from it with a clear view (the step).
+            // Last pass: any roost with a far floor (the walker alone has to get there).
+            for (int pass = 0; pass < 3; pass++)
             foreach (var r in roosts)
             {
-                if (r.Bats.Count == 0 || BatSpot(r, 4f, 10f, maxRock, 8) is not Vector2 spot) continue;
+                if (r.Bats.Count == 0 || BatSpot(r, 4f, 10f, pass == 0 ? 1 : 3, 8) is not Vector2 spot) continue;
+                Vector2? near = BatSpot(r, 1.5f, 2.8f, 1, 12);
+                if (near == null && pass < 2) continue;
+                _batNear = near;
                 _batTarget = r;
                 PutPlayer(spot);
                 _batPlacedAt = _elapsed;
+                string nearText = near is Vector2 n ? (n.DistanceTo(r.Center) / PixelsPerMeter).ToString("0.0") + " m" : "none";
                 GD.Print($"[bats] test: player placed {spot.DistanceTo(r.Center) / PixelsPerMeter:0.0} m from roost {r.Index} (x{r.Bats.Count}, tile ({r.X},{r.Y}), " +
-                         $"{(r.X - mid) * 0.25f:0} m from the garage), rock on the line {RockOnLine(spot, r.Center + new Vector2(0f, 6f))} tiles, roosts tried {roosts.IndexOf(r) + 1} frame={Engine.GetFramesDrawn()}");
+                         $"{(r.X - mid) * 0.25f:0} m from the garage), rock on the line {RockOnLine(spot, r.Center + new Vector2(0f, 6f))} tiles, roosts tried {roosts.IndexOf(r) + 1} pass {pass} near={nearText} frame={Engine.GetFramesDrawn()}");
                 return;
             }
             GD.Print($"[bats] test: NO roost of {roosts.Count} has a cavern floor 4-10 m away with at most 3 tiles of rock in between");
@@ -105,19 +112,19 @@ public partial class WorldScene
 
         Vector2 me = _player.Position;
         // The cavern floor is often broken up, so the walker can stall short of the bats' reach. After 2.5 s
-        // the bot steps (as if it had walked) to a floor spot 2-2.7 m from the roost with a clear view, and the
-        // game's own sight check has to do the rest.
+        // the bot steps (as if it had walked) to a floor spot 1.5-2.8 m from the roost with a clear view, and the
+        // game's own sight check (reach, rock, on screen) has to do the rest.
         if (!_batTarget.Burst && !_batStepped && _elapsed - _batPlacedAt > 2.5f)
         {
             _batStepped = true;
-            if (BatSpot(_batTarget, 2f, 2.7f, 1, 6) is Vector2 step)
+            if (_batNear is Vector2 step)
             {
                 float was = me.DistanceTo(_batTarget.Center) / PixelsPerMeter;
                 PutPlayer(step);
                 me = step;
                 GD.Print($"[bats] test: no burst yet at {was:0.0} m; stepped to {step.DistanceTo(_batTarget.Center) / PixelsPerMeter:0.0} m frame={Engine.GetFramesDrawn()}");
             }
-            else GD.Print($"[bats] test: no burst yet and no floor 2-2.7 m from the roost with a clear view; the walker keeps going frame={Engine.GetFramesDrawn()}");
+            else GD.Print($"[bats] test: no burst yet and no near floor; the walker keeps going frame={Engine.GetFramesDrawn()}");
         }
         if (!_batTarget.Burst)
         {
