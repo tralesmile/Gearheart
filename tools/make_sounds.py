@@ -623,6 +623,30 @@ def rustle():
     return s
 
 
+def flash():
+    """A speed camera firing: a two-blade shutter (two tiny clicks of filtered noise 30 ms apart), the
+    whine of a flash recharging (a quiet sweep up from 2 to 6 kHz) and a double radar beep (1.9 kHz, short
+    and clean). 0.5 s. Own random stream, so no other sound changes."""
+    r = np.random.default_rng(4242)
+    n = int(SR * 0.5); t = np.arange(n) / SR
+    s = np.zeros(n)
+    for t0, g in ((0.0, 1.0), (0.032, 0.7)):                         # shutter blades
+        k = int(t0 * SR); m = int(0.01 * SR)
+        click = r.standard_normal(m)
+        click = click - lowpass(click, 6)                             # crisp: drop the lows
+        s[k:k + m] += g * click * np.exp(-np.arange(m) / SR * 600)
+    whine_t = np.clip((t - 0.05) / 0.35, 0, 1)
+    f = 2000 + 4000 * whine_t ** 0.7
+    phase = 2 * np.pi * np.cumsum(f) / SR
+    s += 0.08 * np.sin(phase) * (t > 0.05) * np.exp(-np.maximum(t - 0.05, 0) * 5)
+    for t0 in (0.12, 0.22):                                           # beep beep
+        local = t - t0
+        on = (local >= 0) & (local < 0.06)
+        env = np.where(on, np.minimum(1, local / 0.004) * np.minimum(1, (0.06 - local) / 0.006), 0.0)
+        s += 0.45 * env * (np.sin(2 * np.pi * 1900 * t) + 0.25 * np.sin(2 * np.pi * 3800 * t))
+    return s
+
+
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
     save("engine", engine(), 0.7)
@@ -664,4 +688,5 @@ if __name__ == "__main__":
     save("lucky", tail_fade(lucky(), 80), 0.55)
     save("squeak", tail_fade(squeak(), 20), 0.4)   # deterministic: uses no random stream
     save("rustle", tail_fade(rustle(), 40), 0.5)   # own random stream
+    save("flash", tail_fade(flash(), 30), 0.55)    # own random stream
     print("sounds written to", os.path.abspath(OUT))

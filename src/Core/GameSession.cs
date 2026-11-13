@@ -81,6 +81,9 @@ public static class GameSession
     /// <summary>Bot only: plant long-jump record flags past the kickers before driving (one to beat, the rest out of reach).</summary>
     public static bool JumpTest => UserArgs.Contains("--jumptest");
 
+    /// <summary>Speed-trap test: a slow best planted on the first trap east (to beat), an unbeatable one on the second.</summary>
+    public static bool TrapTest => UserArgs.Contains("--traptest");
+
     /// <summary>--deeptest: the bot starts on foot in a glowing cavern of the Deep and digs out crystals.</summary>
     public static bool DeepTest => UserArgs.Contains("--deeptest");
     /// <summary>--battest: the bot starts on a cavern floor a few metres from a bat roost in the Deep and walks at it.</summary>
@@ -183,6 +186,7 @@ public static class GameSession
         public float DeepestDig { get; set; }
         public float SprintBest { get; set; }   // gate sprint, seconds (0 = none yet)
         public int Sprints { get; set; }
+        public Dictionary<string, float> TrapBests { get; set; } = new();   // speed trap column -> best km/h
         public float ClockHours { get; set; } = DayCycle.StartHours;   // time of day in the world, 0..24
         public int Day { get; set; } = 1;
     }
@@ -227,6 +231,25 @@ public static class GameSession
         Data.Sprints++;
         SaveProgress();
         return before;
+    }
+
+    /// <summary>The best speed through the speed trap at this tile column, km/h (0 before the first pass).</summary>
+    public static float TrapBest(int column) => (Data.TrapBests ??= new()).GetValueOrDefault(column.ToString());
+
+    /// <summary>Records a pass through a speed trap; returns the best before it (0 if none).</summary>
+    public static float SubmitTrap(int column, float kmh)
+    {
+        float before = TrapBest(column);
+        if (kmh > before) Data.TrapBests[column.ToString()] = kmh;
+        SaveProgress();
+        return before;
+    }
+
+    /// <summary>Test hook: sets the best through a trap without a pass (not saved until the next save).</summary>
+    public static void PlantTrapBest(int column, float kmh)
+    {
+        (Data.TrapBests ??= new())[column.ToString()] = kmh;
+        _dirty = true;
     }
 
     /// <summary>The best trip so far, or null before the first trip report.</summary>
