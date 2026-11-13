@@ -338,11 +338,15 @@ jobs:
               f=$(printf "shots/vein/f%08d.png" $((n + d))); [ -f "$f" ] && cp "$f" keep/lucky_$((n + d)).png
             done
           done
-          # A lucky tile found by the walk bot in the ordinary world run (the first-time hint).
-          grep "\[lucky\] hint" shots/world.log | head -1 | sed -E 's/.*frame=([0-9]+).*/\1/' | while read n; do
-            f=$(printf "shots/world/f%08d.png" $((n + 2))); [ -f "$f" ] && cp "$f" keep/lucky_world_$((n + 2)).png
+          # Natural lucky tiles: the first one to come into view in the walk, drill and left runs (the gleam through the rock).
+          for run in world drill left; do
+            grep "\[lucky\] first gleam" shots/$run.log | head -1 | sed -E 's/.*frame=([0-9]+).*/\1/' | while read n; do
+              for d in 3 15; do
+                f=$(printf "shots/$run/f%08d.png" $((n + d))); [ -f "$f" ] && cp "$f" keep/lucky_${run}_$((n + d)).png
+              done
+            done
           done
-          grep "\[lucky\]" shots/vein.log shots/world.log | head -12
+          grep "\[lucky\]" shots/vein.log shots/world.log shots/drill.log shots/left.log | head -16
           # Crash frames: the frame of each of the first hits (from "[crash] ... frame=N") and the next two.
           for run in crash rocket; do
             grep "\[crash\] hit" shots/$run.log | head -4 | sed -E 's/.*frame=([0-9]+).*/\1/' | while read n; do

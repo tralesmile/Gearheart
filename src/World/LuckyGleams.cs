@@ -80,9 +80,11 @@ public partial class LuckyGleams : Node2D
         float phase = _time + (h % 1000) / 400f;
         float breathe = 0.55f + 0.45f * Mathf.Sin(phase * 3.1f);
 
-        // A gold rim just inside the tile, and a soft wash over it.
+        // A soft halo around the tile (so it reads from across the screen), a wash over it and a gold rim.
+        DrawRect(new Rect2(o - new Vector2(6f, 6f), new Vector2(Ts + 12f, Ts + 12f)), new Color(Gold, 0.07f * near * breathe));
+        DrawRect(new Rect2(o - new Vector2(3f, 3f), new Vector2(Ts + 6f, Ts + 6f)), new Color(Gold, 0.12f * near * breathe));
         DrawRect(new Rect2(o, new Vector2(Ts, Ts)), new Color(Gold, 0.16f * near * breathe));
-        DrawRect(new Rect2(o + new Vector2(1f, 1f), new Vector2(Ts - 2f, Ts - 2f)), new Color(Gold, (0.45f + 0.4f * breathe) * near), false, 1.5f);
+        DrawRect(new Rect2(o + new Vector2(1f, 1f), new Vector2(Ts - 2f, Ts - 2f)), new Color(Gold, (0.5f + 0.45f * breathe) * near), false, 2f);
 
         // A shine sweeping corner to corner every 2.2 s (the line x + y = c, clipped to the tile).
         float cycle = (phase % 2.2f) / 2.2f;

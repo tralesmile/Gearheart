@@ -68,6 +68,8 @@ A 2D side-view sandbox where you mine, craft and build vehicles part by part, th
 
 **Buried stashes:** something glints in the rock? Dig towards it. Old Toolboxes lie shallow, Lost Supply Crates deeper, and Ancient Strongboxes (a pile of Iron and Copper) deep down or out in the far biomes. The pickaxe and the drill both open them. There is one a short walk from the garage on each side.
 
+**Lucky strikes:** about one ore tile in sixteen is lucky: it gleams gold (a gold rim, a shine sweeping across it, a twinkling star) and you can see it through the rock from about 15 m. Mine it, by hand or with the drill, for a **LUCKY STRIKE**: it pays triple, with a gold ring, a fountain of sparks and a jingle.
+
 **On the road:** fuel cans and scrap heaps lie along the surface every 10–19 m. Drive through a can for +18 fuel (it stays put if your tank is nearly full). Plough through a scrap heap at speed to smash it for Scrap (sometimes Iron in the meadow and the north, Copper in The Wastes), or walk into it to pick it up. Both come back a couple of minutes after you take them. The fuel readout blinks LOW FUEL under 20%.
 
 **Trips:** leave the garage grounds (about 18 m out) and a trip starts; the status line shows how far out you are and your farthest ever ("Trip 84 m (best 212 m)"), with a "NEW FARTHEST!" cheer when you pass it. Come back to the garage and a **trip report** ticks in: farthest, top speed, jumps (longest air and good landings), scrap heaps and best streak, fuel cans, stashes, haul and carnage, each with points, then the trip score and your best trip to beat (a fanfare and NEW BEST tags when you beat it). Enter or Esc closes it.

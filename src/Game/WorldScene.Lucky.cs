@@ -12,11 +12,8 @@ namespace Gearheart.Game;
 public partial class WorldScene
 {
     private LuckyGleams _lucky;
-    private bool _luckyHinted, _luckyStruckOnce, _luckyCensus;
+    private bool _luckyHinted, _luckyStruckOnce, _luckyCensus, _luckyGleamLogged;
     private int _luckyStrikes, _luckyUnits;
-
-    // --veintest: the lone scrap tile is made lucky.
-    private bool _luckyTestPlanted;
 
     private void SetupLucky(CanvasLayer glintLayer)
     {
@@ -29,6 +26,12 @@ public partial class WorldScene
         if (_lucky == null) return;
         _lucky.Focus = focus;
         if (!_luckyCensus && GameSession.AutoPlay) LuckyCensus();
+        if (!_luckyGleamLogged && _lucky.Shown > 0 && GameSession.AutoPlay)
+        {
+            _luckyGleamLogged = true;
+            GD.Print($"[lucky] first gleam: {_world.Get(_lucky.NearestTile.X, _lucky.NearestTile.Y)} at ({_lucky.NearestTile.X},{_lucky.NearestTile.Y}) " +
+                     $"{_lucky.Nearest / Ts * 0.25f:0.0} m from the {(_driving ? "car" : "mechanic")} t={_elapsed:0.0}s frame={Engine.GetFramesDrawn()}");
+        }
 
         // The first lucky tile in plain sight gets a hint (on foot, when nothing else is being said).
         if (!_luckyHinted && !_driving && _lucky.Nearest < 150f && _toastTime <= 0f && !_card.Showing)
@@ -109,7 +112,6 @@ public partial class WorldScene
     /// <summary>--veintest: the lone scrap tile is lucky.</summary>
     private void PlantLuckyTest(int x, int y)
     {
-        _luckyTestPlanted = true;
         LuckyOre.Forced.Add((x, y));
         GD.Print($"[lucky] test: the lone scrap tile at ({x},{y}) is lucky; Scrap={GameSession.Count("Scrap")} frame={Engine.GetFramesDrawn()}");
     }
