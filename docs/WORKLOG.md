@@ -2,6 +2,43 @@
 
 Newest entry first. Each session: what was built and why, how it was verified, what is not verified, and what comes next.
 
+## 2026-11-13, about 01:24–02:40 UTC — Next part card (PR #35)
+
+**Started by** checking for unfinished work: PR #33 (hydraulics) was open and green (run 43341976592: `[hop]` tap 0.65 m, full squat 1.82 m, kicker hops 2.6–3.9 m and 1.16–1.54 s of air; every 40 s position equal to main; `hop_87.png` shows KICKER HOP! with the car high over the kicker). The session that opened it was still running: it merged main into the branch at 01:26 and started another run, so I left the merge to it (it squash-merged at about 01:40, 718ea8a) and built on top of its branch, rebasing onto main after the merge. No second open PR of mine in the meantime.
+
+**Built — the next part card** (`src/Game/NextPart.cs`, `src/Game/NextPartChip.cs`, `src/Game/WorldScene.NextPart.cs`, `goalTier` in `data/parts/parts.json`, `ready` sound)
+
+- A small card above the inventory bar: **NEXT [icon] Off-road Wheel [scrap] 0/2 [iron] 3/4** with a progress bar along its bottom. Counts follow what the bar shows, so they tick up as each flying ore icon lands; the bar slides up with a white glint.
+- Which part: upgrades opt in with `goalTier` (1: Drill Head, Off-road Wheel; 2: Rocket Booster, Turbocharger, Spiked Tyre, V8, Hydraulics; 3: Crystal Drill). Parts on the car, or beaten by a same-kind part of the same or higher tier, are skipped. Cost = what building it adds to your car (wheels as a full set with the old tyres refunded, engine and drill as a swap, the rest one block). Closest first, later tiers held back by 0.2 per tier; it only switches when another part is 0.1 closer.
+- When the last ore lands: the card turns **gold and pulses** ("READY … build it at the garage", "G: build it" at the door), a gold ring flashes, a **"PART READY: Spiked Tyre! / head to the garage to build it"** call-out (it waits for a fresh call-out) and a new chime (`ready.wav`: three ratchet clicks, then ding-DING a fifth apart; deterministic, every older WAV byte-identical, checked with md5). A save that is already ready shows the gold card without the call-out. Hidden while the trip report is up. No save or world change.
+- **CI**: `[nextpart]` lines (what is shown, progress, READY with frame), `nextPart=… partsReady=… firstReady=…` on `[autoplay]`; the vein screenshot run is 300 frames (was 180) and keeps `nextpart_*.png` / `nextpart_ready_*.png`.
+
+**Why this** — Brainstorm in `docs/IDEAS.md` (twenty-sixth session). The last sessions made mining loud (vein runs), collecting visible (ore flies home) and gave the car a new move (hydraulics), but nothing told you what the ore was *for* until you opened the garage after the trip. The most boring minute was digging without a target. Hill Climb Racing keeps the next upgrade's price in sight; Terraria lights up the crafting list when you pick up the last bar. It was on the last two sessions' "Next" lists (#150) and is felt within the first minute: the walk bot's card fills from 0 to READY in its first trip.
+
+**CI runs**: 43346790987 (green; the logic worked in every scenario but the card was invisible in every screenshot: it measured its own size, which is zero for a control straight under a CanvasLayer, so it drew above the top of the screen — the call-out and the logs were fine), RUN2.
+
+**Verified (run 43346790987 for the logic; RUN2 for the screenshots)**
+
+- **Walk-and-drive bots (starter car)**: the card shows Drill Head (Scrap 4, Iron 2) from the start and counts 0.00 → 0.17 → 0.33 → 0.50 → 0.67 → 0.83 as scrap and iron land, then **READY Drill Head** (bar Scrap 9, Iron 2) in the launch, rock, turbo, night, devils, flip, stash, trip and flags runs (`partsReady=1 firstReady="Drill Head"`). Runs that carry copper home then get **READY Hydraulics** (Iron 3, Copper 2) and the card jumps to it.
+- **Vein test**: Drill Head 0.17 → 0.33, then it switched to Off-road Wheel at 0.50 (closer by 0.17), 0.67; **READY Spiked Tyre** (Iron 6 for the pair, the old tyres refunding 2 Scrap) at frame 55 and **READY Off-road Wheel** (Scrap 2, Iron 4) at frame 121 when the lone scrap tile's icons landed.
+- **Stash test**: seven parts became ready (Drill Head, Hydraulics, Off-road Wheel, Rocket Booster, Turbocharger, V8, Spiked Tyre); the card ended on the V8.
+- **Screenshots**: RUN2SHOTS
+- **Nothing else changed**: RUN2POS No errors.
+
+**Not verified / known issues**
+
+- Fun is my judgement (D1): whether the card pulls you to "one more ore" or is clutter, and whether the game's choice of part is the one you would pick (you cannot pin one yet, IDEAS #161).
+- The chime is tuned by numbers only.
+- When several parts become ready at once (a big stash), only the last gets the call-out; the card shows that one.
+- Spiked Tyres count as an upgrade over Off-road Wheels (tier 2 vs 1): once you have spikes the card never suggests Off-road Wheels.
+- The cost assumes your built car is the car you drive; with a garage design that differs from the built car the real price can differ a little.
+
+**Next**
+
+1. Homeward arrow (S, IDEAS #162): a part is ready and the garage is off screen → a gold arrow at the screen edge with the distance.
+2. Where to find it (S, #160) and pin a part at the garage (S, #161); garage afford glow (S, #165).
+3. Hop stomp (S, #154) and boulders and ditches (S–M, #155) for the hydraulics; then a first creature (#158 night eyes or #65 crystal mites, M).
+
 ## 2026-11-13, about 00:20–01:50 UTC — Merged ore flies home (PR #32), then Hydraulics (PR #33)
 
 **Started by** checking for unfinished work: PR #32 (ore flies home) was open with its second build (43335873583) running; it finished green at 00:32. Its `[flyhome]` lines matched the PR (the vein test: Iron 0 → 8 on the bar one landing at a time, flights 0.60–0.66 s; "right after the last tile: Iron shown 8 of 8, Scrap shown 0 of 2" with the two scrap icons still in the air, then 2 of 2), every 40 s position was identical to main, and `flyhome_14.png` / `flyhome_stash_44.png` / `flyhome_stash_48.png` show the icon on a bright disc rising out of the hole, the toolbox's fan of icons with an x4 tag, and the Iron slot ringing on landing. I squash-merged it (63d47ff); the session that built it was still running and added its own worklog entry below (PR #34). Two sessions overlapped for about an hour; only docs collided, merged by hand in this branch.

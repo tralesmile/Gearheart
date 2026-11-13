@@ -74,7 +74,10 @@ public partial class NextPartChip : Control
             foreach (var (item, need) in _goal.Need)
                 w += 22f + 4f + font.GetStringSize(Fraction(item, need), HorizontalAlignment.Left, -1, itemSize).X + 12f;
 
-        var box = new Rect2(new Vector2((Size.X - w) / 2f, Size.Y - AboveBottom - Height), new Vector2(w, Height));
+        // The visible screen, not this control's size: a control straight under a CanvasLayer can be
+        // left at size zero by its anchors, which put the card off the top of the screen.
+        Vector2 screen = GetViewportRect().Size;
+        var box = new Rect2(new Vector2((screen.X - w) / 2f, screen.Y - AboveBottom - Height), new Vector2(w, Height));
         float pulse = ready ? 0.5f + 0.5f * Mathf.Sin(_time * 5f) : 0f;
         var gold = new Color(1f, 0.82f, 0.3f);
 
