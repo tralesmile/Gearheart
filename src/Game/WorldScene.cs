@@ -1564,8 +1564,7 @@ public partial class WorldScene : Node2D
                 _perfectLandings++;
                 kick = flipKick;
                 if (kick > 0f) _car.Kick(kick);
-                if (mayToast && flip == null) Toast($"PERFECT HOP LANDING
-{l.Air:0.0} s air");
+                if (mayToast && flip == null) Toast($"PERFECT HOP LANDING\n{l.Air:0.0} s air");
                 _sfx.Play("pickup", -6f);
                 break;
             case LandingGrade.Perfect:
