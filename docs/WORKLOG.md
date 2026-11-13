@@ -2,7 +2,7 @@
 
 Newest entry first. Each session: what was built and why, how it was verified, what is not verified, and what comes next.
 
-## 2026-11-13, about 01:24–02:40 UTC — Next part card (PR #35)
+## 2026-11-13, about 01:24–02:30 UTC — Next part card (PR #35)
 
 **Started by** checking for unfinished work: PR #33 (hydraulics) was open and green (run 43341976592: `[hop]` tap 0.65 m, full squat 1.82 m, kicker hops 2.6–3.9 m and 1.16–1.54 s of air; every 40 s position equal to main; `hop_87.png` shows KICKER HOP! with the car high over the kicker). The session that opened it was still running: it merged main into the branch at 01:26 and started another run, so I left the merge to it (it squash-merged at about 01:40, 718ea8a) and built on top of its branch, rebasing onto main after the merge. No second open PR of mine in the meantime.
 
@@ -15,15 +15,15 @@ Newest entry first. Each session: what was built and why, how it was verified, w
 
 **Why this** — Brainstorm in `docs/IDEAS.md` (twenty-sixth session). The last sessions made mining loud (vein runs), collecting visible (ore flies home) and gave the car a new move (hydraulics), but nothing told you what the ore was *for* until you opened the garage after the trip. The most boring minute was digging without a target. Hill Climb Racing keeps the next upgrade's price in sight; Terraria lights up the crafting list when you pick up the last bar. It was on the last two sessions' "Next" lists (#150) and is felt within the first minute: the walk bot's card fills from 0 to READY in its first trip.
 
-**CI runs**: 43346790987 (green; the logic worked in every scenario but the card was invisible in every screenshot: it measured its own size, which is zero for a control straight under a CanvasLayer, so it drew above the top of the screen — the call-out and the logs were fine), RUN2.
+**CI runs**: 43346790987 (green; the logic worked in every scenario but the card was invisible in every screenshot: it measured its own size, which is zero for a control straight under a CanvasLayer, so it drew above the top of the screen — the call-out and the logs were fine), 43348795565 (green; the card is drawn from the viewport size and shows above the bar), and one for these docs.
 
-**Verified (run 43346790987 for the logic; RUN2 for the screenshots)**
+**Verified (run 43346790987 for the logic and positions; 43348795565 for the screenshots, same logic)**
 
 - **Walk-and-drive bots (starter car)**: the card shows Drill Head (Scrap 4, Iron 2) from the start and counts 0.00 → 0.17 → 0.33 → 0.50 → 0.67 → 0.83 as scrap and iron land, then **READY Drill Head** (bar Scrap 9, Iron 2) in the launch, rock, turbo, night, devils, flip, stash, trip and flags runs (`partsReady=1 firstReady="Drill Head"`). Runs that carry copper home then get **READY Hydraulics** (Iron 3, Copper 2) and the card jumps to it.
 - **Vein test**: Drill Head 0.17 → 0.33, then it switched to Off-road Wheel at 0.50 (closer by 0.17), 0.67; **READY Spiked Tyre** (Iron 6 for the pair, the old tyres refunding 2 Scrap) at frame 55 and **READY Off-road Wheel** (Scrap 2, Iron 4) at frame 121 when the lone scrap tile's icons landed.
-- **Stash test**: seven parts became ready (Drill Head, Hydraulics, Off-road Wheel, Rocket Booster, Turbocharger, V8, Spiked Tyre); the card ended on the V8.
-- **Screenshots**: RUN2SHOTS
-- **Nothing else changed**: RUN2POS No errors.
+- **Stash test**: seven parts became ready (Drill Head, Hydraulics, Off-road Wheel, Rocket Booster, Turbocharger, V8, Spiked Tyre); the card ended on the Spiked Tyre (`partsReady=7`).
+- **Screenshots** (run 43348795565): `nextpart_20.png` (NEXT [drill icon] Drill Head, Scrap 0/4, Iron 1/2, a thin green bar under it, centred above the inventory bar), `nextpart_ready_57.png` / `nextpart_ready_63.png` (the gold READY Spiked Tyre card "build it at the garage" with the PART READY call-out at the top, the iron icon still flying home), `nextpart_60.png` (the Iron slot ringing as the 6th iron lands under the gold card).
+- **Nothing else changed**: every 40 s position in run 43346790987 equal to main (turbo 2302.1, night 2209.3, devils 2173.2 / 2533.3, rocket 2552.7, flip 2543.3, hopper 2392.4, trip 1629.2, flags 2209.3; the starter, drill and left runs fell outside the part of the log the tools return, and nothing in this change touches driving). No errors.
 
 **Not verified / known issues**
 
