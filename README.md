@@ -65,6 +65,8 @@ A 2D side-view sandbox where you mine, craft and build vehicles part by part, th
 
 **Birds:** sparrows sit on the garage roof and peck along the Home Meadow road, big crows wait in The Wastes and snow buntings in the Frozen North. Start the engine and the roof sparrows flutter off; drive at a flock and it takes off ahead of your bonnet (from further away the faster you go), with a chirp or a caw. Honk (H) to clear them from about 12 m. They come back after a while, and at night they sleep.
 
+**Cave bats and echo:** small colonies of bats hang from the cavern ceilings of the Deep. Come into sight of them (about 4.5 m on foot, 6 m in the car), dig into their cavern or honk, and they drop off the ceiling and burst out squeaking, flitting round the cavern before they vanish into the dark; they come back later. Underground the effects (pickaxe, breaks, crystals, squeaks) get a cave echo that grows with depth.
+
 **Dust devils:** on hot afternoons (from about 10:30 to 17:30 on the clock) whirlwinds of sand form in The Wastes and wander up and down the road; you can see their columns from far off. Drive into one and it grabs the car: lifts it a couple of metres, slows it and twists it, then throws it out and blows itself out in a burst of sand. Fight the spin with Q/E and land flat for a perfect landing, or hold the spin and try to ride it into a flip. Or wait for it to wander off or die down. On foot one picks you up and drops you a little way off.
 
 **Buried stashes:** something glints in the rock? Dig towards it. Old Toolboxes lie shallow, Lost Supply Crates deeper, and Ancient Strongboxes (a pile of Iron and Copper) deep down or out in the far biomes. The pickaxe and the drill both open them. There is one a short walk from the garage on each side.

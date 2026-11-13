@@ -177,7 +177,7 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 167 | Pickaxe crits: about one swing in eight lands a CRIT that cracks the tile at once with a sharper sound | S | Open (new 2026-11-13, twenty-seventh session; variety in the most repeated action) |
 | 168 | Gold rush: once a day, at dawn, the garage bell rings and lucky ore is three times as common for a minute | S | Open (new 2026-11-13; a timed event that pulls you out of the garage, uses #151) |
 | 169 | Lucky strikes on the trip report and a "Find a lucky strike" trip goal | S | Open (new 2026-11-13; ties the jackpot to the trip score; shifts the bot's goal order) |
-| 170 | Cave bats: bats roost on cavern ceilings and burst out past you, squeaking, when you dig into their cavern or your lamp reaches them | S | Open (new 2026-11-13; folds #110; first life underground, harmless) |
+| 170 | Cave bats: bats roost on cavern ceilings and burst out past you, squeaking, when you dig into their cavern or your lamp reaches them | S | **Built 2026-11-13** (PR #40, with #178: roosts of 3–6 on Deep cavern ceilings; seen within 4.5 m on foot / 6 m in the car with a clear view, a dig within 3 m, a honk or a dug-out ceiling sends them off squeaking; they weave round the cavern, bounce off its walls and fade into the dark; back after 90 s out of sight) |
 | 171 | Dowsing rod: a hand tool (Iron + Crystal) whose tip dips toward the nearest lucky tile or stash within 20 m | S–M | Open (new 2026-11-13; turns the hunt into hot/cold, folds #9) |
 | 172 | Pause menu (Esc): resume, volume sliders, the key list, quit to desktop | S | **Built 2026-11-13** (PR #37: Esc / Start pauses; Master, Effects and Engine sliders on two new audio buses, fullscreen, the key list, Save and quit; settings in `user://settings.cfg`) |
 | 173 | Crumbling ledges in The Wastes: sandstone lips that crack and fall a second after the car lands on them | M | Open (new 2026-11-13; terrain that reacts, a reason to keep moving) |
@@ -185,7 +185,7 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 175 | Fumes finish: below 10% fuel the dash blinks and beeps; reaching home that way scores "MADE IT ON FUMES" on the trip report | S | Open (new 2026-11-13; tension on the drive home, a story every few trips) |
 | 176 | Photo mode from the pause menu: hide the HUD, nudge the camera, save a PNG | S | Open (new 2026-11-13; builds on the menu; players love sharing crashes and their car) |
 | 177 | Instant replay: after a big crash or flip, Tab replays the last 4 s at half speed from a side camera | M | Open (new 2026-11-13; the best moments become ones you watch twice) |
-| 178 | Cave echo: a reverb on the Effects bus that fades in underground, so the pickaxe and crystals ring in the Deep | S | Open (new 2026-11-13; uses the new buses; the Deep sounds like a cave for almost no work) |
+| 178 | Cave echo: a reverb on the Effects bus that fades in underground, so the pickaxe and crystals ring in the Deep | S | **Built 2026-11-13** (PR #40: from about 1.5 m down, full from about 6 m and everywhere in the Deep; wet 0.3 at full; not saved) |
 | 179 | Tumbleweeds in The Wastes that roll across the road with the wind, bounce off the car and count for the smash streak | S | Open (new 2026-11-13; something moving on the empty desert road) |
 | 180 | Moles in the meadow: dig near one and it pops up, squeaks and burrows away, sometimes dropping the scrap it was hoarding | S–M | Open (new 2026-11-13; life in the dirt you dig every minute, a tiny surprise) |
 | 181 | Speed traps: a camera post on the road flashes as you pass and keeps your best speed there ("SPEED TRAP 74 km/h · best 68") | S | Open (new 2026-11-13, twenty-ninth session; Need for Speed's best small idea, a target on the flat stretches) |
@@ -194,7 +194,29 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 184 | Range on the dashboard: "about 40 m left" from the fuel and your recent use, turning red when home is further than the range | S | Open (new 2026-11-13; turns low fuel into a decision; pairs with the LOW FUEL arrow and #175) |
 | 185 | Garage radio: a short generated chiptune loop per biome that plays quietly while driving, with its own volume slider | M | Open (new 2026-11-13; the game has no music at all) |
 | 186 | Delivery bonus: come home with a part ready and the report adds "DELIVERED: Drill Head +50" | S | Open (new 2026-11-13; rewards following the gold arrow) |
+| 187 | Dusk flight: at sunset bats pour out of cave mouths and open shafts into the sky for a minute | S | Open (new 2026-11-13, thirtieth session; the night gets its own living moment and shows where the caves are) |
+| 188 | Shout (a key underground): your call echoes back, and caverns within 15 m flash faintly on screen for a second | S–M | Open (new 2026-11-13; dig toward a hollow you heard, not at random; uses the echo) |
+| 189 | Lava sea at the bottom of the world: the flat bedrock band becomes glowing lava with heat shimmer that burns the car | M | Open (new 2026-11-13; folds #148/#56; the bottom of the world gets an ending and a danger) |
+| 190 | Bounce mushrooms: rare glowing mushroom caverns whose caps fling you (or the car) up like a trampoline | S–M | Open (new 2026-11-13; a toy underground, a big moment when you fall into one) |
+| 191 | Torches you place (1 Scrap + 2 Dirt): light that stays where you put it, so deep tunnels become yours | S | Open (new 2026-11-13; Terraria's best small habit; makes the dark a building choice; folds #85) |
 | 29 | Speedometer redline overdrive: holding the needle in the red for 3 s with the booster unlocks a "SONIC" call-out and a sonic-boom puff | S | Open (new 2026-11-12, cheap thrill) |
+
+## 2026-11-13 (thirtieth session — the Deep comes alive)
+
+Started by checking for unfinished work: PR #39 (the way home) was open with its docs run still building; the session that opened it merged it at about 05:37 when the run went green.
+
+Looked as a player. `deep_120.png`: 30 m down in a crystal cavern, the home arrow pointing up, and nothing moves and nothing sounds except the pickaxe. The surface has birds, devils, kickers and pickups; the Deep has crystals and silence. The most boring minute is the one walking through a big cavern: it looks like a cave but does not feel like one. The fix that costs least: something living that reacts to you, and a sound that says "you are underground".
+
+| # | Idea | Why it would be fun | Size |
+| --- | --- | --- | --- |
+| 170 + 178 | Cave bats and a cave echo (built today) | A jump-scare you laugh at, a cavern that feels alive, and every pick strike rings | S |
+| 187 | Dusk flight: bats pour out of the caves at sunset | The night gets its own living moment and shows where caves are | S |
+| 188 | Shout and hear the caverns | Dig toward a hollow you heard; turns the echo into a tool | S–M |
+| 189 | Lava sea at the bottom of the world | The bottom gets an ending and a danger worth a glow | M |
+| 190 | Bounce mushrooms in rare caverns | A toy underground, a big moment when you fall into one | S–M |
+| 191 | Torches you place | Your tunnels become yours; light as a building choice | S |
+
+Ranking for the next sessions (fun for the effort): speed traps (#181) and fresh heaps (#182) for the road; torches (#191); fumes finish (#175) with range (#184); then a first creature that bites (#65, the bats set it up), and the lava sea (#189).
 
 ## 2026-11-13 (twenty-ninth session — the way home)
 

@@ -72,6 +72,7 @@ public partial class WorldScene
         _sfx.Play("horn", -11f, 0.25f, Sfx.EnginePitch(_car.EngineSound));
         int before = _birds.Scatters;
         _birds.Startle(_car.CenterPosition, HornReach, "horn");
+        _bats.Startle(_car.CenterPosition, HornReach, "horn", false);
         if (GameSession.AutoPlay)
             GD.Print($"[birds] honk #{_honks} at x={_car.CenterPosition.X / Ts:0} speed={_car.Speed / PixelsPerMeter * 3.6f:0}km/h scattered {_birds.Scatters - before} flock(s) frame={Engine.GetFramesDrawn()}");
     }
