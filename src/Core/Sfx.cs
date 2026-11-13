@@ -14,7 +14,7 @@ public partial class Sfx : Node
     private readonly Dictionary<string, AudioStream> _streams = new();
     private readonly List<AudioStreamPlayer> _voices = new();
     private readonly Dictionary<string, double> _lastPlayed = new();
-    private AudioStreamPlayer _engine, _drill, _boost, _wind, _turbo, _crickets, _devil;
+    private AudioStreamPlayer _engine, _drill, _boost, _wind, _turbo, _crickets, _devil, _lava;
     private readonly Dictionary<string, AudioStreamPlayer> _engines = new();
     private double _crankUntil;          // the starter is cranking: engine loop silent until then
     private int _nextVoice;
@@ -23,7 +23,7 @@ public partial class Sfx : Node
     public override void _Ready()
     {
         Settings.Apply();   // the Effects and Car buses, at the saved volumes
-        foreach (string name in new[] { "pick", "break", "place", "pickup", "thud", "crunch", "snap", "treasure", "fuel", "tally", "record", "land", "shift", "pop", "start", "creak", "blowoff", "flutter", "chirp", "caw", "horn", "gust", "hook", "clank", "vein", "hop", "ready", "lucky", "squeak", "rustle", "flash" })
+        foreach (string name in new[] { "pick", "break", "place", "pickup", "thud", "crunch", "snap", "treasure", "fuel", "tally", "record", "land", "shift", "pop", "start", "creak", "blowoff", "flutter", "chirp", "caw", "horn", "gust", "hook", "clank", "vein", "hop", "ready", "lucky", "squeak", "rustle", "flash", "sizzle" })
             _streams[name] = GD.Load<AudioStream>($"res://assets/audio/{name}.wav");
 
         for (int i = 0; i < 6; i++)
@@ -41,6 +41,7 @@ public partial class Sfx : Node
         _turbo = Loop("turbo");
         _crickets = Loop("crickets", 0, Settings.EffectsBus);
         _devil = Loop("devil", 0, Settings.EffectsBus);
+        _lava = Loop("lava", 0, Settings.EffectsBus);
     }
 
     /// <summary>
@@ -52,6 +53,18 @@ public partial class Sfx : Node
         DevilLevel = level;
         SetLoop(_devil, level > 0.02f, Mathf.LinearToDb(Mathf.Max(0.001f, level)) - 10f, 0.85f + 0.3f * level);
     }
+
+    /// <summary>
+    /// The magma sea: a deep bubbling rumble, louder the nearer the lake's top. <paramref name="level"/> is 0..1.
+    /// </summary>
+    public void UpdateLava(float level)
+    {
+        LavaLevel = level;
+        SetLoop(_lava, level > 0.02f, Mathf.LinearToDb(Mathf.Max(0.001f, level)) - 9f, 1f);
+    }
+
+    /// <summary>How loud the lava rumble is, 0..1 (for the bot log).</summary>
+    public float LavaLevel { get; private set; }
 
     /// <summary>How loud the dust devil roar is, 0..1 (for the bot log).</summary>
     public float DevilLevel { get; private set; }

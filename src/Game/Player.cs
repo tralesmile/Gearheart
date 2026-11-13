@@ -36,6 +36,9 @@ public partial class Player : Node2D
     public bool Grounded { get; private set; }
     public Vector2 Velocity;
 
+    /// <summary>Seconds left of a throw (out of the lava) during which walking does not steer; ends on landing.</summary>
+    public float Stagger;
+
     /// <summary>Raised with an inventory key and amount when something is picked up.</summary>
     public event System.Action<string, int> Collected;
 
@@ -86,7 +89,9 @@ public partial class Player : Node2D
             float footing = Grounded && World.GripAt(Position + new Vector2(0f, HalfHeight + 4f)) < 0.5f ? 0.1f : 1f;   // ice is slippery
             // In the air after a rope ride, keep most of the swing instead of stopping dead.
             float accel = !Grounded && Mathf.Abs(Velocity.X) > WalkSpeed ? Acceleration * 0.35f : Acceleration;
-            Velocity.X = Mathf.MoveToward(Velocity.X, wanted, accel * footing * dt);
+            // Thrown (the lava spat you out): no steering until you land or the throw wears off.
+            if (Stagger > 0f) Stagger = Grounded && Velocity.Y >= 0f ? 0f : Stagger - dt;
+            else Velocity.X = Mathf.MoveToward(Velocity.X, wanted, accel * footing * dt);
             if (Mathf.Abs(input.Move) > 0.1f && !input.Mine) _facingLeft = input.Move < 0f;
 
             // Jump and gravity.

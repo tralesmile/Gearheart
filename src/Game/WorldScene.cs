@@ -208,6 +208,7 @@ public partial class WorldScene : Node2D
         SetupHook();
         SetupBirds(garage.Position);
         SetupBats(glintLayer);
+        SetupLava(glintLayer);
         LogPlantCensus();
         _crashFx.Camera = _camera;
         _crashFx.Sfx = _sfx;
@@ -251,7 +252,7 @@ public partial class WorldScene : Node2D
         if (what == NotificationWMCloseRequest) GameSession.SaveAll();
     }
 
-    private void SpawnCar(float dropHeight = 0f)
+    private void SpawnCar(float dropHeight = 0f, Vector2? at = null)
     {
         if (IsInstanceValid(_car)) _car.QueueFree();
         float x = (TileWorld.PadFrom + 30) * Ts;
@@ -260,7 +261,7 @@ public partial class WorldScene : Node2D
             Name = "Car",
             World = _physics,
             Design = GameSession.CurrentDesign.Clone(),
-            Spawn = new Vector2(x, _world.GroundY(x, (TileWorld.BaseSurface - 12) * Ts) - 75f - dropHeight),
+            Spawn = at ?? new Vector2(x, _world.GroundY(x, (TileWorld.BaseSurface - 12) * Ts) - 75f - dropHeight),
             Parked = true,
             DrillEnabled = false,
         };
@@ -278,6 +279,7 @@ public partial class WorldScene : Node2D
         _car.Hopped += OnHop;
         _car.HopLanded += OnHopLanded;
         _car.AutoRock = !GameSession.NoRock;
+        _car.IsLava = p => Lava.AtPoint(_world, p);
         if (GameSession.LowFuel) _car.AddFuel(_car.FuelCapacity * 0.3f - _car.Fuel);
         _judge.Cancel();
         _airTime = 0f;
@@ -580,6 +582,7 @@ public partial class WorldScene : Node2D
         CheckPickups();
         UpdatePlants(dt);
         UpdateTraps();
+        UpdateLava(dt);
         UpdateSprint();
         UpdateTrip();
 
@@ -620,6 +623,7 @@ public partial class WorldScene : Node2D
         _marks.Focus = focus;
         UpdateBirds(focus);
         UpdateBats(focus, dt);
+        UpdateLavaView(focus, dt);
         if (!_glintHinted && _glints.Nearest < 230f && _toastTime <= 0f)
         {
             _glintHinted = true;
@@ -1935,6 +1939,7 @@ public partial class WorldScene : Node2D
         if (GameSession.IceTest) RunIceBot();
         if (GameSession.DeepTest) RunDeepBot();
         if (GameSession.BatTest) RunBatBot();
+        if (GameSession.LavaTest) RunLavaBot();
         if (GameSession.HookTest) RunHookBot();
         if (GameSession.VeinTest) RunVeinBot();
         if (GameSession.LaunchTest) RunLaunchBot();
@@ -1946,7 +1951,7 @@ public partial class WorldScene : Node2D
         LogStall();
         RunHornBot();
 
-        if (!_driving && !GameSession.CrashTest && !GameSession.TripTest && !GameSession.IceTest && !GameSession.DeepTest && !GameSession.BatTest && !GameSession.HookTest && !GameSession.VeinTest && !GameSession.LaunchTest && !GameSession.RockTest && !GameSession.FlipTest && !GameSession.HopTest)
+        if (!_driving && !GameSession.CrashTest && !GameSession.TripTest && !GameSession.IceTest && !GameSession.DeepTest && !GameSession.BatTest && !GameSession.LavaTest && !GameSession.HookTest && !GameSession.VeinTest && !GameSession.LaunchTest && !GameSession.RockTest && !GameSession.FlipTest && !GameSession.HopTest)
         {
             Vector2 feet = _player.Position + new Vector2(0f, Player.HalfHeight);
             // --stashtest: once the bot starts digging, bury a toolbox and a strongbox under its feet
@@ -1995,7 +2000,7 @@ public partial class WorldScene : Node2D
                  $"top={_topSpeed / PixelsPerMeter * 3.6f:0}km/h longestAir={_longestAir:0.0}s landings={_perfectLandings}/{_cleanLandings}/{_roughLandings}/{_flops} kickers={_kickerJumps}/{_kickerLaunches} longJumps={_longJumps}/{_jumpRecords}/{_longestJump:0.0}m " +
                  $"crashes={_crashFx.Hits} hardest={_crashFx.HardestHit / PixelsPerMeter * 3.6f:0}km/h sparks={_crashFx.SparkBursts} " +
                  $"cans={_cansTaken} heaps={_heapsTaken} smashed={_heapsSmashed} bestStreak={_bestStreak} " +
-                 $"dash={(_dash.Visible ? $"{_dash.ShownKmh:0}km/h" : "hidden")} lines={_lines.Intensity:0.00} peakLines={_peakLines:0.00} wind={_sfx.WindLevel:0.00} gear={_car.Gearbox.Gear}/{_car.Gearbox.Gears} revs={_car.Gearbox.Rpm:0.00} enginePitch={_sfx.LastEnginePitch:0.00} shifts={_car.Gearbox.Upshifts}/{_car.Gearbox.Downshifts} topGear={_car.Gearbox.TopGear} limiter={_car.Gearbox.Limiter} pops={_car.Backfires} turbo={(_car.HasTurbo ? $"peak {_car.TurboPeak:0.00} full {_car.TurboFullSeconds:0.0}s blowoffs {_car.TurboBlowOffs} now {_car.TurboBoost:0.00}" : "none")} starts={_perfectStarts}/{_goodStarts}/{_boggedStarts} sprints={_sprintsRun} sprintBest={GameSession.SprintBest:0.00} stuck={_stuckCount} rocks={_car.RockPulses} rockedFree={_rockFrees} longestStuck={_longestStuck:0.0}s flips={_backflips}/{_frontflips}/{_flipsCrashed} maxAirRot={_maxAirRot:0} rollOvers={_rollOvers} ice={_spray.IceSeconds:0.0}s slip={_spray.SlipSeconds:0.0}s bite={_spray.BiteSeconds:0.0}s trip={tripNow} reports={_tripsReported} deepest={_deepestThisRun:0.0}m crystalsMined={_crystalsMined} card={(_card.Showing ? _card.ShownScore.ToString() : "hidden")} {NightSummary()} {BirdSummary()} {BatSummary()} {DevilSummary()} {HookSummary()} {VeinSummary()} {LuckySummary()} {FlightSummary()} {HopSummary()} {NextPartSummary()} {HomeSummary()} {PlantSummary()} {TrapSummary()} pauses={_pauses} | " +
+                 $"dash={(_dash.Visible ? $"{_dash.ShownKmh:0}km/h" : "hidden")} lines={_lines.Intensity:0.00} peakLines={_peakLines:0.00} wind={_sfx.WindLevel:0.00} gear={_car.Gearbox.Gear}/{_car.Gearbox.Gears} revs={_car.Gearbox.Rpm:0.00} enginePitch={_sfx.LastEnginePitch:0.00} shifts={_car.Gearbox.Upshifts}/{_car.Gearbox.Downshifts} topGear={_car.Gearbox.TopGear} limiter={_car.Gearbox.Limiter} pops={_car.Backfires} turbo={(_car.HasTurbo ? $"peak {_car.TurboPeak:0.00} full {_car.TurboFullSeconds:0.0}s blowoffs {_car.TurboBlowOffs} now {_car.TurboBoost:0.00}" : "none")} starts={_perfectStarts}/{_goodStarts}/{_boggedStarts} sprints={_sprintsRun} sprintBest={GameSession.SprintBest:0.00} stuck={_stuckCount} rocks={_car.RockPulses} rockedFree={_rockFrees} longestStuck={_longestStuck:0.0}s flips={_backflips}/{_frontflips}/{_flipsCrashed} maxAirRot={_maxAirRot:0} rollOvers={_rollOvers} ice={_spray.IceSeconds:0.0}s slip={_spray.SlipSeconds:0.0}s bite={_spray.BiteSeconds:0.0}s trip={tripNow} reports={_tripsReported} deepest={_deepestThisRun:0.0}m crystalsMined={_crystalsMined} card={(_card.Showing ? _card.ShownScore.ToString() : "hidden")} {NightSummary()} {BirdSummary()} {BatSummary()} {DevilSummary()} {HookSummary()} {VeinSummary()} {LuckySummary()} {FlightSummary()} {HopSummary()} {NextPartSummary()} {HomeSummary()} {PlantSummary()} {TrapSummary()} {LavaSummary()} pauses={_pauses} | " +
                  string.Join(" ", System.Array.ConvertAll(GameSession.Items, i => $"{i}={GameSession.Count(i)}")));
     }
 }
