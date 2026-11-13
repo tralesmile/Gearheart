@@ -47,8 +47,10 @@ public partial class WorldScene
     private void UpdateBats(Vector2 focus, float dt)
     {
         _bats.Focus = focus;
-        if (_driving) _bats.Startle(_car.CenterPosition, Bats.SightReachCar, "car", true);
-        else _bats.Startle(_player.Position, Bats.SightReachFoot, "foot", true);
+        // Only colonies on screen (a margin in from the edges) see you, so you always see them hanging first.
+        Rect2 view = CameraView().Grow(-40f);
+        if (_driving) _bats.Startle(_car.CenterPosition, Bats.SightReachCar, "car", true, view);
+        else _bats.Startle(_player.Position, Bats.SightReachFoot, "foot", true, view);
 
         // Echo: none in a shallow hole, growing from about 1.5 m down, full from about 6 m (and in the Deep).
         int tx = Mathf.FloorToInt(focus.X / Ts);
@@ -71,7 +73,7 @@ public partial class WorldScene
     }
 
     /// <summary>
-    /// --battest: put the player on a cavern floor 4–10 m from the roost nearest the garage with a clear
+    /// --battest: put the player on a cavern floor at most 2 m under the roost's ceiling and 4–10 m from the roost nearest the garage with a clear
     /// view of it, then walk toward it (jumping steps, mining what is in the way) until the bats go up.
     /// </summary>
     private void RunBatBot()
@@ -91,7 +93,7 @@ public partial class WorldScene
                 Vector2? best = null;
                 float bestScore = float.MaxValue;
                 for (int x = r.X - 44; x <= r.X + 44; x++)
-                    for (int y = r.Y + 3; y <= r.Y + 24 && y < TileWorld.Height - 3; y++)
+                    for (int y = r.Y + 3; y <= r.Y + 8 && y < TileWorld.Height - 3; y++)   // floor at most ~2 m under the ceiling: the roost stays on screen
                     {
                         if (_world.Solid(x, y) || _world.Solid(x, y - 1) || _world.Solid(x, y - 2) || !_world.Solid(x, y + 1)) continue;
                         var at = new Vector2((x + 0.5f) * Ts, (y + 1) * Ts - Player.HalfHeight - 0.5f);
@@ -100,7 +102,7 @@ public partial class WorldScene
                         // A clear view of the roost (the bats must see the player, at most one tile of rock between).
                         int rock = RockOnLine(at, r.Center + new Vector2(0f, 6f));
                         if (rock > maxRock) continue;
-                        float score = Mathf.Abs(d - 6f) + rock;
+                        float score = Mathf.Abs(d - 5f) + rock;
                         if (score < bestScore) { bestScore = score; best = at; }
                     }
                 if (best is not Vector2 spot) continue;

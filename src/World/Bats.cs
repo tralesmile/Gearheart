@@ -39,7 +39,7 @@ public sealed class Roost
 public partial class Bats : Node2D
 {
     public const double RespawnSeconds = 90.0;
-    public const float SightReachFoot = 3.2f * 64f, SightReachCar = 5f * 64f, DigReach = 3f * 64f;
+    public const float SightReachFoot = 3.5f * 64f, SightReachCar = 5f * 64f, DigReach = 3f * 64f;
     private const float Ts = TileWorld.TileSize;
     private const float DrawDistance = 1400f, HiddenDistance = 1800f;
     private const int Cell = 16, Row = 3;   // the bat row of the birds sheet
@@ -155,7 +155,7 @@ public partial class Bats : Node2D
     /// Something at <paramref name="at"/>: every hanging roost with a bat within <paramref name="radius"/> px
     /// bursts. With <paramref name="needSight"/> the bat must see it (at most one tile of rock in between).
     /// </summary>
-    public void Startle(Vector2 at, float radius, string cause, bool needSight)
+    public void Startle(Vector2 at, float radius, string cause, bool needSight, Rect2? onScreen = null)
     {
         foreach (var r in _all)
         {
@@ -169,6 +169,8 @@ public partial class Bats : Node2D
             }
             if (seen == null || nearest > radius) continue;
             if (needSight && RockBetween(seen.Hang + new Vector2(0f, 6f), at) > 1) continue;
+            // Seen before they go: a colony only notices you once it is on your screen (when a view is given).
+            if (onScreen is Rect2 view && !view.HasPoint(seen.Hang + new Vector2(0f, 12f))) continue;
             Burst(r, at, cause, nearest);
         }
     }
