@@ -15,7 +15,7 @@ public partial class GarageScreen : Control
     private static readonly PartCategory[] PaletteOrder =
     {
         PartCategory.Frame, PartCategory.Cab, PartCategory.Engine, PartCategory.Wheel, PartCategory.Armor,
-        PartCategory.FuelTank, PartCategory.Drill, PartCategory.Booster, PartCategory.Turbo,
+        PartCategory.FuelTank, PartCategory.Drill, PartCategory.Booster, PartCategory.Turbo, PartCategory.Hydraulics,
     };
 
     private VehicleDesign _design;
@@ -302,6 +302,7 @@ public partial class GarageScreen : Control
         PartCategory.Wheel => $"Mass {p.Mass} t   Radius {p.Radius}   Grip {p.Grip}" + (p.FrozenGrip > 0f ? $"   Snow/ice grip {p.FrozenGrip}" : ""),
         PartCategory.FuelTank => $"Mass {p.Mass} t   Fuel +{p.FuelCapacity}   Strength {Strength(p)}",
         PartCategory.Turbo => $"Mass {p.Mass} t   +{p.TurboTorque * 100f:0}% torque, +{p.TurboSpin * 100f:0}% top spin at full boost   Spools in {p.SpoolTime:0.0} s",
+        PartCategory.Hydraulics => $"Mass {p.Mass} t   Hop {p.HopTapSpeed / 64f:0.0}–{p.HopSpeed / 64f:0.0} m/s up (tap / full squat, W)",
         PartCategory.Booster => $"Mass {p.Mass} t   Thrust {p.Thrust / 1000f:0.#} kN   Fuel use {p.BoostFuelUse}/s (Shift)",
         _ => $"Mass {p.Mass} t   Strength {Strength(p)}",
     };
@@ -328,6 +329,7 @@ public partial class GarageScreen : Control
         PartCategory.Drill => "TOOLS",
         PartCategory.Booster => "BOOSTERS",
         PartCategory.Turbo => "TURBO",
+        PartCategory.Hydraulics => "HYDRAULICS",
         _ => category.ToString().ToUpperInvariant(),
     };
 

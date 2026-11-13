@@ -529,6 +529,25 @@ def part_turbo():
     return img
 
 
+def part_hydraulics():
+    # Lowrider hydraulics: a dark steel block with a chrome ram standing in it (the rod and its
+    # collar), a yellow pressure accumulator on the left and a red hose looping to the ram.
+    img, d = panel((62, 66, 78), (98, 104, 118), (36, 40, 48))
+    chrome, chrome_l, chrome_d = (196, 204, 216), (246, 250, 255), (110, 118, 132)
+    d.rectangle([11, 3, 16, P - 3], fill=chrome_d)                         # the cylinder
+    d.rectangle([12, 3, 15, P - 3], fill=chrome)
+    d.line([(13, 4), (13, P - 4)], fill=chrome_l)                          # polished stripe
+    d.rectangle([10, 2, 17, 4], fill=(70, 74, 86), outline=(30, 32, 40))   # top collar
+    d.rectangle([10, 12, 17, 14], fill=(70, 74, 86), outline=(30, 32, 40)) # gland
+    d.rounded_rectangle([3, 6, 8, P - 4], 2, fill=(230, 186, 50), outline=(130, 96, 20))   # accumulator
+    d.line([(4, 8), (4, P - 6)], fill=(252, 226, 120))
+    d.line([(8, 9), (10, 9)], fill=(190, 40, 34))                          # hose
+    d.line([(9, 9), (9, 16), (10, 16)], fill=(190, 40, 34))
+    for x, y in ((P - 4, 3), (P - 4, P - 4)):
+        d.point((x, y), fill=(200, 206, 216))                              # bolts
+    return img
+
+
 def wheel(radius, tread, rim_col):
     size = 56
     img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
@@ -574,7 +593,7 @@ def make_parts():
     parts = [part_frame_light(), part_steel(), part_heavy(),
              part_engine((150, 96, 60), (190, 150, 110), 2), part_engine((190, 60, 44), (220, 220, 226), 3),
              part_engine((224, 44, 30), (250, 210, 60), 4),
-             part_armor(), part_bumper(), part_fuel(), part_drill(), part_cab(), part_booster(), part_crystal_drill(), part_turbo()]
+             part_armor(), part_bumper(), part_fuel(), part_drill(), part_cab(), part_booster(), part_crystal_drill(), part_turbo(), part_hydraulics()]
     sheet = Image.new("RGBA", (P * len(parts), P), (0, 0, 0, 0))
     for i, p in enumerate(parts):
         sheet.paste(p, (i * P, 0))

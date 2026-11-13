@@ -267,6 +267,8 @@ public partial class WorldScene : Node2D
         _car.RockedFree += OnRockedFree;
         _car.TurboBlewOff += OnTurboBlowOff;
         _car.TurboFull += OnTurboFull;
+        _car.Hopped += OnHop;
+        _car.HopLanded += OnHopLanded;
         _car.AutoRock = !GameSession.NoRock;
         _judge.Cancel();
         _airTime = 0f;
@@ -1061,6 +1063,7 @@ public partial class WorldScene : Node2D
                          "A/D: drive   Q/E: tilt (also rolls you back over)   Space: handbrake   H: horn   F: get out" +
                          (_car.HasDrill ? $"   X: drill {(_car.DrillEnabled ? "ON" : "OFF")}" : "") +
                          (_car.HasBooster ? "   Shift: BOOST" : "") +
+                         (_car.HasHydraulics ? "   W: hop (hold to squat)" : "") +
                          (NearGarage() ? "   G: garage   R: repair" : "");
             // Speed, fuel and damage live on the dashboard now; the status line keeps where you are.
             float kmh = _car.Speed / PixelsPerMeter * 3.6f;
@@ -1556,6 +1559,15 @@ public partial class WorldScene : Node2D
         string flip = LandedFlip(l, ref flipKick);   // "BACKFLIP" if the jump turned the car over and it came down on its wheels
         switch (l.Grade)
         {
+            case LandingGrade.Perfect when FlatHop(l.Air):
+                // A hop on the flat landed square: no speed kick (or bunny-hopping would beat driving).
+                _perfectLandings++;
+                kick = flipKick;
+                if (kick > 0f) _car.Kick(kick);
+                if (mayToast && flip == null) Toast($"PERFECT HOP LANDING
+{l.Air:0.0} s air");
+                _sfx.Play("pickup", -6f);
+                break;
             case LandingGrade.Perfect:
                 kick = LandingJudge.KickFor(l.Air) + flipKick;
                 _car.Kick(kick);
@@ -1904,11 +1916,12 @@ public partial class WorldScene : Node2D
         if (GameSession.LaunchTest) RunLaunchBot();
         if (GameSession.RockTest) RunRockBot();
         if (GameSession.FlipTest) RunFlipBot();
+        if (GameSession.HopTest) RunHopBot();
         UpdateWatch();
         LogStall();
         RunHornBot();
 
-        if (!_driving && !GameSession.CrashTest && !GameSession.TripTest && !GameSession.IceTest && !GameSession.DeepTest && !GameSession.HookTest && !GameSession.VeinTest && !GameSession.LaunchTest && !GameSession.RockTest && !GameSession.FlipTest)
+        if (!_driving && !GameSession.CrashTest && !GameSession.TripTest && !GameSession.IceTest && !GameSession.DeepTest && !GameSession.HookTest && !GameSession.VeinTest && !GameSession.LaunchTest && !GameSession.RockTest && !GameSession.FlipTest && !GameSession.HopTest)
         {
             Vector2 feet = _player.Position + new Vector2(0f, Player.HalfHeight);
             // --stashtest: once the bot starts digging, bury a toolbox and a strongbox under its feet
@@ -1957,7 +1970,7 @@ public partial class WorldScene : Node2D
                  $"top={_topSpeed / PixelsPerMeter * 3.6f:0}km/h longestAir={_longestAir:0.0}s landings={_perfectLandings}/{_cleanLandings}/{_roughLandings}/{_flops} kickers={_kickerJumps}/{_kickerLaunches} longJumps={_longJumps}/{_jumpRecords}/{_longestJump:0.0}m " +
                  $"crashes={_crashFx.Hits} hardest={_crashFx.HardestHit / PixelsPerMeter * 3.6f:0}km/h sparks={_crashFx.SparkBursts} " +
                  $"cans={_cansTaken} heaps={_heapsTaken} smashed={_heapsSmashed} bestStreak={_bestStreak} " +
-                 $"dash={(_dash.Visible ? $"{_dash.ShownKmh:0}km/h" : "hidden")} lines={_lines.Intensity:0.00} peakLines={_peakLines:0.00} wind={_sfx.WindLevel:0.00} gear={_car.Gearbox.Gear}/{_car.Gearbox.Gears} revs={_car.Gearbox.Rpm:0.00} enginePitch={_sfx.LastEnginePitch:0.00} shifts={_car.Gearbox.Upshifts}/{_car.Gearbox.Downshifts} topGear={_car.Gearbox.TopGear} limiter={_car.Gearbox.Limiter} pops={_car.Backfires} turbo={(_car.HasTurbo ? $"peak {_car.TurboPeak:0.00} full {_car.TurboFullSeconds:0.0}s blowoffs {_car.TurboBlowOffs} now {_car.TurboBoost:0.00}" : "none")} starts={_perfectStarts}/{_goodStarts}/{_boggedStarts} sprints={_sprintsRun} sprintBest={GameSession.SprintBest:0.00} stuck={_stuckCount} rocks={_car.RockPulses} rockedFree={_rockFrees} longestStuck={_longestStuck:0.0}s flips={_backflips}/{_frontflips}/{_flipsCrashed} maxAirRot={_maxAirRot:0} rollOvers={_rollOvers} ice={_spray.IceSeconds:0.0}s slip={_spray.SlipSeconds:0.0}s bite={_spray.BiteSeconds:0.0}s trip={tripNow} reports={_tripsReported} deepest={_deepestThisRun:0.0}m crystalsMined={_crystalsMined} card={(_card.Showing ? _card.ShownScore.ToString() : "hidden")} {NightSummary()} {BirdSummary()} {DevilSummary()} {HookSummary()} {VeinSummary()} {FlightSummary()} | " +
+                 $"dash={(_dash.Visible ? $"{_dash.ShownKmh:0}km/h" : "hidden")} lines={_lines.Intensity:0.00} peakLines={_peakLines:0.00} wind={_sfx.WindLevel:0.00} gear={_car.Gearbox.Gear}/{_car.Gearbox.Gears} revs={_car.Gearbox.Rpm:0.00} enginePitch={_sfx.LastEnginePitch:0.00} shifts={_car.Gearbox.Upshifts}/{_car.Gearbox.Downshifts} topGear={_car.Gearbox.TopGear} limiter={_car.Gearbox.Limiter} pops={_car.Backfires} turbo={(_car.HasTurbo ? $"peak {_car.TurboPeak:0.00} full {_car.TurboFullSeconds:0.0}s blowoffs {_car.TurboBlowOffs} now {_car.TurboBoost:0.00}" : "none")} starts={_perfectStarts}/{_goodStarts}/{_boggedStarts} sprints={_sprintsRun} sprintBest={GameSession.SprintBest:0.00} stuck={_stuckCount} rocks={_car.RockPulses} rockedFree={_rockFrees} longestStuck={_longestStuck:0.0}s flips={_backflips}/{_frontflips}/{_flipsCrashed} maxAirRot={_maxAirRot:0} rollOvers={_rollOvers} ice={_spray.IceSeconds:0.0}s slip={_spray.SlipSeconds:0.0}s bite={_spray.BiteSeconds:0.0}s trip={tripNow} reports={_tripsReported} deepest={_deepestThisRun:0.0}m crystalsMined={_crystalsMined} card={(_card.Showing ? _card.ShownScore.ToString() : "hidden")} {NightSummary()} {BirdSummary()} {DevilSummary()} {HookSummary()} {VeinSummary()} {FlightSummary()} {HopSummary()} | " +
                  string.Join(" ", System.Array.ConvertAll(GameSession.Items, i => $"{i}={GameSession.Count(i)}")));
     }
 }
