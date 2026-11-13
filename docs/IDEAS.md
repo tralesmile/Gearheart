@@ -177,7 +177,7 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 167 | Pickaxe crits: about one swing in eight lands a CRIT that cracks the tile at once with a sharper sound | S | Open (new 2026-11-13, twenty-seventh session; variety in the most repeated action) |
 | 168 | Gold rush: once a day, at dawn, the garage bell rings and lucky ore is three times as common for a minute | S | Open (new 2026-11-13; a timed event that pulls you out of the garage, uses #151) |
 | 169 | Lucky strikes on the trip report and a "Find a lucky strike" trip goal | S | Open (new 2026-11-13; ties the jackpot to the trip score; shifts the bot's goal order) |
-| 170 | Cave bats: bats roost on cavern ceilings and burst out past you, squeaking, when you dig into their cavern or your lamp reaches them | S | **Built 2026-11-13** (PR #40, with #178: roosts of 3–6 on Deep cavern ceilings; seen within 4.5 m on foot / 6 m in the car with a clear view, a dig within 3 m, a honk or a dug-out ceiling sends them off squeaking; they weave round the cavern, bounce off its walls and fade into the dark; back after 90 s out of sight) |
+| 170 | Cave bats: bats roost on cavern ceilings and burst out past you, squeaking, when you dig into their cavern or your lamp reaches them | S | **Built 2026-11-13** (PR #40, with #178: roosts of 3–6 on Deep cavern ceilings; seen within 3.2 m on foot (5 m in the car; was 4.5 m, off screen) with a clear view, a dig within 3 m, a honk or a dug-out ceiling sends them off squeaking; they weave round the cavern, bounce off its walls and fade into the dark; back after 90 s out of sight) |
 | 171 | Dowsing rod: a hand tool (Iron + Crystal) whose tip dips toward the nearest lucky tile or stash within 20 m | S–M | Open (new 2026-11-13; turns the hunt into hot/cold, folds #9) |
 | 172 | Pause menu (Esc): resume, volume sliders, the key list, quit to desktop | S | **Built 2026-11-13** (PR #37: Esc / Start pauses; Master, Effects and Engine sliders on two new audio buses, fullscreen, the key list, Save and quit; settings in `user://settings.cfg`) |
 | 173 | Crumbling ledges in The Wastes: sandstone lips that crack and fall a second after the car lands on them | M | Open (new 2026-11-13; terrain that reacts, a reason to keep moving) |
@@ -199,7 +199,28 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 189 | Lava sea at the bottom of the world: the flat bedrock band becomes glowing lava with heat shimmer that burns the car | M | Open (new 2026-11-13; folds #148/#56; the bottom of the world gets an ending and a danger) |
 | 190 | Bounce mushrooms: rare glowing mushroom caverns whose caps fling you (or the car) up like a trampoline | S–M | Open (new 2026-11-13; a toy underground, a big moment when you fall into one) |
 | 191 | Torches you place (1 Scrap + 2 Dirt): light that stays where you put it, so deep tunnels become yours | S | Open (new 2026-11-13; Terraria's best small habit; makes the dark a building choice; folds #85) |
+| 192 | Guano pocket under every roost: dig the floor below a colony for a rich ore pocket | S | Open (new 2026-11-13, thirty-first session; bats become a sign that says "dig here") |
+| 193 | Bats in the headlights: drive into a cavern and a startled colony streams past the windscreen, the camera ducks, "BAT STORM!" | S | Open (new 2026-11-13; the car's first moment underground that is not a tunnel) |
+| 194 | Peek key: hold to look 6 m ahead (or up and down on foot), so you see roosts, landings and ore before you reach them | S | Open (new 2026-11-13; the 4.5 m bat bug showed how little of the cave a player sees at the foot zoom) |
+| 195 | Headlamp upgrade for the miner (garage, 3 Iron + 1 Crystal): a wider, brighter light cone underground | S | Open (new 2026-11-13; a part for the person, not the car; the Deep gets less grey) |
+| 196 | Cave trip goals: "Startle 3 bat colonies", "Reach 30 m deep", "Dig out a crystal cluster" | S | Open (new 2026-11-13; trip goals today are all about driving; this sends people underground) |
 | 29 | Speedometer redline overdrive: holding the needle in the red for 3 s with the booster unlocks a "SONIC" call-out and a sonic-boom puff | S | Open (new 2026-11-12, cheap thrill) |
+
+## 2026-11-13 (thirty-first session — finishing the bats)
+
+Started by checking for unfinished work: PR #40 (cave bats and echo) was open with three green runs, but its screenshots showed no bat at all. Looking closer: the roost the test chose had only two bats, they burst at 4.4 m, which is outside the half screen at the foot zoom (about 4.2 m wide each side), and both flew away from the player, off screen. So a real player would also hear a squeak and see nothing — the burst would be a sound effect, not a moment. Fixed that (bats now see you at 3.2 m on foot and 5 m in the car, roosts need room for three, half the colony darts past you) instead of starting something new.
+
+The most boring minute underground is still walking a cavern with no reason to go one way rather than another. What would make "one more dig"? Bats that point at something; seeing further; goals that send you down.
+
+| # | Idea | Why it would be fun | Size |
+| --- | --- | --- | --- |
+| 192 | Guano pocket under every roost | Bats become a sign that says "dig here"; a scare that pays | S |
+| 193 | Bats in the headlights ("BAT STORM!") | The drill car's first big moment in a cavern | S |
+| 194 | Peek key (look ahead / up / down) | You plan a dig or a landing instead of guessing | S |
+| 195 | Miner's headlamp upgrade | A part for the person; the Deep gets less grey | S |
+| 196 | Cave trip goals | Trip goals today all point at the road; these point down | S |
+
+Ranking for the next sessions (fun for the effort): speed traps (#181) and fresh heaps (#182) for the road; cave trip goals (#196) and the guano pocket (#192), which make the bats and the Deep pay; torches (#191); then a first creature that bites (#65).
 
 ## 2026-11-13 (thirtieth session — the Deep comes alive)
 
