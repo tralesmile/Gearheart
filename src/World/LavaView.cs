@@ -22,7 +22,7 @@ public partial class LavaView : Node2D
     public int SurfaceShown { get; private set; }
 
     private const float Ts = TileWorld.TileSize;
-    private const int RangeX = 56, RangeY = 34;
+    private const int RangeX = 46, RangeY = 20;
 
     private static readonly Color Deep = new(0.55f, 0.07f, 0.02f);
     private static readonly Color Body = new(0.93f, 0.33f, 0.05f);
@@ -140,16 +140,17 @@ public partial class LavaView : Node2D
                         float wave = Wave(px + sx * 4f);
                         DrawRect(new Rect2(px + sx * 4f, py + wave, 4f, Ts - wave), body);
                     }
-                // Drifting crust and hot streaks: 4 px cells of slow noise.
-                for (int sy = top ? 1 : 0; sy < 4; sy++)
+                // Drifting crust and hot streaks: 8 px cells of slow noise (cheap; 4 per tile).
+                for (int sy = 0; sy < 2; sy++)
                 {
-                    for (int sx = 0; sx < 4; sx++)
+                    for (int sx = 0; sx < 2; sx++)
                     {
-                        float wx = px + sx * 4f, wy = py + sy * 4f;
+                        float wx = px + sx * 8f, wy = py + sy * 8f;
+                        if (top && sy == 0) continue;
                         float n = Mathf.Sin(wx * 0.045f + _time * 0.35f + Mathf.Sin(wy * 0.08f + _time * 0.2f) * 1.7f)
                                 * Mathf.Sin(wy * 0.06f - _time * 0.25f + wx * 0.013f);
-                        if (n > 0.45f) DrawRect(new Rect2(wx, wy, 4f, 4f), new Color(Crust, Mathf.Clamp((n - 0.45f) * 3f, 0f, 0.85f)));
-                        else if (n < -0.6f) DrawRect(new Rect2(wx, wy, 4f, 4f), new Color(Hot, Mathf.Clamp((-0.6f - n) * 3f, 0f, 0.8f)));
+                        if (n > 0.45f) DrawRect(new Rect2(wx, wy, 8f, 8f), new Color(Crust, Mathf.Clamp((n - 0.45f) * 3f, 0f, 0.85f)));
+                        else if (n < -0.6f) DrawRect(new Rect2(wx, wy, 8f, 8f), new Color(Hot, Mathf.Clamp((-0.6f - n) * 3f, 0f, 0.8f)));
                     }
                 }
                 if (!top) continue;
@@ -205,8 +206,10 @@ public partial class LavaView : Node2D
         if (World == null) return;
         int cx = Mathf.FloorToInt(Focus.X / Ts), cy = Mathf.FloorToInt(Focus.Y / Ts);
         if (cy + RangeY < Lava.Row) return;
-        int y0 = Mathf.Max(Lava.Row, cy - RangeY), y1 = Mathf.Min(TileWorld.Height - 3, cy + RangeY);
-        for (int y = y0; y <= y1; y++)
+        // Only the lake top and the first couple of rows glow (the deep body is darkened anyway and mostly
+        // off screen); drawing a halo per tile over the whole sea is what made this heavy.
+        int y1 = Mathf.Min(TileWorld.Height - 3, Lava.Row + 2);
+        for (int y = Lava.Row; y <= y1; y++)
         {
             for (int x = cx - RangeX; x <= cx + RangeX; x++)
             {

@@ -87,7 +87,7 @@ jobs:
           run "world: low fuel (starter car with 30% fuel east: the home arrow turns orange, a fuel can turns it back)" res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --lowfuel --design=starter
           run "world: the Deep (on foot in a crystal cavern, dig out crystals)" res://scenes/world.tscn --quit-after 3600 -- --fresh --autoplay --deeptest --design=starter
           run "world: cave bats (on foot 5.5-10 m from a roost with a clear view in the Deep, walk at it until the bats burst)" res://scenes/world.tscn --quit-after 1800 -- --fresh --autoplay --battest --design=starter
-          run "world: magma sea (the mechanic dropped over a lava lake carrying ore, thrown out, walks back in; then the car dropped in and driven out)" res://scenes/world.tscn --quit-after 2400 -- --fresh --autoplay --lavatest --design=starter
+          run "world: magma sea (the mechanic dropped over a lava lake carrying ore, thrown out, walks back in; then the car dropped in and driven out)" res://scenes/world.tscn --quit-after 3000 -- --fresh --autoplay --lavatest --design=starter
           run "world: drive left to the Frozen North"  res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --left --design=starter
           run "world: drive left to the Frozen North on Spiked Tyres" res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --left --design=spiked
           run "world: V8 swap (engine sound and gearbox, 6 gears)" res://scenes/world.tscn --quit-after 2400 -- --fresh --autoplay --design=v8

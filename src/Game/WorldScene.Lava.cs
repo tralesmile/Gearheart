@@ -332,7 +332,9 @@ public partial class WorldScene
             if (t < 8f || _lavaCarDropX < 0) return;
             _lavaCarDropped = true;
             int cx = _lavaCarDropX;
-            var at = new Vector2((cx + 0.5f) * Ts, (Lava.Row - 5) * Ts);
+            // Set it down right at the lava surface (barely a drop), so it settles into the lake and floats
+            // instead of falling onto a pillar wall and bouncing out.
+            var at = new Vector2((cx + 0.5f) * Ts, (Lava.Row - 1) * Ts);
             SpawnCar(at: at);
             EnterCar();
             _car.DrillEnabled = false;
@@ -340,12 +342,12 @@ public partial class WorldScene
             _lavaCarAt = _elapsed;
             _camera.Position = at;
             _airCam.Snap(at);
-            GD.Print($"[lava] test: car dropped 1.5 m over the middle of a {(_lavaCarLakeTo - _lavaCarLakeFrom + 1) * 0.25f:0.0} m lake (tile {cx}), damage {_car.Damage:0.0} frame={Engine.GetFramesDrawn()}");
+            GD.Print($"[lava] test: car set down at the lava surface over a {(_lavaCarLakeTo - _lavaCarLakeFrom + 1) * 0.25f:0.0} m lake (tile {cx}), damage {_car.Damage:0.0} frame={Engine.GetFramesDrawn()}");
             return;
         }
 
         float ct = _elapsed - _lavaCarAt;
-        if (ct > 3f && _car.AutoThrottle == 0f)
+        if (ct > 4f && _car.AutoThrottle == 0f)
         {
             // Floor it towards the nearer shore.
             int cx = Mathf.FloorToInt(_car.CenterPosition.X / Ts);
@@ -353,7 +355,7 @@ public partial class WorldScene
             _car.AutoThrottle = dir;
             GD.Print($"[lava] test: throttle {(dir > 0 ? "east" : "west")} towards the nearer shore, damage {_car.Damage:0.0} share={_car.LavaShare:0.00} frame={Engine.GetFramesDrawn()}");
         }
-        if (ct > 9f)
+        if (ct > 12f)
         {
             _lavaDone = true;
             GD.Print($"[lava] test: done. {LavaSummary()} car in lava now={_car.InLava} damage={_car.Damage:0.0} frame={Engine.GetFramesDrawn()}");
