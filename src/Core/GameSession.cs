@@ -88,6 +88,8 @@ public static class GameSession
     /// <summary>--veintest: a seven-tile iron vein is buried under the mechanic, who mines it out as one vein run.</summary>
     public static bool VeinTest => UserArgs.Contains("--veintest");
     public static bool PauseTest => UserArgs.Contains("--pausetest");
+    /// <summary>CI: the car starts with 30% fuel, so the home arrow's LOW FUEL mode shows on the drive.</summary>
+    public static bool LowFuel => UserArgs.Contains("--lowfuel");
     /// <summary>--launchtest: the bot gets straight in and launches with launch control, letting go in the green
     /// (--launchearly: lets go far too early for a bogged start).</summary>
     public static bool LaunchTest => UserArgs.Contains("--launchtest") || LaunchEarly;

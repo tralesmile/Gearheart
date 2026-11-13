@@ -65,6 +65,7 @@ jobs:
             grep "\[nextpart\]" smoke.log | head -20
             grep "\[lucky\]" smoke.log | head -20
             grep "\[pause\]" smoke.log | head -20
+            grep "\[home\]" smoke.log | head -24
             grep "\[hop\]" smoke.log | head -60
             # "resources still in use at exit" is a shutdown notice about cached textures and sounds, not a fault.
             if grep -E "ERROR|Unhandled exception|SCRIPT ERROR|System\.[A-Za-z]*Exception" smoke.log | grep -v "still in use at exit" | grep .; then
@@ -79,6 +80,7 @@ jobs:
           run "world: grappling hook (climb out of a 12 m shaft with the hook alone, then a throw into the sky)" res://scenes/world.tscn --quit-after 2400 -- --fresh --autoplay --hooktest --design=starter
           run "world: vein run (a buried 7-tile iron vein mined as one run, then a lone scrap tile after it goes cold)" res://scenes/world.tscn --quit-after 2400 -- --fresh --autoplay --veintest --design=starter
           run "world: pause menu (Esc while mining: the world stops, sliders move, the settings file round trip, Esc resumes)" res://scenes/world.tscn --quit-after 1800 -- --fresh --autoplay --pausetest --design=starter
+          run "world: low fuel (starter car with 30% fuel east: the home arrow turns orange, a fuel can turns it back)" res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --lowfuel --design=starter
           run "world: the Deep (on foot in a crystal cavern, dig out crystals)" res://scenes/world.tscn --quit-after 3600 -- --fresh --autoplay --deeptest --design=starter
           run "world: drive left to the Frozen North"  res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --left --design=starter
           run "world: drive left to the Frozen North on Spiked Tyres" res://scenes/world.tscn --quit-after 4800 -- --fresh --autoplay --left --design=spiked
@@ -358,6 +360,23 @@ jobs:
             done
           done
           grep "\[pause\]" shots/pause.log | head -12
+          # The way home: the arrow at the screen edge on the drive out (world, trip, low fuel), and the garage lit at night.
+          mkdir -p shots/lowfuel
+          xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/lowfuel/f.png --quit-after 330 res://scenes/world.tscn -- --fresh --autoplay --lowfuel --design=starter > shots/lowfuel.log 2>&1 || true
+          for run in world trip lowfuel nightleft night; do
+            grep "\[home\] arrow on" shots/$run.log | head -3 | sed -E 's/.*frame=([0-9]+).*/\1/' | while read n; do
+              for d in 3 20; do
+                f=$(printf "shots/$run/f%08d.png" $((n + d))); [ -f "$f" ] && cp "$f" keep/home_${run}_$((n + d)).png
+              done
+            done
+            grep "\[home\]" shots/$run.log | head -12
+          done
+          for i in 5 30 60 90; do
+            f=$(printf "shots/nightleft/f%08d.png" $i); [ -f "$f" ] && cp "$f" keep/beacon_$i.png
+          done
+          for i in 5 40; do
+            f=$(printf "shots/dawn/f%08d.png" $i); [ -f "$f" ] && cp "$f" keep/beacon_dawn_$i.png
+          done
           # Crash frames: the frame of each of the first hits (from "[crash] ... frame=N") and the next two.
           for run in crash rocket; do
             grep "\[crash\] hit" shots/$run.log | head -4 | sed -E 's/.*frame=([0-9]+).*/\1/' | while read n; do

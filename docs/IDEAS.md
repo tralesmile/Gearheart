@@ -169,7 +169,7 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 159 | Garage radio: a tiny procedural tune per biome that plays at the garage and fades out on the road | M | Open (new 2026-11-13; the game has no music at all) |
 | 160 | Where to find it: the next-part card names where its missing ore lives ("Copper: The Wastes, east") | S | Open (new 2026-11-13, twenty-sixth session; top pick next: new players do not know where copper is) |
 | 161 | Pin a part at the garage: click a part to make it the next-part card's target | S | Open (new 2026-11-13; your goal, not the game's guess) |
-| 162 | Homeward arrow: a part is ready and the garage is off screen → a gold arrow at the screen edge with the distance | S | Open (new 2026-11-13; "ready" becomes "drive back now") |
+| 162 | Homeward arrow: a part is ready and the garage is off screen → a gold arrow at the screen edge with the distance | S | **Built 2026-11-13** (PR #39, with #174: shown whenever the garage is off screen and 10 m+ away; pale, gold "PART READY", or orange "LOW FUEL" under a quarter tank) |
 | 163 | Goal-aware trip goals: "Bring home 3 Copper (Turbocharger)" when that is what your next part lacks | S | Open (new 2026-11-13; ties trips to building; shifts the bot's goal order) |
 | 164 | Ore magnet part (Iron + Copper): heap scrap and fuel cans within 3 m are pulled into the car | S–M | Open (new 2026-11-13; a part you feel on every road) |
 | 165 | Garage "afford" glow: parts you can build now glow in the garage palette, the card's part first | S | Open (new 2026-11-13; folds #42) |
@@ -181,14 +181,38 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 171 | Dowsing rod: a hand tool (Iron + Crystal) whose tip dips toward the nearest lucky tile or stash within 20 m | S–M | Open (new 2026-11-13; turns the hunt into hot/cold, folds #9) |
 | 172 | Pause menu (Esc): resume, volume sliders, the key list, quit to desktop | S | **Built 2026-11-13** (PR #37: Esc / Start pauses; Master, Effects and Engine sliders on two new audio buses, fullscreen, the key list, Save and quit; settings in `user://settings.cfg`) |
 | 173 | Crumbling ledges in The Wastes: sandstone lips that crack and fall a second after the car lands on them | M | Open (new 2026-11-13; terrain that reacts, a reason to keep moving) |
-| 174 | Garage beacon: at dusk the garage switches on a lamp post and a lit window, with a soft light cone you can see from far away | S | Open (new 2026-11-13, twenty-eighth session; home is a light in the dark, a reason to drive back at night) |
+| 174 | Garage beacon: at dusk the garage switches on a lamp post and a lit window, with a soft light cone you can see from far away | S | **Built 2026-11-13** (PR #39: lamp post with a light pool, the shed lit inside, a roof searchlight sweeping the sky; seen from about 15 m, the arrow does the rest) |
 | 175 | Fumes finish: below 10% fuel the dash blinks and beeps; reaching home that way scores "MADE IT ON FUMES" on the trip report | S | Open (new 2026-11-13; tension on the drive home, a story every few trips) |
 | 176 | Photo mode from the pause menu: hide the HUD, nudge the camera, save a PNG | S | Open (new 2026-11-13; builds on the menu; players love sharing crashes and their car) |
 | 177 | Instant replay: after a big crash or flip, Tab replays the last 4 s at half speed from a side camera | M | Open (new 2026-11-13; the best moments become ones you watch twice) |
 | 178 | Cave echo: a reverb on the Effects bus that fades in underground, so the pickaxe and crystals ring in the Deep | S | Open (new 2026-11-13; uses the new buses; the Deep sounds like a cave for almost no work) |
 | 179 | Tumbleweeds in The Wastes that roll across the road with the wind, bounce off the car and count for the smash streak | S | Open (new 2026-11-13; something moving on the empty desert road) |
 | 180 | Moles in the meadow: dig near one and it pops up, squeaks and burrows away, sometimes dropping the scrap it was hoarding | S–M | Open (new 2026-11-13; life in the dirt you dig every minute, a tiny surprise) |
+| 181 | Speed traps: a camera post on the road flashes as you pass and keeps your best speed there ("SPEED TRAP 74 km/h · best 68") | S | Open (new 2026-11-13, twenty-ninth session; Need for Speed's best small idea, a target on the flat stretches) |
+| 182 | Fresh heaps on the way home: smashed scrap heaps and taken fuel cans come back after a few minutes, so the road home has targets | S | Open (new 2026-11-13; the drive back is the most repeated minute) |
+| 183 | Garage dog: a scruffy dog lives at the garage, runs out barking when you come home and trots after you on foot | S–M | Open (new 2026-11-13; warmth and a reason home feels like home, The Sims' attachment) |
+| 184 | Range on the dashboard: "about 40 m left" from the fuel and your recent use, turning red when home is further than the range | S | Open (new 2026-11-13; turns low fuel into a decision; pairs with the LOW FUEL arrow and #175) |
+| 185 | Garage radio: a short generated chiptune loop per biome that plays quietly while driving, with its own volume slider | M | Open (new 2026-11-13; the game has no music at all) |
+| 186 | Delivery bonus: come home with a part ready and the report adds "DELIVERED: Drill Head +50" | S | Open (new 2026-11-13; rewards following the gold arrow) |
 | 29 | Speedometer redline overdrive: holding the needle in the red for 3 s with the booster unlocks a "SONIC" call-out and a sonic-boom puff | S | Open (new 2026-11-12, cheap thrill) |
+
+## 2026-11-13 (twenty-ninth session — the way home)
+
+Merged nothing first: PR #37 (pause menu) was open and green (run 43363343073; `pause_57.png` shows the PAUSED panel with the sliders, the toggle button and the key list), but the session that opened it was still running and pushed a docs commit while I tried to merge, so I left the merge to it and built on its branch.
+
+Looked as a player. `world_230.png`: the starter car in The Wastes, 100 m out, the gold READY Drill Head card and "head to the garage to build it" — but nothing on screen says which way the garage is, and it has been off screen for 90 m. `night_330.png`: 176 m out at 02:33, moonlit dunes; the headlights are the only light in the world, home is nowhere. The most boring (and slightly lost) minute is the one after "PART READY": you know you should go home, but home is just "back there". The best minute should be that drive home with the prize.
+
+| # | Idea | Why it would be fun | Size |
+| --- | --- | --- | --- |
+| 162 + 174 | Home arrow and the garage lit at night (built today) | "Ready" becomes "drive back now", and coming home in the dark means driving at a light | S |
+| 181 | Speed traps on the road | A number to beat on every flat stretch; Need for Speed's cheapest thrill | S |
+| 182 | Fresh heaps on the way home | The drive back has things to smash instead of an empty road | S |
+| 183 | Garage dog | Somebody is happy you came home; makes the base feel like a home | S–M |
+| 184 | Range on the dashboard | Low fuel becomes a decision ("can I make it?") rather than a surprise | S |
+| 185 | Garage radio (generated chiptune per biome) | The game has no music; music is half of a game's mood | M |
+| 186 | Delivery bonus on the report | Following the gold arrow home pays on the score you try to beat | S |
+
+Ranking for the next sessions (fun for the effort): speed traps (#181) and fresh heaps (#182) for the road; cave echo (#178) and cave bats (#170) for the Deep; fumes finish (#175) with range (#184); then a first creature that bites (#65), and music (#185) as a polish session.
 
 ## 2026-11-13 (twenty-eighth session — polish: a pause menu)
 
