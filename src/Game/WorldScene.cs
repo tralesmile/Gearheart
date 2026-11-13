@@ -204,7 +204,7 @@ public partial class WorldScene : Node2D
         _player.Placed += () => _sfx.Play("place");
         SetupHook();
         SetupBirds(garage.Position);
-        SetupBats();
+        SetupBats(glintLayer);
         _crashFx.Camera = _camera;
         _crashFx.Sfx = _sfx;
         _crashFx.Toast = text =>

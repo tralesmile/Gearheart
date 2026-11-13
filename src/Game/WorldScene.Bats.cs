@@ -20,11 +20,13 @@ public partial class WorldScene
     private bool _batPlaced, _batWatchLogged;
     private float _batPlacedAt;
 
-    private void SetupBats()
+    private void SetupBats(CanvasLayer glintLayer)
     {
         _bats = new Bats { Name = "Bats", World = _world, Sfx = _sfx, Focus = _player.Position };
         _bats.Startled += OnBatsStartled;
-        AddChild(_bats);
+        // On the glint layer, so the Deep's darkness does not swallow them: the first two CI runs' frames
+        // showed nothing at all past the lamp's 4 m. They shade themselves instead (Bats._Draw).
+        glintLayer.AddChild(_bats);
 
         if (!GameSession.AutoPlay) return;
         int bats = 0, mid = (TileWorld.PadFrom + TileWorld.PadTo) / 2;

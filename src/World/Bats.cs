@@ -295,7 +295,10 @@ public partial class Bats : Node2D
             foreach (var b in r.Bats)
             {
                 if (b.Gone) continue;
-                Color tint = Colors.White;
+                // Drawn above the darkness: dim silhouettes in the dark, full colour in the lamp's light.
+                Vector2 where = b.Flying ? b.Pos : b.Hang;
+                float lit = 0.62f + 0.38f * Mathf.Clamp(1f - (where.DistanceTo(Focus) - 120f) / 260f, 0f, 1f);
+                Color tint = new(lit, lit * 0.95f, lit, 1f);
                 if (b.Flying && b.Delay <= 0f)
                 {
                     int frame = (int)(b.Anim * 22f) % 2 == 0 ? 2 : 3;
