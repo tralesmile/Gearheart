@@ -82,6 +82,12 @@ public sealed class PartDefinition
     public float Damping { get; set; }
     public float RestLength { get; set; }
 
+    /// <summary>
+    /// Upgrade goal tier for the "next part" tracker on the HUD (0 = not an upgrade worth chasing,
+    /// 1 = the first things to build, 2 = needs a trip to another biome, 3 = the Deep).
+    /// </summary>
+    public int GoalTier { get; set; }
+
     [JsonIgnore] public Color GodotColor => new(ColorHex);
 
     /// <summary>True for parts placed as a block in the body grid.</summary>
