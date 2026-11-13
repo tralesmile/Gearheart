@@ -72,7 +72,13 @@ public partial class WorldScene
         {
             Vector2 feet = _player.Position + new Vector2(0f, Player.HalfHeight - 4f);
             bool inLava = Lava.AtPoint(_world, feet) || Lava.AtPoint(_world, _player.Position);
-            if (inLava && _scorchCooldown <= 0f) Scorch();
+            if (inLava)
+            {
+                // Lava is dense: it floats you at the surface rather than letting you sink, so each scorch
+                // launches from the top and clears the lip. (The throw itself sets a stronger upward speed.)
+                _player.Velocity.Y = Mathf.Min(_player.Velocity.Y, -260f);
+                if (_scorchCooldown <= 0f) Scorch();
+            }
             if (_scorchLandWatch >= 0f && GameSession.AutoPlay)
             {
                 _scorchLandWatch += dt;
@@ -155,9 +161,9 @@ public partial class WorldScene
         // A low, shore-ward hop: up just enough to clear the lip (about 1.1 m), strong sideways so you skip
         // onto the shore instead of launching into the cavern ceiling and dropping straight back in. A wide
         // lake takes several hops (an ore is lost at most every 3 s), each one landing you nearer the edge.
-        float up = 300f;
+        float up = 380f;                                                  // about 1.5 m, clears the lip
         float flight = 2f * up / 1250f;                                   // Player.Gravity; time to fall back to this height
-        float vx = Mathf.Clamp((shoreDist * Ts + 20f) / flight, 240f, 560f) * shoreDir;
+        float vx = Mathf.Clamp((shoreDist * Ts + 20f) / flight, 260f, 620f) * shoreDir;
         // A pool only a few tiles wide (usually your own shaft into the magma) crusts over once you are out,
         // so you cannot bounce in it forever.
         int width = LakeWidthAt(tx);
@@ -360,15 +366,17 @@ public partial class WorldScene
     /// </summary>
     private int CarDropColumn(int from, int to)
     {
-        for (int x = from + 5; x <= to - 5; x++)
-        {
-            if (!Lava.At(_world, x, Lava.Row)) continue;
-            bool clear = true;
-            for (int y = Lava.Row - 8; y < Lava.Row && clear; y++)
-                for (int dx = -5; dx <= 5; dx++)
-                    if (_world.Solid(x + dx, y)) { clear = false; break; }
-            if (clear) return x;
-        }
+        // Prefer a roomy gap (9 wide, 6 tall); fall back to a tighter one so a lake is rarely rejected.
+        foreach (var (halfW, rows) in new[] { (4, 6), (3, 5) })
+            for (int x = from + halfW; x <= to - halfW; x++)
+            {
+                if (!Lava.At(_world, x, Lava.Row)) continue;
+                bool clear = true;
+                for (int y = Lava.Row - rows; y < Lava.Row && clear; y++)
+                    for (int dx = -halfW; dx <= halfW; dx++)
+                        if (_world.Solid(x + dx, y)) { clear = false; break; }
+                if (clear) return x;
+            }
         return -1;
     }
 
