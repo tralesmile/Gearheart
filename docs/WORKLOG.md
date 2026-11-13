@@ -2,6 +2,46 @@
 
 Newest entry first. Each session: what was built and why, how it was verified, what is not verified, and what comes next.
 
+## 2026-11-13, about 00:20–01:50 UTC — Merged ore flies home (PR #32), then Hydraulics (PR #33)
+
+**Started by** checking for unfinished work: PR #32 (ore flies home) was open with its second build (43335873583) running; it finished green at 00:32. Its `[flyhome]` lines matched the PR (the vein test: Iron 0 → 8 on the bar one landing at a time, flights 0.60–0.66 s; "right after the last tile: Iron shown 8 of 8, Scrap shown 0 of 2" with the two scrap icons still in the air, then 2 of 2), every 40 s position was identical to main, and `flyhome_14.png` / `flyhome_stash_44.png` / `flyhome_stash_48.png` show the icon on a bright disc rising out of the hole, the toolbox's fan of icons with an x4 tag, and the Iron slot ringing on landing. Its worklog entry had not been written (the session that built it ran out), so this note stands for it. I squash-merged it (63d47ff).
+
+**Built — Hydraulics, a new part** (`src/Vehicles/SoftVehicle.Hydraulics.cs`, `src/Game/WorldScene.Hop.cs`, `data/parts/parts.json`, `hop` sound, sprite 14 in `parts.png`)
+
+- **Hydraulics** (3 Iron + 2 Copper, a block anywhere in the body). Hold **W** (Up, B on a gamepad): the body squats onto its springs and a bar over the block fills (yellow → red, blinks when full) in 0.5 s. Let go: the car hops, mostly along its own up. A tap is a little hop, a full squat a big one. Squat in the air and let go just before touchdown and it fires on landing (a bounce). One hop per touchdown, 0.7 s recharge, 0.6 fuel each.
+- Hop sound (valve click, a deep thump sliding down, a vent of air; its own random stream, every older WAV byte-identical, checked with md5), a dust burst from the wheels, a little shake, nearby birds startle. "HYDRAULICS!" call-out on the first hop, "BIG HOP x.x m" for 1.4 m+ on the flat, "KICKER HOP!" for a charged hop off a kicker's lip. "W: hop (hold to squat)" on the hint line when the car has it; README and the garage stats line ("Hop 4.2–8.8 m/s up").
+- A perfect landing after a hop on the flat is graded "PERFECT HOP LANDING" but gives no speed kick and doesn't count for the trip (otherwise bunny-hopping would beat driving). Off a kicker it counts as usual, flip kicks always.
+- No save or world-generation change; old saves simply see a new part in the garage.
+- **CI**: `--hoptest --design=hopper` (starter + Hydraulics beside the cab): a tap about 5 m out, a full squat about 12 m out, then it squats on every kicker's run-up and lets go two tiles short of the crest. A second run adds `--fliptest`. `[hop]` lines; `hops=… kickerHops=… bestHop=… bestHopAir=…` on `[autoplay]`; `hop_*.png` / `hop_squat_*.png`.
+
+**Why this** — Brainstorm in `docs/IDEAS.md` (twenty-fifth session). The last two sessions were mining polish, so this one is a feature, on the car side: it had no new part since the Turbocharger, and every part so far makes the car faster or makes it dig; none gives the driver a new move. The flip test said the starter car's kicker jumps are too short for a flip, so the best trick in the game needed the Rocket Booster. A hop is felt on the first press, helps with the most annoying minute of driving (a lip or step you can't get over), and turns every kicker into a bigger jump. Hydraulics (#89) had been near the top of the ranked list for ten sessions.
+
+**CI runs**: 43338984517 (compile error: a `\n` in a call-out turned into a real line break by my edit script), 43339254075 (green), 43341976592 (green), and one for these docs.
+
+1. Run 2: the hop worked (tap 0.93 m, full squat 2.39 m, 0.83 s), but the tap was bigger than meant, and the bot let go of its kicker squats at the first bump of the run-up (one wheel off for a moment), 5–20 tiles early, so every kicker hop was a 0.02-charge tap. Even so, two of them gave 1.04 s and 1.14 s of air off the 1.75 m kickers. Run 3: tap 330 → 270 px/s, and the bot lets go only two tiles short of the crest.
+
+**Verified (run 43341976592)**
+
+- **Flat**: tap (charge 0.05, 4.4 m/s up) rose **0.65 m**, 0.54 s in the air; full squat (8.8 m/s) rose **1.82 m**, 0.79 s (2.39 m in run 2 from a different spot). The full hop's landing was not given a speed kick.
+- **Off kickers** (Hopper, no flips): five kicker hops, charge 0.62–1.0, released 1.8–2.0 tiles short of the crest: rose 2.6–3.9 m, **1.16–1.60 s of air**; the starter car without Hydraulics gets **0.62–0.67 s** off the same kickers (its own runs in this build). Two perfect landings (+15, +16 km/h), two clean, no damage.
+- **Flips**: with `--fliptest` the starter car + Hydraulics **landed a BACKFLIP** (-353 degrees in 1.27 s, rough) **and a FRONTFLIP** (360 degrees in 1.47 s, perfect landing, +24 km/h) — the plain starter car's flip run lands none (roof landings, 0.65 s of air).
+- **Screenshots**: `hop_squat_34.png` / `hop_squat_83.png` (the car squatting, the orange charge bar over the Hydraulics block beside the cab), `hop_38.png`–`hop_45.png` (the full hop: dust burst at the wheels, the car a car-height up on the flat), `hop_85.png`–`hop_90.png` (KICKER HOP!, the car high over the kicker with its landing shadow far below). Run 2's `hop_41.png` / `hop_43.png` show the same.
+- **Nothing else changed**: every 40 s position identical to main — starter 2209.3, drill 1414.8, Crystal Drill 1480.1, left 465.7, spiked 424.9, turbo 2302.1, devils 2173.2 / 2533.3, rocket 2552.7, flip 2543.3, trip 1629.2, flags 2209.3. No errors. (The Hopper ends at 2392.4: its kicker hops land further on.)
+
+**Not verified / known issues**
+
+- Fun is my judgement (D1): whether the hop feels punchy or floaty, whether 1.8–2.4 m is too much (it clears most of the screen's height at the drive zoom), and whether kicker hops make every jump too easy.
+- The human keys (W, Up, gamepad B) were not exercised; the bot drives the same code through `AutoHop`. The air-release bounce (squat in the air, let go before touchdown) was not exercised by a bot.
+- A full hop released on a slope or with one wheel down tips the car (the full flat hop landed with 50 degrees mismatch); that may feel wild or wrong.
+- The squat is subtle on screen; the charge bar is the clear signal. Sound tuned by numbers only.
+- "KICKER HOP!" replaces whatever call-out was showing (the trip goal's GOAL DONE line stayed at the top right).
+
+**Next**
+
+1. Hop stomp (S, IDEAS #154): land a hop on a scrap heap for STOMP! — gives the hop a target on every road.
+2. Boulders and ditches on the Wastes road (S–M, #155), a reason to hop (save version bump).
+3. Lucky strike (S, #151) / recipe nudge (S, #150) for the mining side; then a first creature (#158 night eyes or #65 crystal mites).
+
 ## 2026-11-12, about 22:24–23:55 UTC — Merged the grappling hook (PR #30), then vein runs (PR #31, polish and feel)
 
 **Started by** checking for unfinished work: PR #30 (grappling hook) was open, its docs run (43319246575) still going. I waited for it past the usual 10 minutes (it was already in the screenshot step and the code commit before it was green); it finished green at 22:39 with `[hook]` lines matching the PR (out of the 12.0 m shaft in 2.23 s with 4 throws, the miss, the fling) and `hook_8.png` / `hook_50.png` looking right, so I squash-merged it (72194a5).
