@@ -2,6 +2,45 @@
 
 Newest entry first. Each session: what was built and why, how it was verified, what is not verified, and what comes next.
 
+## 2026-11-13, about 04:20–05:30 UTC — The way home: home arrow and the garage lit at night (PR #39)
+
+**Started by** checking for unfinished work: PR #37 (pause menu) was open, its fix run 43363343073 green and `pause_57.png` right (PAUSED panel, sliders at 80/50/30%, "Fullscreen: Off" toggle, gold focused slider name). My squash-merge was refused because the session that opened it pushed a worklog commit at that moment; it merged the PR itself at about 04:50 (9df1c95). I started this branch on top of #37's branch and merged main into it after, so the diff is only this change.
+
+**Built — the way home** (`src/Game/HomeArrow.cs`, `src/Game/GarageBeacon.cs`, `src/Game/WorldScene.Home.cs`, `--lowfuel` in `GameSession`)
+
+- **Home arrow**: whenever the garage door is off screen and more than 10 m away (18 m on foot), an arrow sits at the screen edge on the line from the screen's middle toward the door, with a house badge and the distance. Pale normally; **gold, nudging, "PART READY"** when the next-part card is ready; **orange, blinking, "LOW FUEL"** under a quarter tank (low fuel wins). Fades in and out, pops when its mode changes, hidden while the trip report is up. Kept clear of the hint lines at the top and the bar, card and dashboard at the bottom.
+- **The garage at night**: from a little after sunset (night 0.15 → full at 0.65) a lamp post beside the door lights the pad (a real `PointLight2D` plus a halo and a light cone), the shed's inside glows warm (a second light and a wash over the inside), and a searchlight drum on the roof sweeps a beam across the sky (±55 degrees, an 18 s sweep). The glow is drawn additively on the glint layer, so the night tint doesn't dim it.
+- No save or world change, no new sound.
+- **CI**: `[home]` lines (arrow on / hidden and why, mode, metres to the door, direction east/west, tip position; garage lights on / off with the clock); `homeArrow=Nx/secs ready=… lowFuel=… maxDist=… wrongWay=… beacon=…` on `[autoplay]`. New smoke run `--lowfuel` (30% fuel); a 330-frame screenshot run with it; `home_*.png` from the world, trip, low-fuel and night runs; `beacon_*.png` from the start of the 22:00 run and the dawn run.
+
+**Why this** — Brainstorm in `docs/IDEAS.md` (twenty-ninth session). It was first on the last two sessions' "Next" lists (#162, #174). Looking at `world_230.png`: 100 m out in The Wastes, the card is gold and says "head to the garage", but nothing says which way, and the garage left the screen 90 m ago. Every trip is an out-and-back, so the drive home is the most repeated minute; it should feel like a run home with a prize, not "back there somewhere". The last session was polish (pause menu), so this was a small feature on the driving side that every player meets in the first minute.
+
+**CI runs**: 43366378778 (green), 43368784467 (green; after merging main and three small fixes from the screenshots: the arrow's glow read as a solid gold disc, the searchlight's hot spot was a white blob and its beam faint, and on foot the arrow showed while mining 13 m from the door), and one for this log.
+
+**Verified (run 43366378778)**
+
+- **Every world run**: the arrow appears 10 m out and **always points the right way** (`wrongWay=False` in all 35 world scenarios): west (178–180 degrees) on every eastbound drive, east (0–2 degrees) on the Frozen North drives, straight up (-95 degrees, top edge) in the Deep test 31 m under the garage. The tip sits at the left edge x=46 (right edge x=1234) at the car's height.
+- **Ready mode**: the walk bot's Drill Head turns ready at 89 m out → `arrow on: Ready`, then "Ready 126 m … 229 m" (19.2 s gold of 28.7 s shown). Crystal Drill car: ready at 43 m.
+- **Low fuel** (`--lowfuel`, 21/75 at the start): Plain at 10 m, **LowFuel at 32 m (fuel 19)**, back to Plain at 47 m after a fuel can (35), Ready, LowFuel again at 167 m (fuel 19), Ready after the next can; 2.5 s of LowFuel in all.
+- **Trip test**: shown on both legs out and home ("Ready 81 m … 36 m" on the way back), hidden when the report comes up at 11 m (`report up`), back afterwards.
+- **Garage lights**: on at 19:04 (night 0.40) in the dusk run, at 22:00 in the night run, `beacon=1.00` at night and 0.00 by day.
+- **Screenshots**: `home_world_228.png` (gold arrow at the left edge, "PART READY · 102 m", the READY card and the PART READY call-out), `home_lowfuel_140.png` (orange arrow "LOW FUEL · 34 m", the fuel gauge at 18/75), `home_lowfuel_158.png` (pale arrow "50 m" after a can), `home_nightleft_143.png` (night, arrow at the right edge "27 m", the lamp's pool of light on the hill behind), `beacon_5.png` / `beacon_dawn_5.png` (the garage at 22:03 and 04:17: lamp post with a warm halo, the pad and the shed lit orange, the searchlight drum on the roof, its beam going up).
+- **Nothing else changed**: every scenario's last `[autoplay]` car position is identical to main's run 43365682635 (35 of 35; the new low-fuel run ends where the starter does, 2209.3). No errors.
+- **Run 2 (43368784467)**: the same numbers and the same final positions in every scenario; the hook and vein runs (mining 13–15 m from the door) no longer show the arrow, the Deep test (31 m under) still does. `home_world_228.png` now shows a clean gold arrowhead with a faint glow beside the PART READY · 102 m badge; `beacon_dawn_5.png` the smaller searchlight hot spot and the beam rising past the top of the screen.
+
+**Not verified / known issues**
+
+- Fun is my judgement (D1): whether a pale arrow that is always there is calm help or clutter, and whether the gold arrow pulls you home.
+- The searchlight only reaches about 15 m of the road at the drive zoom (a side view shows little sky); beyond that only the arrow helps. The beam is faint by design; nobody has seen it moving (frames only).
+- The arrow points at the door in a straight line, not along the road; underground it points through the rock (up), which is right for the hook but not a route.
+- No arrow to the car when you walk away from it (an easy follow-up if players lose the car).
+
+**Next**
+
+1. Speed traps on the road (S, IDEAS #181) or fresh heaps on the way home (S, #182): something to do on the drive back.
+2. Cave echo (S, #178) then cave bats (S, #170) for the Deep.
+3. Fumes finish with a range readout (S, #175 + #184); then a first creature that bites (M, #65).
+
 ## 2026-11-13, about 03:20–04:20 UTC — Merged lucky strikes (PR #36), then a pause menu (PR #37)
 
 **Started by** checking for unfinished work: PR #36 (lucky strikes) was open and green (run 43356684152). Its `[lucky]` lines showed the census (437 ore tiles near the garage, 30 lucky), the test tile paying `+2 +4 extra = 6 Scrap` and natural strikes by the drill and pickaxe; `lucky_114.png` shows LUCKY STRIKE! with the gold ring and `lucky_gleam_109.png` the gold-rimmed tile. Squash-merged (e682c65). The session that opened it was still running and opened a docs PR (#38) afterwards; I left that one alone.
