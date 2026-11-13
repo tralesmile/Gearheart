@@ -17,19 +17,19 @@ Newest entry first. Each session: what was built and why, how it was verified, w
 
 **Why this** — Brainstorm in `docs/IDEAS.md` (twenty-eighth session). The last three sessions were features, so this was the polish session. The roughest moment in the game was not in the play: Esc ended the game, nobody could turn the engine down, and the keys were only in the README. It is the first thing any tester reaches for (IDEAS #172).
 
-**CI runs**: 43359321308 (green), and one for these docs.
+**CI runs**: 43359321308 (green; its screenshots were overwritten on the screenshots branch by two other runs that finished right after it, and the artifact download is blocked from here), 43361315835 (green, docs only; screenshots seen), and one for two small fixes from looking at them: the fullscreen check box was dark on dark, so it is now a toggle button ("Fullscreen: Off/On") styled like the others, and the focused slider's name turns gold so a keyboard or gamepad player can see which slider moves.
 
 **Verified (run 43359321308)**
 
 - **Smoke `--pausetest`**: `bot presses Esc at t=4.00s` → `world stopped … on foot` → `opened paused=True focus=Resume master=1.00 effects=1.00 engine=1.00` → `sliders master=0.80 (-3.9 dB) effects=0.50 (-12.0 dB) engine=0.30 (-20.9 dB) buses=3` → `two presses of Down: focus=Effects` → `settings saved (Ok) and read back from user://settings_pausetest.cfg: master=0.80 effects=0.50 engine=0.30` → `bot presses Esc` → `closed after 30 frames paused=False` → **`world resumed: t=4.00s -> 4.00s, player moved 0.0 px, car moved 0.0 px while paused`**. Afterwards the bot kept digging (player row 63.6 → 72.6 by t=10 s), got in and drove (31–33 km/h at t=12–14 s): the world comes back.
 - **Across processes**: the screenshot run (a new process, same user folder) opened the menu with `master=0.80 effects=0.50 engine=0.30`, the values the smoke run had saved.
+- **Screenshots** (run 43361315835): `pause_44.png` and `pause_57.png` show the dimmed world behind a gold-rimmed PAUSED panel: Resume, the three sliders at 80% / 50% / 30%, Fullscreen, Save and quit on the left, the on-foot and driving keys on the right, "Esc / Start: resume" under it; in `pause_44` Resume has the gold focus frame, in `pause_57` (after two Down presses) the Effects grabber is lit. `pause_76.png`: the menu gone, the mechanic deeper in his hole, play going on.
 - **Nothing else changed**: every other smoke run green, no errors; the bus change only reroutes players (Master is unchanged at 100% by default).
 
 **Not verified / known issues**
 
-- Screenshots: run 43359321308 made `pause_38/44/51/57/76.png`, but two other runs finished right after it and force-pushed the screenshots branch, so they were gone before I could fetch them (the artifact download is blocked from here). The docs run should publish them again; see the PR for whether I saw them.
+- Fullscreen as a real window mode change was never exercised (CI does not toggle it; it would change the screenshot size).
 - That the sounds actually get quieter is checked through the bus dB only; nobody has listened.
-- Fullscreen was not toggled in CI (it would change the screenshot size).
 - The garage screen has no pause menu: Esc there still means "back to the world". `drive.tscn` (the test track) still quits on Esc.
 - Clicking Resume with the left mouse could, in theory, start a pickaxe swing on the next frame if the button is still held; the button fires on release, so it should not.
 

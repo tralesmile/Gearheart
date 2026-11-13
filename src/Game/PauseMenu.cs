@@ -21,7 +21,7 @@ public partial class PauseMenu : Control
     public event Action Opened, Closed;
 
     private Button _resume, _quit;
-    private CheckBox _full;
+    private Button _full;
     private HSlider _master, _effects, _car;
     private AudioStreamPlayer _preview;
     private AudioStream _blip, _rev;
@@ -87,9 +87,19 @@ public partial class PauseMenu : Control
         left.AddChild(SliderRow("Engine", Settings.Car, out _car, v => { Settings.Car = v; Preview(_rev, Settings.CarBus); }));
         left.AddChild(Gap(4f));
         left.AddChild(Text("SCREEN", 15, Gold));
-        _full = new CheckBox { Text = "Fullscreen", ButtonPressed = Settings.Fullscreen, FocusMode = FocusModeEnum.All };
+        // A toggle that reads like the other buttons (the stock check box is dark on dark here).
+        _full = MakeButton("", () => { });
+        _full.ToggleMode = true;
+        _full.CustomMinimumSize = new Vector2(0f, 38f);
         _full.AddThemeFontSizeOverride("font_size", 18);
-        _full.Toggled += on => Settings.Fullscreen = on;
+        _full.AddThemeStyleboxOverride("pressed", ButtonBox(new Color(0.24f, 0.2f, 0.1f), new Color(Gold, 0.7f)));
+        _full.SetPressedNoSignal(Settings.Fullscreen);
+        _full.Toggled += on =>
+        {
+            Settings.Fullscreen = on;
+            FullText();
+        };
+        FullText();
         left.AddChild(_full);
         left.AddChild(new Control { SizeFlagsVertical = SizeFlags.ExpandFill });
         left.AddChild(_quit = MakeButton("Save and quit", SaveAndQuit));
@@ -137,6 +147,7 @@ public partial class PauseMenu : Control
         _effects.Value = Settings.Effects * 100f;
         _car.Value = Settings.Car * 100f;
         _full.SetPressedNoSignal(Settings.Fullscreen);
+        FullText();
         _syncing = false;
         GetTree().Paused = true;
         _resume.GrabFocus();
@@ -156,6 +167,8 @@ public partial class PauseMenu : Control
             GD.Print($"[pause] closed frame={Engine.GetFramesDrawn()} after {Engine.GetProcessFrames() - _openTick} frames paused={GetTree().Paused}");
         Closed?.Invoke();
     }
+
+    private void FullText() => _full.Text = $"Fullscreen: {(_full.ButtonPressed ? "On" : "Off")}";
 
     private void SaveAndQuit()
     {
@@ -306,6 +319,9 @@ public partial class PauseMenu : Control
             CornerRadiusTopLeft = 3, CornerRadiusTopRight = 3, CornerRadiusBottomLeft = 3, CornerRadiusBottomRight = 3,
         });
         s.AddThemeStyleboxOverride("focus", ButtonBox(new Color(0f, 0f, 0f, 0f), Gold));
+        // With the keyboard or a gamepad the focused row's name turns gold, so you can see which slider moves.
+        s.FocusEntered += () => label.AddThemeColorOverride("font_color", Gold);
+        s.FocusExited += () => label.AddThemeColorOverride("font_color", Ink);
         row.AddChild(s);
         var pct = Text($"{Mathf.RoundToInt(value * 100f)}%", 16, Dim, HorizontalAlignment.Right);
         pct.CustomMinimumSize = new Vector2(48f, 0f);
