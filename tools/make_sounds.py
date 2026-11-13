@@ -647,6 +647,44 @@ def flash():
     return s
 
 
+def sizzle():
+    """Something hot hits lava: a sharp steam hiss (bright noise, 3-8 kHz) that swells in 20 ms and dies
+    over half a second, crackling (random spits), over a low wet 'blop' that drops from 180 to 70 Hz."""
+    r = np.random.default_rng(311)
+    n = int(0.7 * SR); t = np.arange(n) / SR
+    f = np.fft.rfftfreq(n, 1 / SR)
+    spectrum = np.fft.rfft(r.standard_normal(n))
+    spectrum *= np.exp(-((f - 5200) / 2600) ** 2)
+    hiss = np.fft.irfft(spectrum, n); hiss /= np.std(hiss) + 1e-9
+    env = np.minimum(1, t / 0.02) * np.exp(-t * 4.5)
+    crackle = (r.random(n) < 0.004) * r.standard_normal(n) * 4
+    crackle = lowpass(crackle, 3) * np.exp(-t * 3)
+    s = 0.55 * hiss * env * (0.75 + 0.25 * np.sin(2 * np.pi * 23 * t)) + 0.5 * crackle
+    fb = 180 * np.exp(-t * 6) + 70
+    s += 0.7 * np.sin(2 * np.pi * np.cumsum(fb) / SR) * np.exp(-t * 14)
+    return s
+
+
+def lava():
+    """The magma sea, a 3 s loop: a deep slow rumble (40-120 Hz noise, breathing) and thick bubbles that
+    rise in pitch and pop ('blub'), each placed so the loop wraps without a click."""
+    r = np.random.default_rng(97)
+    n = 3 * SR; t = np.arange(n) / SR
+    f = np.fft.rfftfreq(n, 1 / SR)
+    spectrum = np.fft.rfft(r.standard_normal(n))
+    spectrum *= np.exp(-((f - 75) / 45) ** 2)
+    rumble = np.fft.irfft(spectrum, n); rumble /= np.std(rumble) + 1e-9
+    s = 0.6 * rumble * (0.8 + 0.2 * np.sin(2 * np.pi * t / 3))
+    for k in range(9):
+        t0 = r.uniform(0, 3); dur = r.uniform(0.07, 0.14); f0 = r.uniform(90, 170)
+        local = (t - t0) % 3
+        on = local < dur
+        fr = f0 * (1 + 1.4 * local / dur)
+        blub = np.sin(2 * np.pi * fr * local) * np.sin(np.pi * np.clip(local / dur, 0, 1)) * on
+        s += r.uniform(0.35, 0.7) * blub
+    return s
+
+
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
     save("engine", engine(), 0.7)
@@ -689,4 +727,6 @@ if __name__ == "__main__":
     save("squeak", tail_fade(squeak(), 20), 0.4)   # deterministic: uses no random stream
     save("rustle", tail_fade(rustle(), 40), 0.5)   # own random stream
     save("flash", tail_fade(flash(), 30), 0.55)    # own random stream
+    save("sizzle", tail_fade(sizzle(), 40), 0.6)   # own random stream
+    save("lava", lava(), 0.45)                     # own random stream; a 3 s loop
     print("sounds written to", os.path.abspath(OUT))

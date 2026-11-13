@@ -772,6 +772,7 @@ public partial class SoftVehicle : Node2D, IVehicle
         }
 
         ApplyWhirl(dt);
+        ApplyLava(dt);
 
         // Upside down and stopped: the car rocks itself back onto its wheels.
         float tilt = _input.Tilt;

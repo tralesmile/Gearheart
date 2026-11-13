@@ -88,6 +88,8 @@ public static class GameSession
     public static bool DeepTest => UserArgs.Contains("--deeptest");
     /// <summary>--battest: the bot starts on a cavern floor a few metres from a bat roost in the Deep and walks at it.</summary>
     public static bool BatTest => UserArgs.Contains("--battest");
+    /// <summary>--lavatest: the mechanic is dropped over a lava lake near the garage (thrown out, an ore burnt), walks back in, then the car is dropped in and driven out.</summary>
+    public static bool LavaTest => UserArgs.Contains("--lavatest");
     /// <summary>--hooktest: a 12 m shaft is dug next to the garage, the bot starts at its bottom and climbs out with the grappling hook.</summary>
     public static bool HookTest => UserArgs.Contains("--hooktest");
     /// <summary>--veintest: a seven-tile iron vein is buried under the mechanic, who mines it out as one vein run.</summary>

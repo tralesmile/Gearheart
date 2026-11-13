@@ -24,6 +24,8 @@ public static class LuckyOre
         if (!IsOreTile(t)) return false;
         if (Forced.Count > 0 && Forced.Contains((x, y))) return true;
         if (Suppressed.Count > 0 && Suppressed.Contains((x, y))) return false;
+        // Near the magma sea the heat makes rich ore: one in four is lucky there.
+        if (y >= Lava.Row - Lava.RichBand) return Hash(x, y) % Lava.RichOneIn == 0;
         return Hash(x, y) % OneIn == 0;
     }
 
