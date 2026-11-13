@@ -68,7 +68,7 @@ public partial class WorldScene
     }
 
     /// <summary>
-    /// --battest: put the player on a cavern floor 6–10 m from the roost nearest the garage with a clear
+    /// --battest: put the player on a cavern floor 5.5–10 m from the roost nearest the garage with a clear
     /// view of it, then walk toward it (jumping steps, mining what is in the way) until the bats go up.
     /// </summary>
     private void RunBatBot()
@@ -91,8 +91,11 @@ public partial class WorldScene
                         if (_world.Solid(x, y) || _world.Solid(x, y - 1) || _world.Solid(x, y - 2) || !_world.Solid(x, y + 1)) continue;
                         var at = new Vector2((x + 0.5f) * Ts, (y + 1) * Ts - Player.HalfHeight - 0.5f);
                         float d = at.DistanceTo(r.Center) / PixelsPerMeter;
-                        if (d < 6f || d > 10f || _player.Blocked(at.X, at.Y)) continue;
-                        float score = Mathf.Abs(d - 7f) + 0.5f * RockOnLine(at, r.Center);
+                        if (d < 5.5f || d > 10f || _player.Blocked(at.X, at.Y)) continue;
+                        // A clear view of the roost (the bats must see the player, at most one tile of rock between).
+                        int rock = RockOnLine(at, r.Center + new Vector2(0f, 6f));
+                        if (rock > 1) continue;
+                        float score = Mathf.Abs(d - 7f) + rock;
                         if (score < bestScore) { bestScore = score; best = at; }
                     }
                 if (best is not Vector2 spot) continue;
@@ -103,10 +106,10 @@ public partial class WorldScene
                 _airCam.Snap(spot);
                 _batPlacedAt = _elapsed;
                 GD.Print($"[bats] test: player placed {spot.DistanceTo(r.Center) / PixelsPerMeter:0.0} m from roost {r.Index} (x{r.Bats.Count}, tile ({r.X},{r.Y}), " +
-                         $"{(r.X - mid) * 0.25f:0} m from the garage), rock on the line {RockOnLine(spot, r.Center)} tiles frame={Engine.GetFramesDrawn()}");
+                         $"{(r.X - mid) * 0.25f:0} m from the garage), rock on the line {RockOnLine(spot, r.Center + new Vector2(0f, 6f))} tiles, roosts tried {roosts.IndexOf(r) + 1} frame={Engine.GetFramesDrawn()}");
                 return;
             }
-            GD.Print("[bats] test: NO roost with a cavern floor 6-10 m away found");
+            GD.Print($"[bats] test: NO roost of {roosts.Count} has a cavern floor 5.5-10 m away with a clear view");
             return;
         }
         if (_batTarget == null) return;
