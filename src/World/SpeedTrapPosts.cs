@@ -45,8 +45,8 @@ public partial class SpeedTrapPosts : Node2D
     public override void _Ready() => _traps = Place(World);
 
     /// <summary>
-    /// Finds the posts: aims for 40, 125, 210 and 295 m out on each side, then walks outwards (up to
-    /// 20 m) to the first column whose road is flat for 2.5 m either way and clear of kickers.
+    /// Finds the posts: aims for 40, 125, 210 and 295 m out on each side and takes the nearest column
+    /// (up to 25 m either way) whose road stays within two tiles for 2 m either way, clear of kickers.
     /// </summary>
     public static List<SpeedTrap> Place(TileWorld world)
     {
@@ -58,11 +58,16 @@ public partial class SpeedTrapPosts : Node2D
             foreach (int meters in new[] { 40, 125, 210, 295 })
             {
                 int target = center + side * meters * 4;
-                for (int step = 0; step <= 80; step++)
+                // Nearest good column to the aim, looking both ways (out first), up to 25 m off.
+                for (int step = 0; step <= 100; step++)
                 {
-                    int c = target + side * step;
-                    if (c < 30 || c > TileWorld.Width - 30) break;
-                    if (!Flat(world, c)) continue;
+                    int c = -1;
+                    foreach (int s in new[] { side * step, -side * step })
+                    {
+                        int x = target + s;
+                        if (x >= 30 && x <= TileWorld.Width - 30 && Flat(world, x)) { c = x; break; }
+                    }
+                    if (c < 0) continue;
                     list.Add(new SpeedTrap(c, side, ++number));
                     break;
                 }
@@ -75,13 +80,13 @@ public partial class SpeedTrapPosts : Node2D
     {
         if (world.KickerNear(c, 12) is not null) return false;
         int lo = int.MaxValue, hi = int.MinValue;
-        for (int x = c - 10; x <= c + 10; x++)
+        for (int x = c - 8; x <= c + 8; x++)
         {
             int row = world.SurfaceRow(x);
             lo = Mathf.Min(lo, row);
             hi = Mathf.Max(hi, row);
         }
-        return hi - lo <= 1;
+        return hi - lo <= 2;
     }
 
     /// <summary>The camera fires: the lens flashes white, and a new best turns the sign gold for a few seconds.</summary>

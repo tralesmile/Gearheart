@@ -18,6 +18,9 @@ public partial class WorldScene
 
     private SpeedTrapPosts _traps;
     private ColorRect _flashRect;
+    private Label _trapLine, _trapSub;
+    private float _trapShown = 99f;
+    private const float TrapShowSeconds = 2.4f;
     private float _flashLeft;
     private float _trapPrevX = float.NaN;
     private readonly Dictionary<int, float> _trapLastAt = new();
@@ -51,6 +54,25 @@ public partial class WorldScene
     {
         _flashRect = new ColorRect { Color = new Color(1f, 1f, 1f, 0f), MouseFilter = Control.MouseFilterEnum.Ignore };
         hud.AddChild(_flashRect);
+
+        // The reading, in screen space under the call-out line: a world pop is left behind at speed.
+        _trapLine = TrapLabel(hud, 34, 212f);
+        _trapSub = TrapLabel(hud, 21, 256f);
+    }
+
+    private static Label TrapLabel(CanvasLayer hud, int size, float top)
+    {
+        var label = Outlined(new Label { HorizontalAlignment = HorizontalAlignment.Center, Visible = false, MouseFilter = Control.MouseFilterEnum.Ignore }, size);
+        label.SetAnchorsPreset(Control.LayoutPreset.CenterTop);
+        label.OffsetLeft = -300f;
+        label.OffsetRight = 300f;
+        label.OffsetTop = top;
+        label.OffsetBottom = top;
+        label.CustomMinimumSize = new Vector2(600f, 0f);
+        label.GrowHorizontal = Control.GrowDirection.Both;
+        label.PivotOffset = new Vector2(300f, size * 0.7f);
+        hud.AddChild(label);
+        return label;
     }
 
     /// <summary>Every physics frame: did the car's middle cross a trap's line since the last frame?</summary>
@@ -96,14 +118,17 @@ public partial class WorldScene
         _crashFx.AddTrauma(record ? 0.12f : 0.04f);
 
         Color color = kmh >= 80f ? TrapHot : kmh >= 50f ? TrapGold : TrapWhite;
-        float top = _car.Bounds().Position.Y;
-        Vector2 at = new(_car.CenterPosition.X, top - 34f);
-        _pops.Show(at, $"SPEED TRAP  {kmh:0} km/h", color, 15f + Mathf.Clamp((kmh - 40f) / 20f, 0f, 3f), 1.8f, 40f);
-        string second = record ? $"NEW BEST!  +{kmh - before:0} km/h" : first ? "speed set: beat it next time" : $"best {before:0} km/h";
-        _pops.Show(at + new Vector2(0f, 22f), second, record ? TrapGold : new Color(0.85f, 0.88f, 0.92f), record ? 13f : 10f, 1.8f, 40f);
+        if (_trapLine != null)
+        {
+            _trapLine.Text = $"SPEED TRAP  {kmh:0} km/h";
+            _trapLine.AddThemeColorOverride("font_color", color);
+            _trapSub.Text = record ? $"NEW BEST!  +{kmh - before:0} km/h" : first ? "best set: beat it next time" : $"best here {before:0} km/h  ({kmh - before:0})";
+            _trapSub.AddThemeColorOverride("font_color", record ? TrapGold : new Color(0.85f, 0.88f, 0.92f));
+            _trapShown = 0f;
+        }
 
         if (GameSession.AutoPlay)
-            GD.Print($"[trap] FLASH {t.Name} x={t.Column} at {kmh:0.0} km/h airborne={_car.Airborne} dir={(_car.CenterVelocity.X > 0 ? "east" : "west")} " +
+            GD.Print($"[trap] FLASH {t.Name} x={t.Column} at {kmh:0.0} km/h pitch={_car.PitchDegrees():0} wheels={(_car.Airborne ? "up" : "down")} dir={(_car.CenterVelocity.X > 0 ? "east" : "west")} " +
                      $"best before {before:0.0} -> {GameSession.TrapBest(t.Column):0.0} {(record ? "NEW BEST" : first ? "first" : "no record")} frame={Engine.GetFramesDrawn()}");
     }
 
@@ -118,6 +143,17 @@ public partial class WorldScene
             _flashRect.Size = GetViewportRect().Size;
             _flashRect.Color = new Color(1f, 1f, 1f, 0.32f * _flashLeft / 0.18f);
         }
+
+        // The reading pops in big, settles, and fades out at the end; hidden under the trip report.
+        _trapShown += dt;
+        bool show = _trapShown < TrapShowSeconds && !_card.Showing;
+        if (_trapLine == null) return;
+        _trapLine.Visible = _trapSub.Visible = show;
+        if (!show) return;
+        float pop = _trapShown < 0.12f ? 1.35f - 0.35f * (_trapShown / 0.12f) : 1f;
+        float alpha = Mathf.Clamp((TrapShowSeconds - _trapShown) / 0.4f, 0f, 1f);
+        _trapLine.Scale = new Vector2(pop, pop);
+        _trapLine.Modulate = _trapSub.Modulate = new Color(1f, 1f, 1f, alpha);
     }
 
     private string TrapSummary() => $"traps={_trapHits} trapRecords={_trapRecords} trapFirsts={_trapFirsts} trapTop={_trapTop:0}";

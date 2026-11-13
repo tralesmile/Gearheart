@@ -2,6 +2,14 @@
 
 Newest first. One entry per big decision: what, why, and what would make us revisit it.
 
+## 2026-11-13 — Speed traps are placed at load and their bests are records, not world data
+
+- **What:** up to four camera posts per side, aimed at 40, 125, 210 and 295 m from the garage; each walks outwards (up to 20 m) to the first column whose surface is flat within one tile for 2.5 m either way and with no kicker within 3 m. A pass is measured when the car's middle crosses the post's column at 5 km/h or more (once per 3 s per post), with the dashboard's speed. Faster than the best on the sign = NEW BEST (record chime, gold sign); the first pass sets the best.
+- **Why placed at load:** like the plants and the bats, they come from the terrain, so there is no world-generation change and no save version bump.
+- **Why the bests live in progress.json (keyed by column):** they are records, like the gate sprint, and the progress file is JSON that tolerates a new field; putting them in the binary world save would need a version bump. A new world gives new columns, so its traps start blank (old keys stay in the file, harmless).
+- **No score yet:** the trip report and goals are untouched in this step so every goal-dependent test keeps its numbers; that is #203.
+- **Revisit when:** the trip report counts trap bests (#203), or players find four per side too many or too few.
+
 ## 2026-11-13 — Roadside plants are feel, not loot
 
 - **What:** bushes, flowers and grass tufts (meadow), cacti (The Wastes) and snowy shrubs (Frozen North, new: about 7% of snow columns) are flattened when the car (moving 4 km/h or more) touches them; they burst into leaves, petals, chunks or snow with a rustle, leave a stump or stubble, and grow back after 120 s once 22 m+ out of sight. A cactus costs 3% speed and a little camera shake. Plants flattened within 2.5 s of each other chain into a MOWER count, popped at x3, x5, x10 and every 10th after (a pop per plant was a smear of overlapping text in the first run's frames: the meadow has a plant every few metres). Trees and rocks are not touched. On foot nothing happens.

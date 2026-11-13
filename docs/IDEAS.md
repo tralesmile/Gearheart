@@ -188,7 +188,7 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 178 | Cave echo: a reverb on the Effects bus that fades in underground, so the pickaxe and crystals ring in the Deep | S | **Built 2026-11-13** (PR #40: from about 1.5 m down, full from about 6 m and everywhere in the Deep; wet 0.3 at full; not saved) |
 | 179 | Tumbleweeds in The Wastes that roll across the road with the wind, bounce off the car and count for the smash streak | S | Open (new 2026-11-13; something moving on the empty desert road) |
 | 180 | Moles in the meadow: dig near one and it pops up, squeaks and burrows away, sometimes dropping the scrap it was hoarding | S–M | Open (new 2026-11-13; life in the dirt you dig every minute, a tiny surprise) |
-| 181 | Speed traps: a camera post on the road flashes as you pass and keeps your best speed there ("SPEED TRAP 74 km/h · best 68") | S | Open (new 2026-11-13, twenty-ninth session; Need for Speed's best small idea, a target on the flat stretches) |
+| 181 | Speed traps: a camera post on the road flashes as you pass and keeps your best speed there ("SPEED TRAP 74 km/h · best 68") | S | **Built 2026-11-13** (PR #42: posts about 40, 125, 210 and 295 m out on each side on flat road, flash + shutter + beep, reading over the car, NEW BEST against the best on the sign; bests in progress.json) |
 | 182 | Fresh heaps on the way home: smashed scrap heaps and taken fuel cans come back after a few minutes, so the road home has targets | S | Open (new 2026-11-13; the drive back is the most repeated minute) |
 | 183 | Garage dog: a scruffy dog lives at the garage, runs out barking when you come home and trots after you on foot | S–M | Open (new 2026-11-13; warmth and a reason home feels like home, The Sims' attachment) |
 | 184 | Range on the dashboard: "about 40 m left" from the fuel and your recent use, turning red when home is further than the range | S | Open (new 2026-11-13; turns low fuel into a decision; pairs with the LOW FUEL arrow and #175) |
@@ -209,8 +209,36 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 199 | Hit-stop on big hits: 40–60 ms of frozen time on a heap smash at speed, a lucky strike or a big landing | S | Open (new 2026-11-13; the cheapest weight in any action game; must not touch physics determinism) |
 | 200 | A dirty car: dust in The Wastes, mud in the meadow, frost in the north build up on the body over a trip, washed off at the garage | S–M | Open (new 2026-11-13; the car shows where it has been, Sims-style care; folds #132) |
 | 201 | Garden at the garage: flowers you run over drop seeds that you can plant by the shed; the bed grows with every trip | M | Open (new 2026-11-13; a home that changes because of what you did out there) |
-| 202 | Speed-trap first, then a "Speed trap" trip goal and best speeds on the trip report | S | Open (new 2026-11-13; still the best road idea, #181, now three sessions running) |
+| 202 | Speed-trap first, then a "Speed trap" trip goal and best speeds on the trip report | S | Step 1 built 2026-11-13 (PR #42, the traps); the trip goal and report row are #203 |
+| 203 | Speed traps on the trip report ("2 new trap bests +40") and a "Beat a speed-trap best" trip goal | S | Open (new 2026-11-13, thirty-third session; top pick next: ties the traps into the score you chase) |
+| 204 | Trap photo: the camera's grainy flash photo of your car (with the speed stamped on it) on the trip report, or a pinboard of them in the garage | M | Open (new 2026-11-13; the best moment of a run becomes a picture; folds #33/#102) |
+| 205 | Spectators at the kickers and the gate: a few little people who cheer a perfect start, a big jump or a flash over 80 km/h, and run when you land near them | S–M | Open (new 2026-11-13; an audience makes a stunt a show, Tony Hawk / Trials' crowd) |
+| 206 | Canyon gap in The Wastes: one big ravine on the road with a ramp each side; clear it for "GAP!" or fall in and climb out the long way | M | Open (new 2026-11-13; the drive east gets a landmark and a dare; needs a save version bump) |
+| 207 | Cargo that can spill: ore carried in the car pops out on a really hard crash (you can pick it up), so the drive home carefully matters | M | Open (new 2026-11-13; risk on the way home, Death Stranding-lite; needs owner's feel check) |
+| 208 | Radar detector part (Copper + Scrap): a dash light that beeps faster as a speed trap gets close, so you can line up your run | S | Open (new 2026-11-13; a joke part with a use, NFS's radar; small once #203 exists) |
+| 209 | Trap rating: the reading's colour climbs white → gold → red, and over 100 km/h the camera "overexposes" (whole screen white for a beat) | S | Open (new 2026-11-13; partly built in #181: colours by speed; the overexposure is the rest) |
 | 29 | Speedometer redline overdrive: holding the needle in the red for 3 s with the booster unlocks a "SONIC" call-out and a sonic-boom puff | S | Open (new 2026-11-12, cheap thrill) |
+
+## 2026-11-13 (thirty-third session — feature: speed traps on the road)
+
+Started by checking for unfinished work: PR #41 (roadside plants) was open with its docs run (43415866509) still going; I waited, it went green at about 11:38 and the session that opened it merged it (470bca6). Its frames (`plants_world_117.png`: petals and leaves sprayed over the wheels, MOWER x3 over the car) looked right.
+
+Looked as a player. In `plants_world_117.png` the car is at 34 km/h on a flat meadow stretch with nothing ahead but bushes; the kickers are the only targets on the road, and between them (26–42 m apart) you just hold D. The most boring minute is still the flat drive out and the flat drive home. Need for Speed's answer is the speed camera: a number on every straight, a flash when you pass, a best to beat next time. It has topped the "Next" list for four sessions (#181). The last session was polish, so this one is a small feature you meet within the first 40 m of every trip.
+
+What makes "one more trip"? A number you almost beat; something that reacts when you go fast; a record you can see on the road before you get there.
+
+| # | Idea | Why it would be fun | Size |
+| --- | --- | --- | --- |
+| 181 | Speed traps (built today) | Every flat stretch gets a flash and a best to beat; you see the best on the sign as you approach | S |
+| 203 | Traps on the trip report + a trap goal | The traps feed the score you already chase | S |
+| 204 | Trap photo on the trip report | Your best moment as a grainy speed-camera picture, shareable | M |
+| 205 | Spectators at kickers and the gate | A crowd that cheers turns stunts into a show | S–M |
+| 206 | Canyon gap in The Wastes | A landmark and a dare on the way east | M |
+| 207 | Spilling cargo on hard crashes | The way home becomes careful driving, a real choice | M |
+| 208 | Radar detector part | A joke part with a use | S |
+| 209 | Overexposed flash over 100 km/h | The fastest pass looks like it | S |
+
+Ranking: #203 next (the traps should count somewhere), then #199 hit-stop and #197 fences/snowmen from last session; #205 spectators is the most charming new one.
 
 ## 2026-11-13 (thirty-second session — polish: the world reacts to the car)
 
