@@ -2,6 +2,14 @@
 
 Newest first. One entry per big decision: what, why, and what would make us revisit it.
 
+## 2026-11-13 — Lucky strikes: chosen by a position hash, 1 in 16, pays x3
+
+- **What:** an ore tile (scrap, iron, copper, crystal) is lucky when a fixed hash of its tile position is divisible by 16 (`src/World/LuckyOre.cs`). It gleams (gold halo and rim, a shine sweep every 2.2 s, a star) within 27 m, through the rock like a stash glint, and pays 3x its normal drop when broken, by pickaxe or drill.
+- **Why a hash and not a new tile type:** nothing to save, no world-generation change and no save version bump; a lucky tile stays lucky across loads and is gone once mined. The census near the garage gives 30 lucky tiles of 437 ore (6.9%), 6 in the top 3 m, the nearest 3.3 m from the pad and 2.3 m down, so a new player finds one in the first minutes.
+- **Why 1 in 16 and x3:** rare enough to be a moment (about one per vein-and-a-half), common enough to be seen on every dig. An average ore tile is now worth 1.125x what it was; parts were not repriced.
+- **Drill too:** the drill gets the strike (and the extra) like the pickaxe, but the gleam is what makes it a hunt, and that is on foot.
+- **Revisit when:** you have played (D1). If the economy feels too fast, lower the rate before the multiplier (the moment matters more than the amount); if it feels random rather than found, make lucky tiles cluster in rich veins.
+
 ## 2026-11-13 — Next part card: the game picks your next upgrade, from data
 
 - **What:** a card above the inventory bar shows one upgrade and what it still takes, counted against what the bar shows (ore in the air does not count until it lands). Parts opt in with `goalTier` in `data/parts/parts.json` (1 Drill Head, Off-road Wheel; 2 Rocket Booster, Turbocharger, Spiked Tyre, V8, Hydraulics; 3 Crystal Drill). The cost is the change to the car you drive: wheels as a full set (old tyres refunded), engine and drill as a swap, other parts as one more block. A part the car has, or one beaten by a same-kind part of the same or higher tier, is skipped.

@@ -22,7 +22,7 @@ public partial class Sfx : Node
 
     public override void _Ready()
     {
-        foreach (string name in new[] { "pick", "break", "place", "pickup", "thud", "crunch", "snap", "treasure", "fuel", "tally", "record", "land", "shift", "pop", "start", "creak", "blowoff", "flutter", "chirp", "caw", "horn", "gust", "hook", "clank", "vein", "hop", "ready" })
+        foreach (string name in new[] { "pick", "break", "place", "pickup", "thud", "crunch", "snap", "treasure", "fuel", "tally", "record", "land", "shift", "pop", "start", "creak", "blowoff", "flutter", "chirp", "caw", "horn", "gust", "hook", "clank", "vein", "hop", "ready", "lucky" })
             _streams[name] = GD.Load<AudioStream>($"res://assets/audio/{name}.wav");
 
         for (int i = 0; i < 6; i++)

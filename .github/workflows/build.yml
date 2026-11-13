@@ -63,6 +63,7 @@ jobs:
             grep "\[vein\]" smoke.log | head -40
             grep "\[flyhome\]" smoke.log | head -30
             grep "\[nextpart\]" smoke.log | head -20
+            grep "\[lucky\]" smoke.log | head -20
             grep "\[hop\]" smoke.log | head -60
             # "resources still in use at exit" is a shutdown notice about cached textures and sounds, not a fault.
             if grep -E "ERROR|Unhandled exception|SCRIPT ERROR|System\.[A-Za-z]*Exception" smoke.log | grep -v "still in use at exit" | grep .; then
@@ -326,6 +327,26 @@ jobs:
             done
           done
           grep "\[nextpart\]" shots/vein.log | head -20
+          # Lucky strike: the gleaming lone tile before it breaks, then the strike (LUCKY STRIKE!, gold ring and fountain, x3 icons).
+          grep "\[lucky\] test:" shots/vein.log | head -1 | sed -E 's/.*frame=([0-9]+).*/\1/' | while read n; do
+            for d in 2 5; do
+              f=$(printf "shots/vein/f%08d.png" $((n + d))); [ -f "$f" ] && cp "$f" keep/lucky_gleam_$((n + d)).png
+            done
+          done
+          grep "\[lucky\] STRIKE" shots/vein.log | head -1 | sed -E 's/.*frame=([0-9]+).*/\1/' | while read n; do
+            for d in 1 3 6 10; do
+              f=$(printf "shots/vein/f%08d.png" $((n + d))); [ -f "$f" ] && cp "$f" keep/lucky_$((n + d)).png
+            done
+          done
+          # Natural lucky tiles: the first one to come into view in the walk, drill and left runs (the gleam through the rock).
+          for run in world drill left; do
+            grep "\[lucky\] first gleam" shots/$run.log | head -1 | sed -E 's/.*frame=([0-9]+).*/\1/' | while read n; do
+              for d in 3 15; do
+                f=$(printf "shots/$run/f%08d.png" $((n + d))); [ -f "$f" ] && cp "$f" keep/lucky_${run}_$((n + d)).png
+              done
+            done
+          done
+          grep "\[lucky\]" shots/vein.log shots/world.log shots/drill.log shots/left.log | head -16
           # Crash frames: the frame of each of the first hits (from "[crash] ... frame=N") and the next two.
           for run in crash rocket; do
             grep "\[crash\] hit" shots/$run.log | head -4 | sed -E 's/.*frame=([0-9]+).*/\1/' | while read n; do

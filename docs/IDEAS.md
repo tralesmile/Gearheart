@@ -158,7 +158,7 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 148 | Lava floor: the world ends at ~48 m in a flat dark bedrock band (see `deep_120.png`); make the last rows a glowing lava sea with heat shimmer | M | Open (new 2026-11-12; folds #23/#56; the bottom of the world looks unfinished) |
 | 149 | Haul tally at the garage: parking with ore aboard tips the trip's haul into a bin with a counting tick per piece, then the total ("HAUL: 14 Iron, 3 Copper") | S | Open (new 2026-11-12, twenty-fourth session; the payoff moment at the end of a trip, Hill Climb's coin count) |
 | 150 | Recipe nudge: when a slot reaches what a part you have not built needs, the slot glows and says "Rocket Booster ready at the garage" | S | **Built 2026-11-13** as a "next part" card above the bar (PR #35: the closest upgrade with Iron 2/4-style counts and a progress bar that move as ore lands; gold READY card, call-out and a chime when the last ore lands; folds #57) |
-| 151 | Lucky strike: about 1 ore tile in 60 is a gleaming variant that pays 3x with a flash, a chime and a bigger flight home | S | Open (new 2026-11-12; a slot-machine jackpot inside ordinary mining) |
+| 151 | Lucky strike: about 1 ore tile in 60 is a gleaming variant that pays 3x with a flash, a chime and a bigger flight home | S | **Built 2026-11-13** (PR #36: 1 ore tile in 16, picked by a position hash so nothing is saved; a gold rim, a sweeping shine and a star on the tile, seen through the rock from 15 m; breaking it pays x3 with LUCKY STRIKE!, a gold ring and fountain, a jingle and a small shake; pickaxe and drill) |
 | 152 | Cave-ins: mining out stone under a wide unsupported ceiling in the Deep sometimes drops a few loose rocks after a rumble and a dust trickle warning | M | Open (new 2026-11-12; first danger underground, read the warning and jump clear) |
 | 153 | Ore voices: each ore lands in its slot with its own tick (scrap clatters, iron clinks, copper rings, crystal chimes) | S | Open (new 2026-11-12; you hear what you got without looking) |
 | 154 | Hop stomp: land a hop on a scrap heap (or a crow flock's perch) for STOMP!, a bigger smash and a smash-streak tick | S | Open (new 2026-11-13, twenty-fifth session; gives the hop a target on every road) |
@@ -174,7 +174,33 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 164 | Ore magnet part (Iron + Copper): heap scrap and fuel cans within 3 m are pulled into the car | S–M | Open (new 2026-11-13; a part you feel on every road) |
 | 165 | Garage "afford" glow: parts you can build now glow in the garage palette, the card's part first | S | Open (new 2026-11-13; folds #42) |
 | 166 | Roll-out moment: first drive with a new part opens with "NEW: Rocket Booster — Shift to fire" and the camera on the part | S | Open (new 2026-11-13; folds #112; teaches the key) |
+| 167 | Pickaxe crits: about one swing in eight lands a CRIT that cracks the tile at once with a sharper sound | S | Open (new 2026-11-13, twenty-seventh session; variety in the most repeated action) |
+| 168 | Gold rush: once a day, at dawn, the garage bell rings and lucky ore is three times as common for a minute | S | Open (new 2026-11-13; a timed event that pulls you out of the garage, uses #151) |
+| 169 | Lucky strikes on the trip report and a "Find a lucky strike" trip goal | S | Open (new 2026-11-13; ties the jackpot to the trip score; shifts the bot's goal order) |
+| 170 | Cave bats: bats roost on cavern ceilings and burst out past you, squeaking, when you dig into their cavern or your lamp reaches them | S | Open (new 2026-11-13; folds #110; first life underground, harmless) |
+| 171 | Dowsing rod: a hand tool (Iron + Crystal) whose tip dips toward the nearest lucky tile or stash within 20 m | S–M | Open (new 2026-11-13; turns the hunt into hot/cold, folds #9) |
+| 172 | Pause menu (Esc): resume, volume sliders, the key list, quit to desktop | S | Open (new 2026-11-13; nobody can turn the sound down or look up a key in-game; needed before outside testers) |
+| 173 | Crumbling ledges in The Wastes: sandstone lips that crack and fall a second after the car lands on them | M | Open (new 2026-11-13; terrain that reacts, a reason to keep moving) |
 | 29 | Speedometer redline overdrive: holding the needle in the red for 3 s with the booster unlocks a "SONIC" call-out and a sonic-boom puff | S | Open (new 2026-11-12, cheap thrill) |
+
+## 2026-11-13 (twenty-seventh session — a jackpot in the rock)
+
+Merged PR #35 (next part card) first: its last build was green, the `[nextpart]` lines counted up with the bar (Drill Head 0.17 … 0.83, then READY) and `nextpart_ready_63.png` shows the gold READY card with the PART READY call-out.
+
+Looked as a player. Mining has a combo (vein runs), a payoff picture (ore flies home) and now a target (the next-part card). What it still lacks is *surprise*: every iron tile is worth exactly one iron, so the fourth minute of digging feels like the first. The games this borrows from all put a jackpot inside the routine: Minecraft's diamond in the wall of a cave, Terraria's glinting gem, the rare gold coin in Hill Climb. The most boring minute is hold-the-mouse on another brown tile; a gold shine at the edge of the lamp turns it into "wait, what's that?" and a dig towards it. And it is felt in the first minute: lucky tiles lie in the shallow scrap near the garage. Last session was a UI feature, the one before a car part; this is a small feature on the mining side.
+
+| # | Idea | Why it would be fun | Size |
+| --- | --- | --- | --- |
+| 151 | Lucky strike (from the twenty-fourth session's list, built today): a gleaming ore tile pays triple | A jackpot inside ordinary mining; a shine you dig towards | S |
+| 167 | Pickaxe crits: one swing in eight cracks the tile at once | Tiny surprises in every second of mining, like a crit in an action game | S |
+| 168 | Gold rush at dawn: lucky ore three times as common for a minute, with a bell | A reason to be out at sunrise; the clock becomes a plan | S |
+| 169 | Lucky strikes on the trip report, and a "Find a lucky strike" goal | The jackpot counts toward the score you try to beat | S |
+| 170 | Cave bats that burst out when you open their cavern | The Deep is silent and empty; a fright and a laugh, no combat needed | S |
+| 171 | Dowsing rod (Iron + Crystal) that dips toward the nearest lucky tile or stash | Hot/cold hunting, a tool that changes how you walk the surface | S–M |
+| 172 | Pause menu with volume and keys | The game has no way to turn the sound down; basic respect for a tester | S |
+| 173 | Crumbling Wastes ledges | Ground that reacts to the car; keeps you moving | M |
+
+**Top open picks now, by fun for the effort**: 162 homeward arrow (S), 154 hop stomp (S), 172 pause menu (S, needed before outside testers), 170 cave bats (S), 167 pickaxe crits (S), 160 where to find it (S), then a first creature that bites (65 crystal mites or 158 night eyes, M). Built today: 151 lucky strike.
 
 ## 2026-11-13 (twenty-sixth session — a reason to go home)
 

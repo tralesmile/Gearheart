@@ -142,7 +142,11 @@ public partial class WorldScene
             _airCam.Snap(at);
             // A compact blob running down and to the right, every tile within the pickaxe's reach from the surface.
             var shape = new[] { (0, 1), (1, 1), (0, 2), (1, 2), (2, 2), (1, 3), (2, 3) };
-            foreach (var (dx, dy) in shape) _world.Set(_veinX + dx, _veinY + dy, Tile.IronOre);
+            foreach (var (dx, dy) in shape)
+            {
+                SuppressLucky(_veinX + dx, _veinY + dy);
+                _world.Set(_veinX + dx, _veinY + dy, Tile.IronOre);
+            }
             GD.Print($"[vein] test: buried a {shape.Length}-tile iron vein at ({_veinX},{_veinY + 1})..({_veinX + 2},{_veinY + 3}), " +
                      $"Iron={GameSession.Count("Iron")} frame={Engine.GetFramesDrawn()}");
             return;
@@ -167,6 +171,7 @@ public partial class WorldScene
             {
                 _veinLonePlanted = true;
                 int fx = Mathf.FloorToInt(me.X / Ts), fy = Mathf.FloorToInt((me.Y + Player.HalfHeight + 2f) / Ts);
+                PlantLuckyTest(fx + 1, fy);
                 _world.Set(fx + 1, fy, Tile.ScrapOre);
                 GD.Print($"[vein] test: the run went cold (chain={_vein.Chain}); a lone scrap tile at ({fx + 1},{fy}) frame={Engine.GetFramesDrawn()}");
             }

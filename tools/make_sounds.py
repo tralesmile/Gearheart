@@ -570,6 +570,26 @@ def ready():
     return s
 
 
+def lucky():
+    """A lucky strike: a bright coin 'ching' (two inharmonic bell partials struck together), then a
+    fast rising G-C-E-G arpeggio of little bells and a sparkle tail. Deterministic: uses no random
+    stream, so every older sound stays byte-identical. 0.75 s."""
+    n = int(SR * 0.75); t = np.arange(n) / SR
+    s = np.zeros(n)
+    for f, g, d in ((2637.0, 1.0, 9.0), (3951.0, 0.6, 12.0), (5274.0, 0.35, 18.0)):   # the ching
+        s += g * np.sin(2 * np.pi * f * t) * np.exp(-t * d)
+    step = 0.055
+    for i, f in enumerate((783.99, 1046.5, 1318.5, 1567.98)):
+        start = int(SR * (0.05 + step * i))
+        tt = t[: n - start]
+        ring = 4.0 if i == 3 else 11.0
+        tone = np.sin(2 * np.pi * f * tt) + 0.4 * np.sin(2 * np.pi * f * 2.0 * tt) + 0.2 * np.sin(2 * np.pi * f * 3.01 * tt)
+        s[start:] += 0.8 * tone * np.exp(-tt * ring) * (1 - np.exp(-tt * 600))
+    sparkle = sum(np.sin(2 * np.pi * f * t) for f in (3136.0, 4186.0)) * (0.5 + 0.5 * np.sin(2 * np.pi * 17 * t))
+    s += 0.15 * sparkle * np.exp(-np.maximum(t - 0.3, 0) * 6) * (t > 0.26)
+    return s * (1 - np.exp(-t * 3000))
+
+
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
     save("engine", engine(), 0.7)
@@ -608,4 +628,5 @@ if __name__ == "__main__":
     save("vein", tail_fade(vein(), 30), 0.5)
     save("hop", tail_fade(hop(), 50), 0.65)
     save("ready", tail_fade(ready(), 120), 0.55)
+    save("lucky", tail_fade(lucky(), 80), 0.55)
     print("sounds written to", os.path.abspath(OUT))
