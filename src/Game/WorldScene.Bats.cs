@@ -17,7 +17,7 @@ public partial class WorldScene
     private readonly Dictionary<string, int> _batCauses = new();
     private float _firstBurstDistance = -1f;
     private Roost _batTarget;
-    private bool _batPlaced, _batWatchLogged, _batBurstViewLogged;
+    private bool _batPlaced, _batWatchLogged, _batBurstViewLogged, _batStepped;
     private int _batsMostOnScreen;
     private float _batPlacedAt;
 
@@ -48,7 +48,7 @@ public partial class WorldScene
     {
         _bats.Focus = focus;
         // Only colonies on screen (a margin in from the edges) see you, so you always see them hanging first.
-        Rect2 view = CameraView().Grow(-40f);
+        Rect2 view = CameraView().Grow(-24f);
         if (_driving) _bats.Startle(_car.CenterPosition, Bats.SightReachCar, "car", true, view);
         else _bats.Startle(_player.Position, Bats.SightReachFoot, "foot", true, view);
 
@@ -73,8 +73,9 @@ public partial class WorldScene
     }
 
     /// <summary>
-    /// --battest: put the player on a cavern floor at most 2 m under the roost's ceiling and 4–10 m from the roost nearest the garage with a clear
-    /// view of it, then walk toward it (jumping steps, mining what is in the way) until the bats go up.
+    /// --battest: put the player on a cavern floor at most 2 m under the roost's ceiling and 4–10 m from the
+    /// roost nearest the garage with a clear view of it, then walk toward it (jumping steps, mining what is in
+    /// the way) until the bats go up; if they have not after 2.5 s, step to 2–2.7 m from them.
     /// </summary>
     private void RunBatBot()
     {
@@ -89,28 +90,9 @@ public partial class WorldScene
             for (int maxRock = 1; maxRock <= 3; maxRock += 2)
             foreach (var r in roosts)
             {
-                if (r.Bats.Count == 0) continue;
-                Vector2? best = null;
-                float bestScore = float.MaxValue;
-                for (int x = r.X - 44; x <= r.X + 44; x++)
-                    for (int y = r.Y + 3; y <= r.Y + 8 && y < TileWorld.Height - 3; y++)   // floor at most ~2 m under the ceiling: the roost stays on screen
-                    {
-                        if (_world.Solid(x, y) || _world.Solid(x, y - 1) || _world.Solid(x, y - 2) || !_world.Solid(x, y + 1)) continue;
-                        var at = new Vector2((x + 0.5f) * Ts, (y + 1) * Ts - Player.HalfHeight - 0.5f);
-                        float d = at.DistanceTo(r.Center) / PixelsPerMeter;
-                        if (d < 4f || d > 10f || _player.Blocked(at.X, at.Y)) continue;
-                        // A clear view of the roost (the bats must see the player, at most one tile of rock between).
-                        int rock = RockOnLine(at, r.Center + new Vector2(0f, 6f));
-                        if (rock > maxRock) continue;
-                        float score = Mathf.Abs(d - 5f) + rock;
-                        if (score < bestScore) { bestScore = score; best = at; }
-                    }
-                if (best is not Vector2 spot) continue;
+                if (r.Bats.Count == 0 || BatSpot(r, 4f, 10f, maxRock, 8) is not Vector2 spot) continue;
                 _batTarget = r;
-                _player.Position = spot;
-                _player.Velocity = Vector2.Zero;
-                _camera.Position = spot;
-                _airCam.Snap(spot);
+                PutPlayer(spot);
                 _batPlacedAt = _elapsed;
                 GD.Print($"[bats] test: player placed {spot.DistanceTo(r.Center) / PixelsPerMeter:0.0} m from roost {r.Index} (x{r.Bats.Count}, tile ({r.X},{r.Y}), " +
                          $"{(r.X - mid) * 0.25f:0} m from the garage), rock on the line {RockOnLine(spot, r.Center + new Vector2(0f, 6f))} tiles, roosts tried {roosts.IndexOf(r) + 1} frame={Engine.GetFramesDrawn()}");
@@ -122,6 +104,21 @@ public partial class WorldScene
         if (_batTarget == null) return;
 
         Vector2 me = _player.Position;
+        // The cavern floor is often broken up, so the walker can stall short of the bats' reach. After 2.5 s
+        // the bot steps (as if it had walked) to a floor spot 2-2.7 m from the roost with a clear view, and the
+        // game's own sight check has to do the rest.
+        if (!_batTarget.Burst && !_batStepped && _elapsed - _batPlacedAt > 2.5f)
+        {
+            _batStepped = true;
+            if (BatSpot(_batTarget, 2f, 2.7f, 1, 6) is Vector2 step)
+            {
+                float was = me.DistanceTo(_batTarget.Center) / PixelsPerMeter;
+                PutPlayer(step);
+                me = step;
+                GD.Print($"[bats] test: no burst yet at {was:0.0} m; stepped to {step.DistanceTo(_batTarget.Center) / PixelsPerMeter:0.0} m frame={Engine.GetFramesDrawn()}");
+            }
+            else GD.Print($"[bats] test: no burst yet and no floor 2-2.7 m from the roost with a clear view; the walker keeps going frame={Engine.GetFramesDrawn()}");
+        }
         if (!_batTarget.Burst)
         {
             // Walk at the roost; jump when stuck; dig at whatever is between us after a few seconds.
@@ -154,6 +151,38 @@ public partial class WorldScene
         if (_elapsed >= _nextLog)
             GD.Print($"[bats] t={_elapsed:0}s burst={_batTarget.Burst} inAir={_bats.InAir} onScreen={onScreen} mostOnScreen={_batsMostOnScreen} player=({me.X / Ts:0.0},{me.Y / Ts:0.0}) " +
                      $"toRoost={me.DistanceTo(_batTarget.Center) / PixelsPerMeter:0.0}m echo={_echo:0.00} effectsWet={Settings.CaveEchoWet:0.00} frame={Engine.GetFramesDrawn()}");
+    }
+
+    /// <summary>
+    /// A cavern-floor standing spot for the bat test: <paramref name="minD"/>–<paramref name="maxD"/> m from the
+    /// roost, at most <paramref name="maxBelow"/> rows under its ceiling, with at most <paramref name="maxRock"/>
+    /// tiles of rock on the line to it. The spot nearest the middle of the range wins.
+    /// </summary>
+    private Vector2? BatSpot(Roost r, float minD, float maxD, int maxRock, int maxBelow)
+    {
+        Vector2? best = null;
+        float bestScore = float.MaxValue, mid = (minD + maxD) / 2f;
+        for (int x = r.X - 44; x <= r.X + 44; x++)
+            for (int y = r.Y + 3; y <= r.Y + maxBelow && y < TileWorld.Height - 3; y++)
+            {
+                if (_world.Solid(x, y) || _world.Solid(x, y - 1) || _world.Solid(x, y - 2) || !_world.Solid(x, y + 1)) continue;
+                var at = new Vector2((x + 0.5f) * Ts, (y + 1) * Ts - Player.HalfHeight - 0.5f);
+                float d = at.DistanceTo(r.Center) / PixelsPerMeter;
+                if (d < minD || d > maxD || _player.Blocked(at.X, at.Y)) continue;
+                int rock = RockOnLine(at, r.Center + new Vector2(0f, 6f));
+                if (rock > maxRock) continue;
+                float score = Mathf.Abs(d - mid) + rock;
+                if (score < bestScore) { bestScore = score; best = at; }
+            }
+        return best;
+    }
+
+    private void PutPlayer(Vector2 spot)
+    {
+        _player.Position = spot;
+        _player.Velocity = Vector2.Zero;
+        _camera.Position = spot;
+        _airCam.Snap(spot);
     }
 
     /// <summary>The part of the world the camera shows (world pixels).</summary>
