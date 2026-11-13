@@ -80,6 +80,11 @@ public sealed class TileWorld : ITerrainCollider, IMineable, ISurfaceInfo
     /// <summary>A tile changed (broken, placed or damaged): redraw it.</summary>
     public event Action<int, int> Changed;
 
+    /// <summary>Something drawn on a tile changed but the tile did not (a plant flattened or grown back): redraw it.</summary>
+    public event Action<int, int> LooksChanged;
+
+    public void NotifyLooksChanged(int x, int y) => LooksChanged?.Invoke(x, y);
+
     /// <summary>A tile was mined out. Arguments: x, y, what it was.</summary>
     public event Action<int, int, Tile> TileBroken;
 

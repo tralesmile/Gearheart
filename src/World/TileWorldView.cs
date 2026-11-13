@@ -24,12 +24,15 @@ public partial class TileWorldView : Node2D
     public override void _Ready()
     {
         World.Changed += OnTileChanged;
+        World.LooksChanged += OnLooksChanged;
         UpdateChunks();
     }
 
     public override void _ExitTree()
     {
-        if (World != null) World.Changed -= OnTileChanged;
+        if (World == null) return;
+        World.Changed -= OnTileChanged;
+        World.LooksChanged -= OnLooksChanged;
     }
 
     public override void _Process(double delta) => UpdateChunks();
@@ -70,6 +73,17 @@ public partial class TileWorldView : Node2D
         {
             _chunks[key].QueueFree();
             _chunks.Remove(key);
+        }
+    }
+
+    private void OnLooksChanged(int x, int y)
+    {
+        // Decorations are drawn by the chunk holding their ground tile, but a tall one can hang over the
+        // chunk boundary above it, so redraw that one too.
+        for (int dy = 0; dy >= -4; dy -= 4)
+        {
+            var key = (Mathf.FloorToInt(x / (float)TileChunk.Size), Mathf.FloorToInt((y + dy) / (float)TileChunk.Size));
+            if (_chunks.TryGetValue(key, out var chunk)) chunk.QueueRedraw();
         }
     }
 

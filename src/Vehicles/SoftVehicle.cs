@@ -412,6 +412,16 @@ public partial class SoftVehicle : Node2D, IVehicle
         }
     }
 
+    /// <summary>World centre and radius of every attached wheel.</summary>
+    public IEnumerable<(Vector2 Center, float Radius)> WheelCircles
+    {
+        get
+        {
+            foreach (var w in _wheels)
+                if (w.Attached) yield return (Pos[w.Hub] + Origin, w.Radius);
+        }
+    }
+
     /// <summary>True when at least one attached wheel has studs.</summary>
     public bool HasStuds => _wheels.Exists(w => w.Attached && w.FrozenGrip > 0f);
 

@@ -2,6 +2,44 @@
 
 Newest entry first. Each session: what was built and why, how it was verified, what is not verified, and what comes next.
 
+## 2026-11-13, about 10:27–11:40 UTC — Merged cave bats (PR #40), then roadside plants (PR #41, polish)
+
+**Started by** checking for unfinished work: PR #40 (cave bats and a cave echo) was open, its last run 43406759263 green. Its `[bats]` lines: 44 roosts and 155 bats placed (ceilings 13–32 m down); the test player stepped to 2.0 m of roost 7 (5 bats) and they burst (`cause=foot nearest=1.7m`), all 5 in the air and on screen, gone by 7.6 s after 29 wall bounces; `echo=1.00` in the Deep. `bats_6.png` shows the colony hanging top right, `bats_38.png` five bats streaming past the miner. Squash-merged (75cd344). The sessions that built it left no worklog entry of their own beyond the 09:23 note below; the PR body and `docs/DECISIONS.md` describe it.
+
+**Built — roadside plants** (`src/World/Flora.cs`, `src/Game/WorldScene.Plants.cs`; decor cells 12–16 in `tools/make_art.py`; `rustle` in `tools/make_sounds.py`)
+
+- The car flattens **bushes, flowers and grass tufts** (meadow), **cacti** (The Wastes) and new **snowy shrubs** (Frozen North, about 7% of snow columns). Each bursts into its own bits — leaves and berries, petals in four colours that drift down slowly, cactus chunks and pulp, snow — thrown up and back off the tyre and drawn over the wheels. A leafy rustle with twig snaps (pitched per plant); a cactus also thumps, shakes the camera a little and costs 3% speed.
+- What is left: a cactus stump with its arm lying beside it, broken twigs, stalks bent flat. Plants grow back after 2 minutes once 22 m out of sight. Not saved.
+- Plants flattened within 2.5 s of each other count: MOWER x3, x5, x10 and every 10th pops above the car. No loot and no score (see DECISIONS).
+- The decor choice moved from `TileChunk` to `Flora.DecorCell`, so drawing and the car agree; `TileWorld.LooksChanged` redraws a chunk without touching tiles. No save or world-generation change.
+- **CI**: `[plants]` census and one line per flattened plant (kind, biome, speed, chain); `plants=bush/flowers/cactus/shrub/tuft bestMow= mowPops= flatNow= regrown=` on `[autoplay]`; screenshots `plants_{world,left,rocket}_*.png` around the first three plants.
+
+**Why this** — Brainstorm in `docs/IDEAS.md` (thirty-second session). The last three sessions were features (way home, bats twice), so this was a polish-and-feel run. In `world_280.png` the car rolls through a cactus and nothing happens; the road past the gate is lined with bushes and flowers that ignore the car. Making the world notice the car is felt in the first 20 seconds of every drive, and costs one session.
+
+**CI runs**: 43410031396 (green), 43412685366 (green; bigger bits, milestone pops), and one for this log.
+
+**Verified (run 43410031396)**
+
+- Builds; every smoke scenario ran with no errors. Census within 200 m of the garage: 30 bushes, 57 flowers, 6 cacti, 13 snowy shrubs, 156 tufts.
+- **Starter drive east**: first flowers flattened at x=1311 at 25 km/h, bushes at 36–38 km/h; by the end `plants=12/24/3/0/42` (12 bushes, 24 flowers, 3 cacti, 42 tufts), 81 flat at once, chain up to 36. Cacti at 78–91 km/h (car in the air, no slow-down) and at 58 km/h on the ground (`-> 58 km/h`).
+- **Drive west to the Frozen North**: `plants=13/17/0/12/49` — 12 snowy shrubs flattened.
+- Deep, hook, vein and bat tests: census only, nothing flattened (on foot), as intended.
+- **Frames**: `plants_world_117.png` shows petals and leaves round the wheels and stubble behind; but in run 1 the bits were small and mostly hidden behind the tyres (`plants_world_113.png`), and the MOWER pops overlapped ("MOWER x3" on "MOWER x4") over the car. Run 2 doubles the bit size, throws them up and back over the wheels, and pops only at x3, x5, x10, x20 above the car.
+- **Run 2 (43412685366, green)**: the same plant counts in every scenario (starter east `plants=12/24/3/0/42`, chain 36, now `mowPops=6` instead of a pop per plant). `plants_world_117.png`, `plants_left_119.png` and `plants_rocket_110.png` show a spray of petals and leaves over and behind the wheels and one "MOWER x3" above the car; no errors.
+
+**Not verified / known issues**
+
+- Fun is my judgement (D1). I cannot hear the rustle (tuned by numbers only).
+- `regrown=0` in every run: no run is long enough to come back past a flattened plant after 2 minutes, so regrowth is untested in CI.
+- A cactus slows the car 3%, so Wastes runs end a little differently from main (by design).
+- Tufts are flattened silently with a small puff; with 156 of them that may still be busy at speed.
+
+**Next**
+
+1. Speed traps on the road (S, IDEAS #181), the top road idea for four sessions.
+2. Hit-stop on big hits (S, #199), then fences and snowmen as real smash targets (S, #197).
+3. Cave trip goals (S, #196) and the guano pocket under roosts (S, #192); then a first creature that bites (M, #65).
+
 ## 2026-11-13, 09:23–09:38 UTC — waited on PR #40, stopped (another session is driving it)
 
 Found PR #40 open; run 43398965672 finished green at 09:25 but its `[bats]` lines show no burst (player 4.0 m from roost 25, which is 3.4 m above the cavern floor, beyond the 3.2 m foot reach). Another session pushed bd70612 at 09:26 and started run 43401407653, still running after 10 minutes, so I changed nothing else and stopped. Note for whoever finishes it: with "only on screen" plus a 3.5 m round reach, a colony over a cavern floor more than about 3 m down can never see a walker (the foot view is only about ±2.3 m tall), so in tall caverns only digging or a honk sets them off. An ellipse (3.2–3.5 m sideways, about 4.8 m up) and bats that swoop down to the startler's height for the first 1.5 s would fix that; I have that change written but did not push it to avoid colliding.

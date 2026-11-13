@@ -116,7 +116,10 @@ public partial class TileChunk : Node2D
         }
     }
 
-    /// <summary>Trees, plants and rocks standing on untouched surface tiles. Purely for looks.</summary>
+    /// <summary>
+    /// Trees, plants and rocks standing on untouched surface tiles (see <see cref="Flora.DecorCell"/>); a plant
+    /// the car has flattened shows its stump or stubble until it grows back.
+    /// </summary>
     private void DrawDecorations()
     {
         Texture2D decor = Art.Decor;
@@ -125,32 +128,12 @@ public partial class TileChunk : Node2D
         {
             int tx = ChunkX * Size + i;
             if (tx >= TileWorld.Width) break;
-            if (tx > TileWorld.PadFrom - 3 && tx < TileWorld.PadTo + 3) continue;
 
             int sy = World.SurfaceRow(tx);
             if (sy < ChunkY * Size || sy >= (ChunkY + 1) * Size) continue;
-            Tile ground = World.Get(tx, sy);
-            if (World.Solid(tx, sy - 1) || World.TopCut(tx, sy, -1) || World.TopCut(tx, sy, 1)) continue;
-
-            // Kickers: a warning sign on the run-up (arrow in the direction of the jump), nothing on the ramp itself.
-            int sign = -1;
-            if (World.KickerNear(tx, 6) is Kicker k)
-            {
-                if (tx != k.SignColumn) continue;
-                sign = k.Dir > 0 ? Art.DecorKickerRight : Art.DecorKickerLeft;
-            }
-
-            int roll = Hash(tx, 7777) % 100;
-            bool treeSpot = tx % 4 == 0;
-            int cell = ground switch
-            {
-                Tile.Grass => treeSpot && roll < 22 ? 0 : roll < 8 ? 3 : roll < 20 ? 4 : roll < 55 ? 5 : -1,
-                Tile.Sand => treeSpot && roll < 16 ? 2 : roll < 5 ? 6 : -1,
-                Tile.Snow => treeSpot && roll < 24 ? 1 : roll < 6 ? 7 : -1,
-                _ => -1,
-            };
-            if (sign >= 0) cell = sign;
+            int cell = Flora.DecorCell(World, tx);
             if (cell < 0) continue;
+            if (Flora.Flattened(World, tx)) cell = Flora.StubbleCell(cell);
 
             var at = new Vector2(i * ts + ts / 2f - Art.DecorWidth / 2f, (sy - ChunkY * Size) * ts - Art.DecorHeight + 1f);
             DrawTextureRectRegion(decor, new Rect2(at, new Vector2(Art.DecorWidth, Art.DecorHeight)),

@@ -2,6 +2,13 @@
 
 Newest first. One entry per big decision: what, why, and what would make us revisit it.
 
+## 2026-11-13 — Roadside plants are feel, not loot
+
+- **What:** bushes, flowers and grass tufts (meadow), cacti (The Wastes) and snowy shrubs (Frozen North, new: about 7% of snow columns) are flattened when the car (moving 4 km/h or more) touches them; they burst into leaves, petals, chunks or snow with a rustle, leave a stump or stubble, and grow back after 120 s once 22 m+ out of sight. A cactus costs 3% speed and a little camera shake. Plants flattened within 2.5 s of each other chain into a MOWER count, popped at x3, x5, x10 and every 10th after (a pop per plant was a smear of overlapping text in the first run's frames: the meadow has a plant every few metres). Trees and rocks are not touched. On foot nothing happens.
+- **Why no loot and no smash streak:** plants are everywhere (over half the meadow columns have one), so any reward would turn the road into a farm and swamp the scrap heaps, which are the road's real targets; feeding the heap streak would also change the trip goals and the bot's numbers. The point is that the world notices the car.
+- **Not saved, no world change:** decorations come from a hash of the column, so there is no save version bump. The decor logic moved from `TileChunk` into `Flora.DecorCell` so drawing and the car agree.
+- **Revisit when:** players want plants to pay (then a small chance of a seed or scrap), or fences and snowmen (#197) arrive as real smash targets.
+
 ## 2026-11-13 — Cave bats need to see you; the echo is not a setting
 
 - **What:** bats roost in groups of 3–6 (a roost needs room for 3) on Deep cavern ceilings that have at least four rows of open air under them, found from the tiles when the world scene starts (no save change, so dug-out caves change where they are on the next load). They burst when the player (3.5 m) or the car (5 m) is within reach (an ellipse 1.4x as tall when they look down) **and the roost is across the screen** (24 px in from the side and bottom edges; above the top edge is allowed, and the bats then dive down to your height for their first second), so you either see them hanging or see them pour into view **with at most one tile of rock in between**, when a tile breaks within 3 m (pickaxe or drill), on a honk within 12 m, or when their ceiling is dug away. They are harmless and live for the game session like the birds; a roost comes back 90 s later once you are 28 m+ away.

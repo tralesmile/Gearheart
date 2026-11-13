@@ -29,6 +29,9 @@ public static class Art
 
     /// <summary>Decor cells of the long-jump record flag, flying right (east) or left (west).</summary>
     public const int DecorRecordFlagRight = 10, DecorRecordFlagLeft = 11;
+
+    /// <summary>Decor cells of what the car leaves of a plant, and the Frozen North's snowy shrub.</summary>
+    public const int DecorCactusStump = 12, DecorBushStubble = 13, DecorFlatStalks = 14, DecorSnowShrub = 15, DecorSnowStubble = 16;
     public const int PartSize = 22;
     public const int WheelCell = 56;
 
