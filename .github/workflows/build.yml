@@ -68,6 +68,7 @@ jobs:
             grep "\[home\]" smoke.log | head -24
             grep "\[hop\]" smoke.log | head -60
             grep "\[bats\]" smoke.log | head -24
+            grep "\[plants\]" smoke.log | head -14
             # "resources still in use at exit" is a shutdown notice about cached textures and sounds, not a fault.
             if grep -E "ERROR|Unhandled exception|SCRIPT ERROR|System\.[A-Za-z]*Exception" smoke.log | grep -v "still in use at exit" | grep .; then
               echo "::error::Smoke test failed: $name"
@@ -280,6 +281,15 @@ jobs:
               done
             done
             grep "\[birds\]" shots/$run.log | head -10
+          done
+          # Roadside plants: the first bushes, flowers and cacti the car runs over (just before, the burst, the stubble left).
+          for run in world left rocket; do
+            grep -E "\[plants\] flattened (bush|flowers|cactus|snowshrub)" shots/$run.log | head -3 | sed -E 's/.*frame=([0-9]+).*/\1/' | while read n; do
+              for d in -1 1 5; do
+                f=$(printf "shots/$run/f%08d.png" $((n + d))); [ -f "$f" ] && cp "$f" keep/plants_${run}_$((n + d)).png
+              done
+            done
+            grep "\[plants\]" shots/$run.log | head -8
           done
           # Dust devils: a midday drive east into The Wastes; frames as the car meets a devil, in it, thrown, and down.
           mkdir -p shots/devil

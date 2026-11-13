@@ -607,6 +607,22 @@ def squeak():
     return s
 
 
+def rustle():
+    """A car ploughing through a bush: a leafy swish (noise with its body around 2-5 kHz, swelling fast
+    and dying over 0.35 s) with a few twig snaps in it. Own random stream, so no other sound changes."""
+    r = np.random.default_rng(1212)
+    n = int(SR * 0.4); t = np.arange(n) / SR
+    noise = r.standard_normal(n)
+    band = lowpass(noise, 3) - lowpass(noise, 9)                     # rough band-pass: drop the lows and the hiss
+    env = (1 - np.exp(-t * 90)) * np.exp(-t * 9)
+    leaves = band * (0.6 + 0.4 * (r.random(n) < 0.3)) * env          # grainy, like many leaves
+    s = leaves / (np.max(np.abs(leaves)) + 1e-9)
+    for t0, g in ((0.015, 0.9), (0.06, 0.6), (0.13, 0.45), (0.21, 0.3)):   # twigs snapping
+        k = int(t0 * SR); m = int(0.012 * SR)
+        s[k:k + m] += g * r.standard_normal(m) * np.exp(-np.arange(m) / SR * 400)
+    return s
+
+
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
     save("engine", engine(), 0.7)
@@ -647,4 +663,5 @@ if __name__ == "__main__":
     save("ready", tail_fade(ready(), 120), 0.55)
     save("lucky", tail_fade(lucky(), 80), 0.55)
     save("squeak", tail_fade(squeak(), 20), 0.4)   # deterministic: uses no random stream
+    save("rustle", tail_fade(rustle(), 40), 0.5)   # own random stream
     print("sounds written to", os.path.abspath(OUT))

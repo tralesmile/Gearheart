@@ -744,12 +744,60 @@ def decor_record_flag():
     return outline(img)
 
 
+def decor_cactus_stump(rng):
+    """What a car leaves of a cactus: the bottom of the trunk, snapped off in a jagged, pale wet break,
+    with a chunk lying beside it."""
+    img = Image.new("RGBA", (DW, DH), (0, 0, 0, 0)); d = ImageDraw.Draw(img)
+    g, gl, gd, pulp = (70, 150, 84), (104, 184, 110), (48, 112, 62), (196, 222, 160)
+    d.polygon([(20, DH - 1), (20, DH - 9), (22, DH - 11), (23, DH - 8), (25, DH - 12), (27, DH - 9), (27, DH - 1)], fill=g)
+    d.rectangle([20, DH - 8, 21, DH - 1], fill=gd); d.line([(25, DH - 8), (25, DH - 3)], fill=gl)
+    d.line([(21, DH - 9), (26, DH - 10)], fill=pulp)                                   # the break
+    d.polygon([(30, DH - 1), (32, DH - 5), (38, DH - 4), (39, DH - 1)], fill=g)          # a lopped arm lying down
+    d.line([(32, DH - 4), (37, DH - 3)], fill=gl); d.point((31, DH - 3), fill=pulp)
+    return outline(img)
+
+
+def decor_bush_stubble(rng, leaf=((58, 130, 52), (72, 150, 60), (48, 112, 46)), twig=(104, 78, 52)):
+    """A bush the car went through: broken twigs sticking up and a few leaves left lying flat."""
+    img = Image.new("RGBA", (DW, DH), (0, 0, 0, 0)); d = ImageDraw.Draw(img)
+    for x0, x1, h in ((18, 16, 6), (22, 23, 8), (26, 28, 5), (30, 33, 7)):
+        d.line([(x0, DH - 1), (x1, DH - h)], fill=twig)
+    for _ in range(9):
+        x = rng.randrange(13, 36)
+        d.rectangle([x, DH - 2, x + 2, DH - 1], fill=rng.choice(leaf))
+    return outline(img)
+
+
+def decor_flat_stalks(rng):
+    """Flowers or a grass tuft run over: stalks bent flat along the ground, a petal or two left."""
+    img = Image.new("RGBA", (DW, DH), (0, 0, 0, 0)); d = ImageDraw.Draw(img)
+    for x in range(14, 34, 3):
+        d.line([(x, DH - 1), (x + rng.choice([4, 5, 6]), DH - rng.choice([1, 2]))], fill=rng.choice(GRASS))
+    for x, c in ((20, (250, 220, 80)), (29, (240, 110, 150))):
+        d.point((x, DH - 2), fill=c)
+    return img
+
+
+def decor_snow_shrub(rng):
+    """A low frosted shrub of the Frozen North: dark green twigs heaped with snow."""
+    img = Image.new("RGBA", (DW, DH), (0, 0, 0, 0)); d = ImageDraw.Draw(img)
+    blob(d, 24, DH - 8, 10, [(40, 96, 72), (52, 110, 82), (34, 82, 62)], rng, 20)
+    for x0, y0, x1, y1 in ((15, DH - 12, 21, DH - 15), (21, DH - 15, 29, DH - 16), (28, DH - 14, 33, DH - 11)):   # snow lying on top
+        d.line([(x0, y0), (x1, y1)], fill=(240, 246, 252), width=3)
+    for x, y in ((18, DH - 8), (27, DH - 9), (31, DH - 6)): d.point((x, y), fill=(250, 252, 255))
+    return outline(img)
+
+
 def make_decor():
     rng = random.Random(99)
     sign = decor_kicker_sign(rng)
     flag = decor_record_flag()
     cells = [decor_oak(rng), decor_pine(rng), decor_cactus(rng), decor_bush(rng), decor_flowers(rng), decor_grass(rng), decor_desert_rock(rng), decor_snow_rock(rng),
              sign, sign.transpose(Image.FLIP_LEFT_RIGHT), flag, flag.transpose(Image.FLIP_LEFT_RIGHT)]
+    # Roadside plants the car flattens, and what it leaves of them (own random stream: the cells above are unchanged).
+    flat = random.Random(1212)
+    cells += [decor_cactus_stump(flat), decor_bush_stubble(flat), decor_flat_stalks(flat), decor_snow_shrub(flat),
+              decor_bush_stubble(flat, leaf=((240, 246, 252), (220, 232, 244), (40, 96, 72)), twig=(70, 60, 50))]
     sheet = Image.new("RGBA", (DW * len(cells), DH), (0, 0, 0, 0))
     for i, c in enumerate(cells):
         sheet.paste(c, (i * DW, 0))
