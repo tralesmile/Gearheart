@@ -552,6 +552,24 @@ def hop():
     return s
 
 
+def ready():
+    """A part is ready to build: three quick ratchet clicks of a wrench, then two anvil-bright bell
+    strikes a fifth apart (C6, then G6, held). About 1 s. Deterministic: uses no random stream, so
+    every older sound stays byte-identical."""
+    n = int(SR * 1.05); t = np.arange(n) / SR
+    s = np.zeros(n)
+    for k, at in enumerate((0.0, 0.07, 0.14)):                      # ratchet: tiny metallic ticks
+        i = int(SR * at); tt = t[: n - i]
+        tick = np.sin(2 * np.pi * (3100 + 300 * k) * tt) * np.exp(-tt * 260) + 0.5 * np.sin(2 * np.pi * 1450 * tt) * np.exp(-tt * 180)
+        s[i:] += 0.45 * tick
+    for at, f, hold in ((0.24, 1046.5, 7.0), (0.42, 1568.0, 3.2)):   # ding ... DING
+        i = int(SR * at); tt = t[: n - i]
+        bell = (np.sin(2 * np.pi * f * tt) + 0.5 * np.sin(2 * np.pi * f * 2.0 * tt) * np.exp(-tt * 6)
+                + 0.3 * np.sin(2 * np.pi * f * 2.76 * tt) * np.exp(-tt * 12) + 0.15 * np.sin(2 * np.pi * f * 5.4 * tt) * np.exp(-tt * 25))
+        s[i:] += bell * np.exp(-tt * hold) * (1 - np.exp(-tt * 3000))
+    return s
+
+
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
     save("engine", engine(), 0.7)
@@ -589,4 +607,5 @@ if __name__ == "__main__":
     save("clank", tail_fade(clank(), 40), 0.6)
     save("vein", tail_fade(vein(), 30), 0.5)
     save("hop", tail_fade(hop(), 50), 0.65)
+    save("ready", tail_fade(ready(), 120), 0.55)
     print("sounds written to", os.path.abspath(OUT))

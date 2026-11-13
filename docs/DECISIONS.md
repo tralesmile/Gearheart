@@ -2,6 +2,14 @@
 
 Newest first. One entry per big decision: what, why, and what would make us revisit it.
 
+## 2026-11-13 — Next part card: the game picks your next upgrade, from data
+
+- **What:** a card above the inventory bar shows one upgrade and what it still takes, counted against what the bar shows (ore in the air does not count until it lands). Parts opt in with `goalTier` in `data/parts/parts.json` (1 Drill Head, Off-road Wheel; 2 Rocket Booster, Turbocharger, Spiked Tyre, V8, Hydraulics; 3 Crystal Drill). The cost is the change to the car you drive: wheels as a full set (old tyres refunded), engine and drill as a swap, other parts as one more block. A part the car has, or one beaten by a same-kind part of the same or higher tier, is skipped.
+- **Which one:** a ready part first (the highest tier); otherwise the best progress minus 0.2 per tier above 1, so a new player is pointed at the Drill Head and Off-road Wheels before copper parts; the shown part only changes when another is at least 0.1 closer (no flicker).
+- **Why:** the ore you carry had no purpose until you opened the garage. Keeping the next upgrade in sight (Hill Climb's upgrade costs, Terraria's crafting list lighting up) turns every ore into progress, and the moment the last one lands is a reason to drive home.
+- **Not done yet:** you cannot choose the target (pin a part at the garage, IDEAS #161); the card does not say where the missing ore is (#160).
+- **Revisit when:** you have played (D1). If the game's choice feels wrong, pinning comes next; if the card is clutter while driving, it can hide above some speed.
+
 ## 2026-11-13 — Hydraulics: a hop on a button, charged by squatting
 
 - **What:** a new block part, Hydraulics (3 Iron + 2 Copper, mass 0.35), placed anywhere in the body. Hold W / Up / gamepad B: the body is pulled down onto its springs (1100 px/s² times the charge) and the charge fills in 0.5 s (`HopChargeTime`). Let go with a wheel on the ground: every node gets the same upward speed, 270 px/s for a tap up to 560 px/s at full charge (`hopTapSpeed` / `hopSpeed` in parts.json), along 75% the car's own up and 25% straight up; any sinking is cancelled first so every hop starts from the same footing. A release in the air is kept for 0.25 s and fires on touchdown. One hop, then 0.7 s recharge; 0.6 fuel per hop. W was free in the car (it is jump on foot), B was free on a gamepad.

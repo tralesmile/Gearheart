@@ -62,6 +62,7 @@ jobs:
             grep "\[hook\]" smoke.log | head -40
             grep "\[vein\]" smoke.log | head -40
             grep "\[flyhome\]" smoke.log | head -30
+            grep "\[nextpart\]" smoke.log | head -20
             grep "\[hop\]" smoke.log | head -60
             # "resources still in use at exit" is a shutdown notice about cached textures and sounds, not a fault.
             if grep -E "ERROR|Unhandled exception|SCRIPT ERROR|System\.[A-Za-z]*Exception" smoke.log | grep -v "still in use at exit" | grep .; then
@@ -303,7 +304,7 @@ jobs:
           grep "\[hook\]" shots/hook.log | head -30
           # Vein run: frames just after each ore of the buried vein breaks (pops, VEIN xN, the bonus, sparkles).
           mkdir -p shots/vein
-          xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/vein/f.png --quit-after 180 res://scenes/world.tscn -- --fresh --autoplay --veintest --design=starter > shots/vein.log 2>&1 || true
+          xvfb-run -a godot --path . --rendering-driver opengl3 --fixed-fps 10 --write-movie shots/vein/f.png --quit-after 300 res://scenes/world.tscn -- --fresh --autoplay --veintest --design=starter > shots/vein.log 2>&1 || true
           grep "\[vein\] Iron at" shots/vein.log | head -8 | sed -E 's/.*frame=([0-9]+).*/\1/' | while read n; do
             f=$(printf "shots/vein/f%08d.png" $((n + 2))); [ -f "$f" ] && cp "$f" keep/vein_$((n + 2)).png
           done
@@ -315,6 +316,16 @@ jobs:
             done
           done
           grep "\[flyhome\]" shots/vein.log | head -20
+          # Next part: the card above the bar early in the run, then the moment it turns READY (call-out, gold card).
+          for i in 20 60; do
+            f=$(printf "shots/vein/f%08d.png" $i); [ -f "$f" ] && cp "$f" keep/nextpart_$i.png
+          done
+          grep "\[nextpart\] READY" shots/vein.log | head -1 | sed -E 's/.*frame=([0-9]+).*/\1/' | while read n; do
+            for d in 2 8 20; do
+              f=$(printf "shots/vein/f%08d.png" $((n + d))); [ -f "$f" ] && cp "$f" keep/nextpart_ready_$((n + d)).png
+            done
+          done
+          grep "\[nextpart\]" shots/vein.log | head -20
           # Crash frames: the frame of each of the first hits (from "[crash] ... frame=N") and the next two.
           for run in crash rocket; do
             grep "\[crash\] hit" shots/$run.log | head -4 | sed -E 's/.*frame=([0-9]+).*/\1/' | while read n; do

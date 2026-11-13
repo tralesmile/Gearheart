@@ -64,7 +64,7 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 54 | Engine sounds per engine part + gear-change whine (the drive's soundscape is one loop) | S | **Built 2026-11-12** (PR #19: a loop per engine, a pretend gearbox with shifts, exhaust pops, starter crank, gear + rev bar on the dashboard) |
 | 55 | Night falls on long trips: the sky darkens after a few minutes away, headlights matter, glowing ore and stash glints shine | M | **Built 2026-11-12** as #114 (PR #27) |
 | 56 | Lava seam deep underground (below ~30 m): glowing orange rock that heats and damages the car, with a rich ore reward behind it | M | Open (new 2026-11-12; roadmap deep underground, first danger) |
-| 57 | Garage "next part" card: when you come back, the report ends with "2 Iron short of Spiked Tyres" | S | Open (new 2026-11-12; folds #42 into the trip report, the one-more-trip nudge) |
+| 57 | Garage "next part" card: when you come back, the report ends with "2 Iron short of Spiked Tyres" | S | **Built 2026-11-13** in another form with #150: the card is on the HUD all the time, not only on the report |
 | 58 | Trip goal "Beat a kicker record" / "Jump 8 m off a kicker" | S | Open (new 2026-11-12, tenth session; ties the flags into trips; shifts the bot's goal order) |
 | 59 | Slow-motion beat: 0.3 s at 0.6x speed at the peak of a big jump or a new record, with a camera nudge | S | Open (new 2026-11-12; makes the best moment of a trip feel like one) |
 | 60 | Record ghost: a faint dotted arc of your record jump past each kicker, so you can see the line to beat | S–M | Open (new 2026-11-12; Trials' ghost, per kicker) |
@@ -157,7 +157,7 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 147 | Best vein on the trip report and a "Mine a VEIN x5" trip goal | S | Open (new 2026-11-12; ties the on-foot combo to the car's trip loop; the goal shifts the bot's goal order) |
 | 148 | Lava floor: the world ends at ~48 m in a flat dark bedrock band (see `deep_120.png`); make the last rows a glowing lava sea with heat shimmer | M | Open (new 2026-11-12; folds #23/#56; the bottom of the world looks unfinished) |
 | 149 | Haul tally at the garage: parking with ore aboard tips the trip's haul into a bin with a counting tick per piece, then the total ("HAUL: 14 Iron, 3 Copper") | S | Open (new 2026-11-12, twenty-fourth session; the payoff moment at the end of a trip, Hill Climb's coin count) |
-| 150 | Recipe nudge: when a slot reaches what a part you have not built needs, the slot glows and says "Rocket Booster ready at the garage" | S | Open (new 2026-11-12; turns a number into a goal, "one more ore" pull) |
+| 150 | Recipe nudge: when a slot reaches what a part you have not built needs, the slot glows and says "Rocket Booster ready at the garage" | S | **Built 2026-11-13** as a "next part" card above the bar (PR #35: the closest upgrade with Iron 2/4-style counts and a progress bar that move as ore lands; gold READY card, call-out and a chime when the last ore lands; folds #57) |
 | 151 | Lucky strike: about 1 ore tile in 60 is a gleaming variant that pays 3x with a flash, a chime and a bigger flight home | S | Open (new 2026-11-12; a slot-machine jackpot inside ordinary mining) |
 | 152 | Cave-ins: mining out stone under a wide unsupported ceiling in the Deep sometimes drops a few loose rocks after a rumble and a dust trickle warning | M | Open (new 2026-11-12; first danger underground, read the warning and jump clear) |
 | 153 | Ore voices: each ore lands in its slot with its own tick (scrap clatters, iron clinks, copper rings, crystal chimes) | S | Open (new 2026-11-12; you hear what you got without looking) |
@@ -167,7 +167,32 @@ Sizes: **S** = one session, **M** = two or three sessions, **L** = needs to be s
 | 157 | Hop height pole by the garage: a striped pole with your best hop marked, like the kicker flags | S | Open (new 2026-11-13; a record you can see, one more hop) |
 | 158 | Night eyes: glowing eyes in The Wastes at night that follow the car from the dark and scatter in the headlights | S–M | Open (new 2026-11-13; folds #118; first creature without health or combat) |
 | 159 | Garage radio: a tiny procedural tune per biome that plays at the garage and fades out on the road | M | Open (new 2026-11-13; the game has no music at all) |
+| 160 | Where to find it: the next-part card names where its missing ore lives ("Copper: The Wastes, east") | S | Open (new 2026-11-13, twenty-sixth session; top pick next: new players do not know where copper is) |
+| 161 | Pin a part at the garage: click a part to make it the next-part card's target | S | Open (new 2026-11-13; your goal, not the game's guess) |
+| 162 | Homeward arrow: a part is ready and the garage is off screen → a gold arrow at the screen edge with the distance | S | Open (new 2026-11-13; "ready" becomes "drive back now") |
+| 163 | Goal-aware trip goals: "Bring home 3 Copper (Turbocharger)" when that is what your next part lacks | S | Open (new 2026-11-13; ties trips to building; shifts the bot's goal order) |
+| 164 | Ore magnet part (Iron + Copper): heap scrap and fuel cans within 3 m are pulled into the car | S–M | Open (new 2026-11-13; a part you feel on every road) |
+| 165 | Garage "afford" glow: parts you can build now glow in the garage palette, the card's part first | S | Open (new 2026-11-13; folds #42) |
+| 166 | Roll-out moment: first drive with a new part opens with "NEW: Rocket Booster — Shift to fire" and the camera on the part | S | Open (new 2026-11-13; folds #112; teaches the key) |
 | 29 | Speedometer redline overdrive: holding the needle in the red for 3 s with the booster unlocks a "SONIC" call-out and a sonic-boom puff | S | Open (new 2026-11-12, cheap thrill) |
+
+## 2026-11-13 (twenty-sixth session — a reason to go home)
+
+Started by checking PR #33 (hydraulics): its build was green and the `[hop]` lines matched the PR (a tap 0.65 m, a full squat 1.82 m, kicker hops 2.6–3.9 m), every 40 s position equal to main, and `hop_87.png` shows the KICKER HOP! call-out. The session that opened it was still running (it merged main into the branch at 01:26 and started another run), so I left the merge to it and built on top.
+
+Looked as a player. The last three sessions made mining loud (vein runs), made collecting visible (ore flies home) and gave the car a new move (hydraulics). But nothing says what the ore is *for* while you are out there. You carry 6 Iron and do not know you are two Scrap short of Off-road Wheels; the only place that tells you is the garage screen, which you open after the trip. The most boring minute is the one where you dig without a target. Hill Climb Racing and Terraria both keep the next upgrade in sight ("Engine: 2 400 more coins", the crafting menu lighting up when you pick up the last bar). So: a card above the bar with the closest upgrade, counting with the bar, turning gold with a chime when the last ore lands.
+
+| # | Idea | Why it would be fun | Size |
+| --- | --- | --- | --- |
+| 160 | Where to find it: the next-part card names where its missing ore lives ("Copper: The Wastes, east") the first time a material is missing | New players do not know copper is 95 m east; a pointer turns "I can't build anything" into a trip | S |
+| 161 | Pin a part at the garage: click any part in the garage to make it the card's target | Your goal, not the game's guess; Terraria players plan a build | S |
+| 162 | Homeward arrow: when a part is ready and the garage is off screen, a small gold arrow at the screen edge points home with the distance | Closes the loop: "ready" becomes "drive back now", the most exciting drive home | S |
+| 163 | Goal-aware trip goals: the trip goal sometimes asks for the ore your next part lacks ("Bring home 3 Copper: Turbocharger") | Ties the trip loop to the build loop; one goal, two rewards | S (shifts the bot's goal order) |
+| 164 | Ore magnet part (Iron + Copper): smashed heap scrap and fuel cans within 3 m get pulled into the car | A part you feel on every road; makes smashing at speed pay | S–M |
+| 165 | Garage "afford" glow: parts you can build now glow in the garage palette, the card's part first | The first second in the garage answers "what can I build?"; folds #42 | S |
+| 166 | Roll-out moment: the first drive after building a new part starts with a short "NEW: Rocket Booster — Shift to fire" banner and the camera on the part | Earning a part becomes an event and teaches its key; folds #112 | S |
+
+**Top open picks now, by fun for the effort**: 162 homeward arrow (S, finishes today's loop), 154 hop stomp (S), 160 where to find it (S), 165 garage afford glow (S), 151 lucky strike (S), 163 goal-aware trip goals (S), then a first creature (158 night eyes or 65 crystal mites, M). Built today: 150 (with 57) as the next-part card.
 
 ## 2026-11-13 (twenty-fifth session — a part that changes how the car moves)
 
